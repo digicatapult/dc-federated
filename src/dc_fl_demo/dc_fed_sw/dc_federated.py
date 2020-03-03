@@ -2,10 +2,12 @@ import io
 
 import requests
 import json
+import pickle
 
 import bottle
 from bottle import Bottle, run, request, static_file
 
+from dc_fl_demo.utils import get_host_ip
 
 REGISTER_WORKER_ROUTE = 'register_worker'  
 RETURN_GLOBAL_MODEL_ROUTE = 'return_global_model'
@@ -20,37 +22,43 @@ class DCFServer(object):
     Parameters
     ----------
 
-        server_host_ip: str
-            The ip-address of the host of the server.
-    
-        server_port: int
-            The port at which the serer should listen to
-    
-        register_worker_callback: () -> int
+        register_worker_callback:
             Callback for registering a client with the server.
 
         return_global_model_callback: () -> bit-string
-            The call back function for returning the current global model.
+            The call back function for returning the current global model to a worker.
+
     
         query_global_model_status_callback:  () -> str
-            The last time the global model was updated
+            A function that returns the current status of the global model. This is
+            application dependent.
         
         receive_worker_update_callback: dict -> bool
             The call-back for receiving an update from a client.
             The client should issue a POST using a dict containing the unique client id and 
-            the model id. 
+            the model id.
+
+        server_host_ip: str (default None)
+            The ip-address of the host of the server. If None, then it
+            uses the ip-address of the current machine.
+
+        server_port: int (default 8080)
+            The port at which the serer should listen to. If None, then it
+            uses the port 8080.
+
+
     """
     def __init__(
         self, 
-        server_host_ip,
-        server_port,
         register_worker_callback,
         return_global_model_callback,
         query_global_model_status_callback,
         receive_worker_update_callback,
-        debug=False):
+        server_host_ip=None,
+        server_port=8080,
+            debug=False):
 
-        self.server_host_ip = server_host_ip
+        self.server_host_ip = get_host_ip() if server_host_ip is None else server_host_ip
         self.server_port = server_port
 
         self.register_worker_callback = register_worker_callback
@@ -81,9 +89,22 @@ class DCFServer(object):
 
     def receive_worker_update(self):
         """
-        This receives the update from a worker and calls the corresponding callback function.             
+        This receives the update from a worker and calls the corresponding callback function.
+        Expects that the worker_id and model-update were sent using the DCFWorker.send_model_update()
+
+        Returns
+        -------
+
+        str:
+            If the update was successful then "Worker update received"
+            Otherwise any exception that was raised.
         """
-        return json.load(io.BytesIO(self.receive_worker_update_callback(request.body)))
+        try:
+            data_dict = pickle.load(request.files['id_and_model'].file)
+            self.receive_worker_update_callback(data_dict)
+            return "Worker update received"
+        except Exception as e:
+            return str(e)
 
     def enable_cors(self):
         """
@@ -176,10 +197,12 @@ class DCFWorker(object):
         model_update: binary string
             The model update to send to the server.
         """
+        data_dict = {
+            'worker_id': self.worker_id,
+            'model_update': model_update
+        }
 
         return requests.post(
             f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}",
-            data={
-                "worker_id": self.worker_id,
-                "model_update": model_update}
-            ) 
+            files={"id_and_model": pickle.dumps(data_dict)}
+        )

@@ -15,3 +15,8 @@
 # numpy==1.13.3
 # scipy==1.0
 #
+
+pytorch
+bottle
+requests
+
