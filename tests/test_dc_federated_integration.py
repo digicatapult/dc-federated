@@ -8,10 +8,8 @@ from multiprocessing import Process
 import time
 import torch
 
+
 from dc_fl_demo.example_dcf_model import ExampleGlobalModel, ExampleLocalModel, ExampleModelClass
-
-
-
 
 
 def test_example():
@@ -54,14 +52,16 @@ def test_example():
                                     elm_local_model.parameters()):
         assert torch.all(torch.eq(param_egm.data, param_elm.data))
 
-    print("All tensors are equal - test passed.")
+    for param_egm, param_elm in zip(egm_local_model.parameters(),
+                                    egm_global_model.parameters()):
+        assert not torch.all(torch.eq(param_egm.data, param_elm.data))
+
+    print("All tensors are equal and the local and global models are different - tests passed.")
     print("Cleaning up.")
     os.remove('egm_global_model.torch')
     os.remove('egm_worker_update_0.torch')
     os.remove('elm_global_model.torch')
     os.remove('elm_worker_update_0.torch')
-
-
 
 
 if __name__ == '__main__':
