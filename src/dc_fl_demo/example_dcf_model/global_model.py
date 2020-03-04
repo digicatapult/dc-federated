@@ -4,7 +4,7 @@ from datetime import datetime
 import torch
 
 from dc_fl_demo.example_dcf_model.torch_nn_class import ExampleModelClass
-from dc_fl_demo.dc_fed_sw.dc_federated import DCFServer
+from dc_fl_demo.dc_fed_sw import DCFServer
 
 
 class ExampleGlobalModel(object):
@@ -16,6 +16,9 @@ class ExampleGlobalModel(object):
     def __init__(self):
         self.worker_updates = {}
         self.global_model = ExampleModelClass()
+        with open("egm_global_model.torch", 'wb') as f:
+            torch.save(self.global_model, f)
+
         self.global_model_status = str(datetime(2018, 10, 10))
 
         self.server = DCFServer(
@@ -24,8 +27,6 @@ class ExampleGlobalModel(object):
             self.return_global_model_status,
             self.receive_worker_update
         )
-
-        self.server.start_server()
 
     def register_worker(self, worker_id):
         """
@@ -37,6 +38,7 @@ class ExampleGlobalModel(object):
         worker_id: int
             The id of the new worker.
         """
+        print(f"Example Global Model: Registering worker {worker_id}")
         self.worker_updates[worker_id] = None
 
     def return_global_model(self):
@@ -49,9 +51,10 @@ class ExampleGlobalModel(object):
         byte-stream:
             The current global torch model.
         """
+        print(f"Example Global Model: returning global model")
         model_data = io.BytesIO()
         torch.save(self.global_model, model_data)
-        return model_data.read()
+        return model_data.getvalue()
 
     def return_global_model_status(self):
         """
@@ -63,6 +66,7 @@ class ExampleGlobalModel(object):
         str:
             String format of the last model update time.
         """
+        print(f"Example Global Model: returning global model status")
         return self.global_model_status
 
     def receive_worker_update(self, worker_id, model_update):
@@ -75,11 +79,15 @@ class ExampleGlobalModel(object):
         str:
             String format of the last model update time.
         """
-
         if worker_id in self.worker_updates:
-            self.worker_updates[worker_id] = model_update
+            self.worker_updates[worker_id] = \
+                torch.load(io.BytesIO(model_update))
+            print(f"Model update received from worker {worker_id}")
+            print(self.worker_updates[worker_id])
+            with open(f"egm_worker_update_{worker_id}.torch", 'wb') as f:
+                torch.save(self.worker_updates[worker_id], f)
         else:
             raise ValueError("Unregistered Worker tried to send and update!!")
 
-
-
+    def start(self):
+        self.server.start_server()

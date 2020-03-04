@@ -6,7 +6,7 @@ import torch
 
 from dc_fl_demo.utils import get_host_ip
 from dc_fl_demo.example_dcf_model.torch_nn_class import ExampleModelClass
-from dc_fl_demo.dc_fed_sw.dc_federated import DCFWorker
+from dc_fl_demo.dc_fed_sw import DCFWorker
 
 
 class ExampleLocalModel(object):
@@ -23,7 +23,8 @@ class ExampleLocalModel(object):
             server_port=8080
         )
 
-        self.run_model()
+        self.global_model = None
+        self.worker_id = None
 
     def get_model_update_time(self):
         """
@@ -36,7 +37,7 @@ class ExampleLocalModel(object):
             The datetime of the last update of the model.
         """
         return datetime.strptime(
-            self.worker.get_global_model_status(),
+            self.worker.get_global_model_status().decode('UTF-8'),
             "%Y-%m-%d %H:%M:%S")
 
     def serialize_model(self):
@@ -52,14 +53,16 @@ class ExampleLocalModel(object):
         """
         model_data = io.BytesIO()
         torch.save(self.local_model, model_data)
-        return model_data.read()
+        return model_data.getvalue()
 
-    def run_model(self, worker_id):
+    def run_model(self):
         """
         Shows an example loop for the worker working with the server.
         """
         # register the worker
         self.worker_id = self.worker.register_worker()
+        with open(f"elm_worker_update_{self.worker_id}.torch", 'wb') as f:
+            torch.save(self.local_model, f)
 
         # send over the local model to the server
         self.worker.send_model_update(self.serialize_model())
@@ -68,7 +71,11 @@ class ExampleLocalModel(object):
         while self.get_model_update_time() <= self.last_update_time:
             time.sleep(5)
 
-        global_model = self.worker.get_global_model()
+        model_binary = self.worker.get_global_model()
 
-        if global_model is not None:
-            print("I got the global model!!")
+        if len(model_binary) > 0:
+            print("I got the global model!! -- transforming...")
+            self.global_model = torch.load(io.BytesIO(model_binary))
+            with open("elm_global_model.torch", 'wb') as f:
+                torch.save(self.global_model, f)
+            print(self.global_model)

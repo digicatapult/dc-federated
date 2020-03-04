@@ -85,7 +85,7 @@ class DCFServer(object):
         self.last_worker += 1
         self.worker_list.append(self.last_worker)
         self.register_worker_callback(self.last_worker)
-        return self.last_worker
+        return str(self.last_worker)
 
     def receive_worker_update(self):
         """
@@ -101,16 +101,19 @@ class DCFServer(object):
         """
         try:
             data_dict = pickle.load(request.files['id_and_model'].file)
-            self.receive_worker_update_callback(data_dict)
+            self.receive_worker_update_callback(
+                data_dict['worker_id'],
+                data_dict['model_update']
+            )
             return "Worker update received"
         except Exception as e:
+            print(e)
             return str(e)
 
     def enable_cors(self):
         """
         Enable the cross origin resource for the server.
         """
-        print("Enabling CORS")
         bottle.response.add_header('Access-Control-Allow-Origin', '*')
         bottle.response.add_header('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS')
         bottle.response.add_header('Access-Control-Allow-Headers',
@@ -159,7 +162,7 @@ class DCFWorker(object):
             The worker id returned by the server.
         """
         if self.worker_id is None:
-            self.worker_id = int(requests.get(f"{self.server_loc}/{REGISTER_WORKER_ROUTE}"))
+            self.worker_id = int(requests.get(f"{self.server_loc}/{REGISTER_WORKER_ROUTE}").content)
         return self.worker_id
         
     def get_global_model(self):
@@ -172,7 +175,7 @@ class DCFWorker(object):
         binary string:
             The current global model returned by the server.
         """
-        return requests.get(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}")
+        return requests.get(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}").content
 
     def get_global_model_status(self):
         """
@@ -184,7 +187,7 @@ class DCFWorker(object):
         str:
             The status of the current global model.
         """
-        return requests.get(f"{self.server_loc}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}")
+        return requests.get(f"{self.server_loc}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}").content
 
     def send_model_update(self, model_update):
         """
@@ -205,4 +208,4 @@ class DCFWorker(object):
         return requests.post(
             f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}",
             files={"id_and_model": pickle.dumps(data_dict)}
-        )
+        ).content
