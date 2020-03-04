@@ -1,3 +1,8 @@
+"""
+Contains a single class illustrating the use of the classes in
+dc_fl_demo.dc_federated.DCFWorker.
+"""
+
 import io
 import time
 from datetime import datetime
@@ -12,8 +17,9 @@ from dc_fl_demo.dc_fed_sw import DCFWorker
 class ExampleLocalModel(object):
     """
     This is a simple class that illustrates how the DCFWorker class may be used to
-    implement a federated local model. This talks to the ExampleGlobalModel
-    class.
+    implement a federated local model. This talks to an ExampleGlobalModel
+    object via a running DCFServer instance. For testing purposes, it writes all the
+    models it creates and receives to disk.
     """
     def __init__(self):
         self.local_model = ExampleModelClass()

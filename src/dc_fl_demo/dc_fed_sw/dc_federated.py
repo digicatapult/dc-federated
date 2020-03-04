@@ -1,18 +1,17 @@
-import io
+"""
+Defines the core server and worker classes for the federated learning.
+Abstracts away the lower level server/worker logic from the federated
+machine learning logic.
+"""
 
 import requests
-import json
 import pickle
 
 import bottle
-from bottle import Bottle, run, request, static_file
+from bottle import Bottle, run, request
+from dc_fl_demo.dc_fed_sw._constants import *
 
 from dc_fl_demo.utils import get_host_ip
-
-REGISTER_WORKER_ROUTE = 'register_worker'  
-RETURN_GLOBAL_MODEL_ROUTE = 'return_global_model'
-QUERY_GLOBAL_MODEL_STATUS_ROUTE = 'query_global_model_status'
-RECEIVE_WORKER_UPDATE_ROUTE = 'receive_worker_update'
 
 
 class DCFServer(object):
@@ -100,27 +99,31 @@ class DCFServer(object):
             Otherwise any exception that was raised.
         """
         try:
-            data_dict = pickle.load(request.files['id_and_model'].file)
+            data_dict = pickle.load(request.files[ID_AND_MODEL_KEY].file)
             self.receive_worker_update_callback(
-                data_dict['worker_id'],
-                data_dict['model_update']
+                data_dict[WORKER_ID_KEY],
+                data_dict[MODEL_UPDATE_KEY]
             )
             return "Worker update received"
         except Exception as e:
             print(e)
             return str(e)
 
-    def enable_cors(self):
+    @staticmethod
+    def enable_cors():
         """
         Enable the cross origin resource for the server.
         """
         bottle.response.add_header('Access-Control-Allow-Origin', '*')
-        bottle.response.add_header('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS')
+        bottle.response.add_header('Access-Control-Allow-Methods',
+                                   'GET, POST, PUT, OPTIONS')
         bottle.response.add_header('Access-Control-Allow-Headers',
-                                    'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token')
+                                   'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token')
 
     def start_server(self):
-
+        """
+        Sets up all the routes for the server and starts it.
+        """
         application = Bottle()
         application.route(f"/{REGISTER_WORKER_ROUTE}", method='GET', callback=self.register_worker)
         application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}", method='GET', callback=self.return_global_model_callback)
@@ -201,11 +204,11 @@ class DCFWorker(object):
             The model update to send to the server.
         """
         data_dict = {
-            'worker_id': self.worker_id,
-            'model_update': model_update
+            WORKER_ID_KEY: self.worker_id,
+            MODEL_UPDATE_KEY: model_update
         }
 
         return requests.post(
             f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}",
-            files={"id_and_model": pickle.dumps(data_dict)}
+            files={ID_AND_MODEL_KEY: pickle.dumps(data_dict)}
         ).content

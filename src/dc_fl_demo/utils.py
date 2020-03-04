@@ -1,4 +1,9 @@
+"""
+Contains utility functions to be used within the demo.
+"""
+
 import socket
+
 
 def get_host_ip():
     """

@@ -1,3 +1,7 @@
+"""
+Contains a simple torch.nn CNN model class for use in the example.
+"""
+
 from torch import nn
 import torch.nn.functional as F
 

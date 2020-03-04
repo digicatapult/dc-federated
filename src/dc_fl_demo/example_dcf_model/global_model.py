@@ -1,3 +1,8 @@
+"""
+Contains a single class illustrating the use of the classes in
+dc_fl_demo.dc_federated.DCFServer.
+"""
+
 import io
 from datetime import datetime
 
@@ -10,8 +15,8 @@ from dc_fl_demo.dc_fed_sw import DCFServer
 class ExampleGlobalModel(object):
     """
     This is a simple class that illustrates how the DCFServer class may be used to
-    implement a federated global model
-
+    implement a federated global model. For testing purposes, it writes all the
+    models it creates and receives to disk.
     """
     def __init__(self):
         self.worker_updates = {}
