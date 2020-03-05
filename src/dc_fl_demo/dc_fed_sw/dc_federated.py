@@ -16,26 +16,34 @@ from dc_fl_demo.utils import get_host_ip
 
 class DCFServer(object):
     """
-    This class starts a server for federated learning.
-    
+    This class abstracts away the lower level communication logic for
+    the central server/node from the actual federated learning logic.
+    It interacts with the central server node via the 4 callback functions
+    passed in the constructor. For an example usage please refer to the
+    package dc_fl_demo.example_dcf+model.
+
     Parameters
     ----------
 
         register_worker_callback:
-            Callback for registering a client with the server.
+            This function is expected to take the id of a newly registered
+            worker and should contain the application specific logic for
+            dealing with a new worker joining the federated learning pool.
 
         return_global_model_callback: () -> bit-string
-            The call back function for returning the current global model to a worker.
+            This function is expected to return the current global model
+            in some application dependent binary serialized form.
 
     
         query_global_model_status_callback:  () -> str
-            A function that returns the current status of the global model. This is
-            application dependent.
+            This function is expected to return a string giving the
+            application dependent current status of the global model.
         
         receive_worker_update_callback: dict -> bool
-            The call-back for receiving an update from a client.
-            The client should issue a POST using a dict containing the unique client id and 
-            the model id.
+            This function should receive a worker-id and an application
+            dependent binary serialized update from the worker. The
+            server code ensures that the worker-id was previously
+            registered.
 
         server_host_ip: str (default None)
             The ip-address of the host of the server. If None, then it
@@ -100,11 +108,11 @@ class DCFServer(object):
         """
         try:
             data_dict = pickle.load(request.files[ID_AND_MODEL_KEY].file)
-            self.receive_worker_update_callback(
+            return_value = self.receive_worker_update_callback(
                 data_dict[WORKER_ID_KEY],
                 data_dict[MODEL_UPDATE_KEY]
             )
-            return "Worker update received"
+            return return_value
         except Exception as e:
             print(e)
             return str(e)
@@ -190,7 +198,7 @@ class DCFWorker(object):
         str:
             The status of the current global model.
         """
-        return requests.get(f"{self.server_loc}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}").content
+        return requests.get(f"{self.server_loc}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}").content.decode('UTF-8')
 
     def send_model_update(self, model_update):
         """

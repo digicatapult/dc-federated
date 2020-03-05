@@ -91,8 +91,9 @@ class ExampleGlobalModel(object):
             print(self.worker_updates[worker_id])
             with open(f"egm_worker_update_{worker_id}.torch", 'wb') as f:
                 torch.save(self.worker_updates[worker_id], f)
+            return f"Update received for worker {worker_id}"
         else:
-            raise ValueError("Unregistered Worker tried to send and update!!")
+            return f"Unregistered worker {worker_id} tried to send and update!!"
 
     def start(self):
         self.server.start_server()
