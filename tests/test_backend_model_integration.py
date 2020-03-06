@@ -4,12 +4,18 @@ they communicate as expected.
 """
 
 import os
+import logging
 
 from multiprocessing import Process
 import time
 import torch
 
-from dc_fl_demo.example_dcf_model import ExampleGlobalModel, ExampleLocalModel
+from dc_federated.example_dcf_model import ExampleGlobalModel, ExampleLocalModel
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('dc_federated.tests.test_backend_model_integration')
+logger.setLevel(level=logging.INFO)
 
 
 def test_example():
@@ -39,7 +45,7 @@ def test_example():
     worker_process.kill()
 
     # check that the global and local model parameters are equal
-    print("Checking tensors are equal")
+    logger.info("Checking tensors are equal")
 
     # load the saved models
     with open("egm_global_model.torch", 'rb') as f:
@@ -64,8 +70,8 @@ def test_example():
                                     egm_global_model.parameters()):
         assert not torch.all(torch.eq(param_egm.data, param_elm.data))
 
-    print("All tensors are equal and the local and global models are different - tests passed.")
-    print("Cleaning up.")
+    logger.info("All tensors are equal and the local and global models are different - tests passed.")
+    logger.info("Cleaning up.")
     os.remove('egm_global_model.torch')
     os.remove('egm_worker_update_0.torch')
     os.remove('elm_global_model.torch')

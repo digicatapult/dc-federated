@@ -6,16 +6,24 @@ by pressing Ctrl+C.
 import io
 from threading import Thread
 import pickle
-
+import logging
 
 import requests
 import time
 
-from dc_fl_demo.dc_fed_sw import DCFServer, DCFWorker
-from dc_fl_demo.dc_fed_sw._constants import *
+from dc_federated.backend import DCFServer, DCFWorker
+from dc_federated.backend._constants import *
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('dc_federated.tests.test_backend')
+logger.setLevel(level=logging.INFO)
 
 
 def test_server_functionality():
+    """
+    Unit tests for the DCFServer and DCFWorker classes.
+    """
     worker_ids = []
     worker_updates = {}
     status = 'Status is good!!'
@@ -125,7 +133,7 @@ def test_server_functionality():
 
     # TODO: figure out how to kill the server thread and
     # TODO: eliminate this awfulness!
-    print("\n\n*** Testing completed successfully - exit by pressing Ctrl+C ***")
+    logger.info("\n\n*** Testing completed successfully - exit by pressing Ctrl+C ***")
 
 
 if __name__ == '__main__':

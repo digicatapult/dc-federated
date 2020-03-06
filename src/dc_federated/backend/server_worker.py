@@ -6,12 +6,18 @@ machine learning logic.
 
 import requests
 import pickle
+import logging
 
 import bottle
 from bottle import Bottle, run, request
-from dc_fl_demo.dc_fed_sw._constants import *
+from dc_federated.backend._constants import *
 
-from dc_fl_demo.utils import get_host_ip
+from dc_federated.utils import get_host_ip
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('dc_federated.backend.server_worker')
+logger.setLevel(level=logging.INFO)
 
 
 class DCFServer(object):
@@ -20,7 +26,7 @@ class DCFServer(object):
     the central server/node from the actual federated learning logic.
     It interacts with the central server node via the 4 callback functions
     passed in the constructor. For an example usage please refer to the
-    package dc_fl_demo.example_dcf+model.
+    package dc_federated.example_dcf+model.
 
     Parameters
     ----------
@@ -114,7 +120,7 @@ class DCFServer(object):
             )
             return return_value
         except Exception as e:
-            print(e)
+            logger.warning(e)
             return str(e)
 
     @staticmethod

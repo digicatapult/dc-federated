@@ -1,17 +1,23 @@
 """
 Contains a single class illustrating the use of the classes in
-dc_fl_demo.dc_federated.DCFWorker.
+dc_federated.backend.DCFWorker.
 """
 
 import io
 import time
 from datetime import datetime
+import logging
 
 import torch
 
-from dc_fl_demo.utils import get_host_ip
-from dc_fl_demo.example_dcf_model.torch_nn_class import ExampleModelClass
-from dc_fl_demo.dc_fed_sw import DCFWorker
+from dc_federated.utils import get_host_ip
+from dc_federated.example_dcf_model.torch_nn_class import ExampleModelClass
+from dc_federated.backend import DCFWorker
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('dc_federated.example_dcf_model.local_model')
+logger.setLevel(level=logging.INFO)
 
 
 class ExampleLocalModel(object):
@@ -80,8 +86,8 @@ class ExampleLocalModel(object):
         model_binary = self.worker.get_global_model()
 
         if len(model_binary) > 0:
-            print("I got the global model!! -- transforming...")
+            logger.info("I got the global model!! -- transforming...")
             self.global_model = torch.load(io.BytesIO(model_binary))
             with open("elm_global_model.torch", 'wb') as f:
                 torch.save(self.global_model, f)
-            print(self.global_model)
+            logger.info(self.global_model)
