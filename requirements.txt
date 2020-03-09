@@ -16,6 +16,7 @@
 # scipy==1.0
 #
 
+numpy
 torch
 bottle
 requests
