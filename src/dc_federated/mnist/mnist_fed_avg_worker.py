@@ -24,7 +24,7 @@ def get_args():
                    required=True)
 
     p.add_argument("--digit-class",
-                   help="The digit set this worker should focus on - allowed values are 1, 2 and 3.",
+                   help="The digit set this worker should focus on - allowed values are 0, 2 and 3.",
                    type=int,
                    required=True)
 
@@ -50,8 +50,16 @@ def run():
     mnist_ds_test = MNISTSubSet.default_mnist_ds(is_train=False, data_transform=data_transform)
 
     local_model_trainer = MNISTModelTrainer(
-        train_loader=MNISTSubSet(mnist_ds_train, digits=digit_classes[args.digit_class]),
-        test_loader=MNISTSubSet(mnist_ds_test, digits=digit_classes[args.digit_class])
+        train_loader=MNISTSubSet(
+            mnist_ds_train,
+            digits=digit_classes[args.digit_class],
+            transform=data_transform
+        ).get_data_loader(),
+        test_loader=MNISTSubSet(
+            mnist_ds_test,
+            digits=digit_classes[args.digit_class],
+            transform=data_transform
+        ).get_data_loader()
     )
 
     fed_avg_worker = FedAvgWorker(local_model_trainer, args.server_host_ip, args.server_port)

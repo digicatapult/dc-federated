@@ -87,7 +87,7 @@ class MNISTSubSet(torch.utils.data.Dataset):
     def __init__(self, mnist_ds, digits, args=None, transform=None, target_transform=None):
 
         self.digits = digits
-        self.args = args
+        self.args = MNISTNetArgs() if not args else args
         mask = np.isin(mnist_ds.targets, digits)
         self.data = mnist_ds.data[mask].clone()
         self.targets = mnist_ds.targets[mask].clone()
@@ -176,7 +176,7 @@ class MNISTModelTrainer(FedAvgModelTrainer):
             batches_per_iter=10):
         self.args = MNISTNetArgs() if not args else args
 
-        self.use_cuda = not args.no_cuda and torch.cuda.is_available()
+        self.use_cuda = not self.args.no_cuda and torch.cuda.is_available()
         self.device = torch.device("cuda" if self.use_cuda else "cpu")
         self.model = MNISTNet().to(self.device) if not model else model
 
@@ -224,14 +224,14 @@ class MNISTModelTrainer(FedAvgModelTrainer):
             self.optimizer.step()
             if self._train_batch_count % self.args.log_interval == 0:
                 print(f"Train Epoch: {self._train_epoch_count}"
-                      f" [{self._train_batch_count * len(self.train_loader)}/{len(self.train_loader)}"
+                      f" [{self._train_batch_count * len(data)}/{len(self.train_loader.dataset)}"
                       f"({100. * self._train_batch_count / len(self.train_loader):.0f}%)]\tLoss: {loss.item():.6f}")
             self._train_batch_count += 1
             if batch_idx > self.batches_per_iter:
                 break
 
         # housekeeping after a single epoch
-        if self._train_batch_count * self.args.batch_size >=  len(self.train_loader):
+        if self._train_batch_count >= len(self.train_loader):
             self._train_epoch_count += 1
             self._train_batch_count = 0
             self.scheduler.step()
@@ -281,6 +281,8 @@ class MNISTModelTrainer(FedAvgModelTrainer):
 
         """
         self.model = torch.load(model_file)
+        self.optimizer = optim.Adadelta(self.model.parameters(), lr=self.args.lr)
+        self.scheduler = StepLR(self.optimizer, step_size=1, gamma=self.args.gamma)
 
     def load_model_from_state_dict(self, state_dict):
         """
@@ -295,67 +297,3 @@ class MNISTModelTrainer(FedAvgModelTrainer):
         self.model.load_state_dict(state_dict)
 
 
-def fed_avg():
-
-    digit_classes = [[0, 1, 2, 3],
-                     [4, 5, 6],
-                     [7, 8, 9],
-                     list(range(0, 10))]
-
-    local_idxs = [0, 1, 2]
-
-    data_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-
-    args = MNISTNetArgs()
-    args.epochs = 1
-
-    mnist_train_ds = datasets.MNIST('../data', train=True, download=True, transform=data_transform)
-    mnist_test_ds = datasets.MNIST('../data', train=False, download=True, transform=data_transform)
-
-    # create the datasets
-    train_loaders = [MNISTSubSet(mnist_train_ds, digit_classes[i], args=args, transform=data_transform).get_data_loader()
-                      for i in range(len(digit_classes))]
-
-    test_loaders = [MNISTSubSet(mnist_test_ds, digit_classes[i], args=args, transform=data_transform).get_data_loader()
-                     for i in range(len(digit_classes))]
-
-    steps_per_iter = 10
-
-    # model = MNISTNet()
-    # mnist_model_trainer = MNISTModelTrainer(args, model)
-    # mnist_model_trainer.run_train_test_loop(
-    #     train_datasets[0].get_data_loader(),
-    #     test_datasets[0].get_data_loader())
-
-    # initialize the local model trainers
-    model_trainers = []
-    local_models = []
-    for i in local_idxs:
-        local_model = MNISTNet()
-        local_models.append(local_model)
-        mnist_model_trainer = MNISTModelTrainer(args, local_model)
-        model_trainers.append(mnist_model_trainer)
-
-    # initialize the global model trainer
-    global_model = MNISTNet()
-
-    batches_per_iter = 10
-    num_iter = 10
-    for iter in range(num_iter):
-        # train the local models
-        for i in range(len(model_trainers)):
-            model_trainers[i].run_train_test_loop(
-                train_loaders[i],
-                test_loaders[i],
-                batches_per_iter)
-
-        print("Performing federated updates...")
-        update_global_params(global_model, local_models)
-        update_local_params(global_model, local_models)
-        print("Done.")
-
-    global_trainer = MNISTModelTrainer(args, global_model)
-    global_trainer.test(test_loaders[-1])

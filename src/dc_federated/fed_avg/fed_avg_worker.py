@@ -11,12 +11,11 @@ import logging
 import torch
 
 from dc_federated.utils import get_host_ip
-from dc_federated.example_dcf_model.torch_nn_class import ExampleModelClass
 from dc_federated.backend import DCFWorker
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('dc_federated.example_dcf_model.local_model')
+logger = logging.getLogger('dc_federated.fed_avg.fed_avg_worker')
 logger.setLevel(level=logging.INFO)
 
 
@@ -79,6 +78,8 @@ class FedAvgWorker(object):
             self.worker_id = self.worker.register_worker()
             logger.info(f"Registered with FedAvg Server with worker id {self.worker_id}")
 
+        self.last_update_time = self.get_model_update_time()
+
         while (True):
             self.fed_model.train()
             self.fed_model.test()
@@ -89,7 +90,9 @@ class FedAvgWorker(object):
             while self.get_model_update_time() <= self.last_update_time:
                 time.sleep(wait_period_sec)
 
+            self.last_update_time = self.get_model_update_time()
+
             model_binary = self.worker.get_global_model()
             if len(model_binary) > 0:
-                self.fed_model.load_model(io.BytesIO(model_binary))
-
+                new_model = torch.load(io.BytesIO(model_binary))
+                self.fed_model.load_model_from_state_dict(new_model.state_dict())

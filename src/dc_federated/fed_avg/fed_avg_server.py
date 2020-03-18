@@ -34,13 +34,13 @@ class FedAvgServer(object):
         global update before we update the global model.
     """
     def __init__(self, global_model_trainer, update_lim=10):
-        logger.info(f"Initializing server for model class{global_model_trainer.get_model_class()}")
+        logger.info(f"Initializing server for model class {global_model_trainer.get_model().__class__.__name__}")
 
         self.worker_updates = {}
         self.global_model_trainer = global_model_trainer
         self.update_lim = update_lim
 
-        self.last_global_model_update_timestamp = datetime(2018, 10, 10)
+        self.last_global_model_update_timestamp = datetime(1980, 10, 10)
         self.server = DCFServer(
             self.register_worker,
             self.return_global_model,
@@ -87,7 +87,7 @@ class FedAvgServer(object):
         str:
             String format of the last model update time.
         """
-        return str(self.last_global_model_update_timestamp)
+        return str(self.last_global_model_update_timestamp.isoformat(' ', 'seconds'))
 
     def receive_worker_update(self, worker_id, model_update):
         """
@@ -102,11 +102,13 @@ class FedAvgServer(object):
         """
         if worker_id in self.worker_updates:
             # update the number of unique updates received
-            if self.worker_updates[worker_id][0] < self.last_global_model_update_timestamp:
+            if self.worker_updates[worker_id] is None or \
+                    self.worker_updates[worker_id][0] < self.last_global_model_update_timestamp:
                 self.unique_updates_since_last_agg += 1
             self.worker_updates[worker_id] = (datetime.now(), torch.load(io.BytesIO(model_update)))
             logger.info(f"Model update received from worker {worker_id}")
-            self.agg_model()
+            if self.agg_model():
+                self.global_model_trainer.test()
             return f"Update received for worker {worker_id}"
         else:
             logger.warning(f"Unregistered worker {worker_id} tried to send an update.")
@@ -119,7 +121,7 @@ class FedAvgServer(object):
         since the last global model update is above the threshold.
         """
         if self.unique_updates_since_last_agg < self.update_lim:
-            return
+            return False
 
         logger.info("Updating the global model.")
 
@@ -145,6 +147,8 @@ class FedAvgServer(object):
 
         self.last_global_model_update_timestamp = datetime.now()
         self.unique_updates_since_last_agg = 0
+
+        return True
 
     def start(self):
         self.server.start_server()
