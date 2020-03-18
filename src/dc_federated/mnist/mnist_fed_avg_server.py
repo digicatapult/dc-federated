@@ -1,0 +1,24 @@
+"""
+Simple runner to start a example global model server.
+"""
+
+from dc_federated.fed_avg.fed_avg_server import FedAvgServer
+from dc_federated.mnist.mnist_fed_model import MNISTModelTrainer, MNISTSubSet
+
+
+def run():
+    """
+    This should be run to start the global server to test the backend + model integration
+    in a distributed setting. Once the server has started, run the corresponding local-model
+    runner(s) in local_model.py in other devices. Run `python federated_local_model.py -h' for instructions
+    on how to do so.
+    """
+    global_model_trainer = MNISTModelTrainer(
+        train_loader=MNISTSubSet.default_dataset(is_train=True).get_data_loader(),
+        test_loader = MNISTSubSet.default_dataset(is_train=False).get_data_loader())
+
+    fed_avg_server = FedAvgServer(global_model_trainer=global_model_trainer)
+    fed_avg_server.start()
+
+if __name__ == '__main__':
+    run()

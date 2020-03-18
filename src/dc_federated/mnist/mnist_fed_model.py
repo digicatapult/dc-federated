@@ -11,6 +11,7 @@ from PIL import Image
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
+from dc_federated.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
 class MNISTNet(nn.Module):
     """
@@ -116,10 +117,46 @@ class MNISTSubSet(torch.utils.data.Dataset):
         return torch.utils.data.DataLoader(
             self, batch_size=self.args.batch_size, shuffle=True, **kwargs)
 
+    @staticmethod
+    def default_data_transform():
+        return transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
 
-class MNISTModelTrainer(object):
+    @staticmethod
+    def default_mnist_ds(is_train=True, data_transform=None):
+        return datasets.MNIST('../data', train=is_train, download=True, transform=data_transform)
+
+    @staticmethod
+    def default_dataset(is_train):
+        """
+        Returns a train or test dataset on the whole dataset.
+
+        Parameters
+        ----------
+
+        is_train: bool
+            Whether to return the training or test dataset.
+
+        Returns
+        -------
+
+        MNISTSubSet:
+            The whole train or test dataset.
+        """
+        data_transform = MNISTSubSet.default_data_transform()
+
+        return MNISTSubSet(
+            MNISTSubSet.default_mnist_ds(is_train, data_transform),
+            digits=list(range(0, 10)),
+            transform=data_transform
+        )
+
+
+class MNISTModelTrainer(FedAvgModelTrainer):
     """
-    Trainer for the MNIST data.
+    Trainer for the MNIST data for the FedAvg algorithm.
 
     Parameters
     ----------
@@ -130,16 +167,35 @@ class MNISTModelTrainer(object):
     model: MNISTNet (default None)
         The model for training.
     """
-    def __init__(self, args=None, model=None):
-        args = MNISTNetArgs() if not args else args
+    def __init__(
+            self,
+            args=None,
+            model=None,
+            train_loader=None,
+            test_loader=None,
+            batches_per_iter=10):
+        self.args = MNISTNetArgs() if not args else args
+
         self.use_cuda = not args.no_cuda and torch.cuda.is_available()
         self.device = torch.device("cuda" if self.use_cuda else "cpu")
+        self.model = MNISTNet().to(self.device) if not model else model
 
-        model = MNISTNet().to(self.device) if not model else model
-        self.args = args
-        self.model = model
+        self.train_loader = \
+            MNISTSubSet.default_dataset(True).get_loader() if not train_loader else train_loader
+        self.test_loader = \
+            MNISTSubSet.default_dataset(False).get_loader() if not test_loader else test_loader
 
-    def train(self, train_loader, optimizer, epoch, batches_per_iter=None):
+        self.batches_per_iter = batches_per_iter
+
+        # for housekeepiing.
+        self._train_max_batches = len(self.train_loader) / self.args.batch_size
+        self._train_batch_count = 0
+        self._train_epoch_count = 0
+
+        self.optimizer = optim.Adadelta(self.model.parameters(), lr=self.args.lr)
+        self.scheduler = StepLR(self.optimizer, step_size=1, gamma=self.args.gamma)
+
+    def train(self):
         """
         Run the training on self.model using the data in the train_loader,
         using the given optimizer for the given number of epochs.
@@ -158,28 +214,32 @@ class MNISTModelTrainer(object):
         epoch: int
             The number of epochs to run the training for.
         """
-        batches_per_iter = len(train_loader) if not batches_per_iter else batches_per_iter
         self.model.train()
-        for batch_idx, (data, target) in enumerate(train_loader):
+        for batch_idx, (data, target) in enumerate(self.train_loader):
             data, target = data.to(self.device), target.to(self.device)
-            optimizer.zero_grad()
+            self.optimizer.zero_grad()
             output = self.model(data)
             loss = F.nll_loss(output, target)
             loss.backward()
-            optimizer.step()
-            if batch_idx % self.args.log_interval == 0:
-                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch, batch_idx * len(data), len(train_loader.dataset),
-                           100. * batch_idx / len(train_loader), loss.item()))
-
-            if batch_idx > batches_per_iter:
+            self.optimizer.step()
+            if self._train_batch_count % self.args.log_interval == 0:
+                print(f"Train Epoch: {self._train_epoch_count}"
+                      f" [{self._train_batch_count * len(self.train_loader)}/{len(self.train_loader)}"
+                      f"({100. * self._train_batch_count / len(self.train_loader):.0f}%)]\tLoss: {loss.item():.6f}")
+            self._train_batch_count += 1
+            if batch_idx > self.batches_per_iter:
                 break
 
-    def test(self, test_loader):
+        # housekeeping after a single epoch
+        if self._train_batch_count * self.args.batch_size >=  len(self.train_loader):
+            self._train_epoch_count += 1
+            self._train_batch_count = 0
+            self.scheduler.step()
+
+    def test(self):
         """
         Run the test on self.model using the data in the test_loader and
         print the results.
-
 
         Parameters
         ---------
@@ -191,147 +251,48 @@ class MNISTModelTrainer(object):
         test_loss = 0
         correct = 0
         with torch.no_grad():
-            for data, target in test_loader:
+            for data, target in self.test_loader:
                 data, target = data.to(self.device), target.to(self.device)
                 output = self.model(data)
                 test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
                 pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
-        test_loss /= len(test_loader.dataset)
+        test_loss /= len(self.test_loader.dataset)
 
-        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            test_loss, correct, len(test_loader.dataset),
-            100. * correct / len(test_loader.dataset)))
+        print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: {correct}/{len(self.test_loader.dataset)}"
+              f"({100. * correct / len(self.test_loader.dataset):.0f}%)\n")
 
-    def default_dataset(self, is_train):
+    def get_model(self):
         """
-        Returns the default training or testing dataset.
+        Returns the model for this trainer
+        """
+        return self.model
+
+    def load_model(self, model_file):
+        """
+        Loads a model from the given model file.
 
         Parameters
-        ----------
+        -----------
 
-        is_train: bool
-            If true return the training dataset otherwise the test.
+        model_file: io.BytesIO or similar object
+            This object should contain a serilaized model.
 
-        Returns
-        -------
-
-        torch.utils.data.Dataset
-            The default train or test dataset
         """
-        data_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
+        self.model = torch.load(model_file)
 
-        train_dataset = datasets.MNIST(
-            '../data',
-            train=is_train,
-            download=True,
-            transform=data_transform)
-        return train_dataset
-
-    def create_data_loader(self, dataset, kwargs):
-        return torch.utils.data.DataLoader(
-            dataset, batch_size=self.args.batch_size, shuffle=True, **kwargs
-        )
-
-    def run_train_test_loop(self, train_loader=None, test_loader=None, batches_per_iter=None):
+    def load_model_from_state_dict(self, state_dict):
         """
-        Runs the training and test loop.
+        Loads a model from the given model file.
 
         Parameters
-        ----------
+        -----------
 
-        args: MNISTNetArgs
-            Arguments for the train and test loop.
-
-        train_dataset: torch.utils.data.Dataset (default None)
-            The training dataset. The default full train dataset is used
-            train_dataset is None.
-
-        test_dataset: torch.utils.data.Dataset (default None)
-            The testing dataset. The default full test dataset is used
-            train_dataset is None.
-
-        batches_per_iter: int (default None)
-            Number of batches to train per epoch.
+        state_dict: dict
+            Dictionary of parameter tensors.
         """
-        print("Starting training with paramaters")
-        self.args.print()
-        print(f"Using cuda? {self.use_cuda}")
-
-        torch.manual_seed(self.args.seed)
-
-        # create the training tools
-        optimizer = optim.Adadelta(self.model.parameters(), lr=self.args.lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=self.args.gamma)
-
-        # run the train-test loop
-        for epoch in range(1, self.args.epochs + 1):
-            # print(len(train_dataset))
-            self.train(train_loader, optimizer, epoch, batches_per_iter)
-            self.test(test_loader)
-            scheduler.step()
-
-        if self.args.save_model:
-            torch.save(self.model.state_dict(), "mnist_cnn.pt")
-
-
-def update_global_params(global_model, local_models):
-    """
-    Performs federated update of the global model from
-    the local model according to the FedAvg algorithm.
-
-    Parameters
-    ----------
-
-    global_model: MNISTNet
-        The global model
-
-    local_models: list of MNISTNet
-        The set of local models
-    """
-    lm_state_dicts = [lm.state_dict() for lm in local_models]
-
-    def agg_params(key, state_dicts):
-        agg_val = state_dicts[0][key]
-
-        for sd in state_dicts[1:]:
-            agg_val = agg_val + sd[key]
-
-        agg_val = agg_val / len(state_dicts)
-
-        return torch.tensor(agg_val.numpy())
-
-    global_model_dict = OrderedDict()
-
-    for key in lm_state_dicts[0].keys():
-        global_model_dict[key] = agg_params(key, lm_state_dicts)
-
-    global_model.load_state_dict(global_model_dict)
-
-
-
-def update_local_params(global_model, local_models):
-    """
-    Performs federated update of the local model from
-    the global model according to the FedAvg algorithm.
-
-    Parameters
-    ----------
-
-    global_model: MNISTNet
-        The global model
-
-    local_models: list of MNISTNet
-        The set of local models
-    """
-    global_state_dict = global_model.state_dict()
-
-    for lm in local_models:
-        lm.load_state_dict(global_state_dict)
+        self.model.load_state_dict(state_dict)
 
 
 def fed_avg():
@@ -398,37 +359,3 @@ def fed_avg():
 
     global_trainer = MNISTModelTrainer(args, global_model)
     global_trainer.test(test_loaders[-1])
-
-
-
-if __name__ == '__main__':
-
-    fed_avg()
-    # args = MNISTNetArgs()
-    # args.epochs = 1
-    #
-    # digit_classes = [list(range(0, 10)),
-    #                  [0, 1, 2, 3],
-    #                  [4, 5, 6],
-    #                  [7, 8, 9]]
-    #
-    # data_transform = transforms.Compose([
-    #     transforms.ToTensor(),
-    #     transforms.Normalize((0.1307,), (0.3081,))
-    # ])
-    #
-    # mnist_train_ds = datasets.MNIST('../data', train=True, download=True, transform=data_transform)
-    # mnist_test_ds = datasets.MNIST('../data', train=False, download=True, transform=data_transform)
-    #
-    # # create the datasets
-    # train_datasets = [MNISTSubSet(mnist_train_ds, digit_classes[i], args=args, transform=data_transform)
-    #                   for i in range(len(digit_classes))]
-    #
-    # test_datasets = [MNISTSubSet(mnist_test_ds, digit_classes[i], args=args, transform=data_transform)
-    #                  for i in range(len(digit_classes))]
-    #
-    # model = MNISTNet()
-    # mnist_model_trainer = MNISTModelTrainer(args, model)
-    # mnist_model_trainer.run_train_test_loop(
-    #     train_datasets[0].get_data_loader(),
-    #     test_datasets[0].get_data_loader())
