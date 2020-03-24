@@ -18,6 +18,10 @@ def run():
         test_loader = MNISTSubSet.default_dataset(is_train=False).get_data_loader())
 
     fed_avg_server = FedAvgServer(global_model_trainer=global_model_trainer, update_lim=3)
+    print("\n************")
+    print("Starting an Federated Average Server at"
+          f"\n\tserver-host-ip: {fed_avg_server.server.server_host_ip} \n\tserver-port: {fed_avg_server.server.server_port}")
+    print("\n************\n")
     fed_avg_server.start()
 
 if __name__ == '__main__':
