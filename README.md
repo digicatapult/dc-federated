@@ -1,6 +1,6 @@
 ## dc_federated
 
-Project for DC AIML team federated learning demo.
+Project for DC AIML-team federated learning demo.
 
 ### Installing the package from the repo using conda
  
