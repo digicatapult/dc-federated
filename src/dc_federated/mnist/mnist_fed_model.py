@@ -296,4 +296,15 @@ class MNISTModelTrainer(FedAvgModelTrainer):
         """
         self.model.load_state_dict(state_dict)
 
+    def get_per_session_train_size(self):
+        """
+        Returns the number of batches per iter as the per session train size as
+        the number of batches and size of batches are same for MNIST.
 
+        Returns
+        -------
+
+        int:
+            The number of batches per ietration
+        """
+        return self.batches_per_iter

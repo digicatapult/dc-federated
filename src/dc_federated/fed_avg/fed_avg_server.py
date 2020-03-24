@@ -3,6 +3,8 @@ Contains a single class illustrating the use of the classes in
 dc_federated.backend.DCFServer.
 """
 
+import pickle
+
 import io
 from datetime import datetime
 import logging
@@ -105,7 +107,9 @@ class FedAvgServer(object):
             if self.worker_updates[worker_id] is None or \
                     self.worker_updates[worker_id][0] < self.last_global_model_update_timestamp:
                 self.unique_updates_since_last_agg += 1
-            self.worker_updates[worker_id] = (datetime.now(), torch.load(io.BytesIO(model_update)))
+            update_size, model_bytes = pickle.loads(model_update)
+            self.worker_updates[worker_id] = (datetime.now(), update_size,
+                                              torch.load(io.BytesIO(model_bytes)))
             logger.info(f"Model update received from worker {worker_id}")
             if self.agg_model():
                 self.global_model_trainer.test()
@@ -125,23 +129,27 @@ class FedAvgServer(object):
 
         logger.info("Updating the global model.")
 
-        def agg_params(key, state_dicts):
-            agg_val = state_dicts[0][key]
-            for sd in state_dicts[1:]:
-                agg_val = agg_val + sd[key]
-            agg_val = agg_val / len(state_dicts)
+        def agg_params(key, state_dicts, update_sizes):
+            agg_val = state_dicts[0][key] * update_sizes[0]
+            for sd, sz  in zip(state_dicts[1:], update_sizes[1:]):
+                agg_val = agg_val + sd[key] * sz
+            agg_val = agg_val / sum(update_sizes)
             return torch.tensor(agg_val.numpy())
 
         # gather the model-updates to use for the update
         state_dicts_to_update_with = []
+        update_sizes = []
+        # each item in the worker_updates dictionary contains a
+        # (timestamp update, update-size, model)
         for wi in self.worker_updates:
             if self.worker_updates[wi][0] > self.last_global_model_update_timestamp:
-                state_dicts_to_update_with.append(self.worker_updates[wi][1].state_dict())
+                state_dicts_to_update_with.append(self.worker_updates[wi][2].state_dict())
+                update_sizes.append(self.worker_updates[wi][1])
 
+        # now update the global model
         global_model_dict = OrderedDict()
-
         for key in state_dicts_to_update_with[0].keys():
-            global_model_dict[key] = agg_params(key, state_dicts_to_update_with)
+            global_model_dict[key] = agg_params(key, state_dicts_to_update_with, update_sizes)
 
         self.global_model_trainer.load_model_from_state_dict(global_model_dict)
 

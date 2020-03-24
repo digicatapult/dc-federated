@@ -23,3 +23,6 @@ class FedAvgModelTrainer(object):
     def load_model_from_state_dict(self, state_dict):
         pass
 
+    @abstractmethod
+    def get_per_session_train_size(self):
+        pass

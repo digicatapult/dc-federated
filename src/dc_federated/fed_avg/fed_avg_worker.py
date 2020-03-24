@@ -7,6 +7,7 @@ import io
 import time
 from datetime import datetime
 import logging
+import pickle
 
 import torch
 
@@ -80,19 +81,27 @@ class FedAvgWorker(object):
 
         self.last_update_time = self.get_model_update_time()
 
-        while (True):
-            self.fed_model.train()
-            self.fed_model.test()
-            logger.info(f"Finished training of local model for worker {self.worker_id}")
+        try:
+            while True:
+                self.fed_model.train()
+                self.fed_model.test()
+                logger.info(f"Finished training of local model for worker {self.worker_id}")
 
-            self.worker.send_model_update(self.serialize_model())
+                self.worker.send_model_update(
+                    pickle.dumps((self.fed_model.get_per_session_train_size(),
+                                  self.serialize_model()))
+                )
 
-            while self.get_model_update_time() <= self.last_update_time:
-                time.sleep(wait_period_sec)
+                while self.get_model_update_time() <= self.last_update_time:
+                    time.sleep(wait_period_sec)
 
-            self.last_update_time = self.get_model_update_time()
+                self.last_update_time = self.get_model_update_time()
 
-            model_binary = self.worker.get_global_model()
-            if len(model_binary) > 0:
-                new_model = torch.load(io.BytesIO(model_binary))
-                self.fed_model.load_model_from_state_dict(new_model.state_dict())
+                model_binary = self.worker.get_global_model()
+                if len(model_binary) > 0:
+                    new_model = torch.load(io.BytesIO(model_binary))
+                    self.fed_model.load_model_from_state_dict(new_model.state_dict())
+
+        except Exception as e:
+            logger.warning(str(e))
+            logger.info(f"Exiting worker {self.worker_id} run loop.")
