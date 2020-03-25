@@ -1,3 +1,8 @@
+"""
+Contains MNIST dataset specfic extension of FedAvgModelTrainer in
+MNISTModelTrainer + associtaed helper class.
+"""
+
 import numpy as np
 
 import argparse
@@ -12,6 +17,7 @@ from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
 from dc_federated.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
+
 
 class MNISTNet(nn.Module):
     """
@@ -44,9 +50,8 @@ class MNISTNet(nn.Module):
 
 class MNISTNetArgs(object):
     """
-    Class to abstract the arguments for the MNIST model.
+    Class to abstract the arguments for a MNISTModelTrainer .
     """
-
     def __init__(self):
         self.batch_size = 64
         self.test_batch_size = 1000
@@ -72,7 +77,9 @@ class MNISTNetArgs(object):
 
 class MNISTSubSet(torch.utils.data.Dataset):
     """
-    Represents a MNIST subset.
+    Represents a MNIST dataset subset. In particular, torchvision provides a
+    MNIST Dataset. This class wraps around that to deliver only a subset of
+    digits in the train and test sets.
 
     Parameters
     ----------
@@ -82,35 +89,85 @@ class MNISTSubSet(torch.utils.data.Dataset):
 
     digits: int list
         The digits to restrict the data subset to
-    """
 
-    def __init__(self, mnist_ds, digits, args=None, transform=None, target_transform=None):
+    args: MNISTNetArgs (default None)
+        The arguments for the training.
+
+    input_transform: torch.transforms (default None)
+        The transformation to apply to the inputs
+
+    target_transform: torch.transforms (default None)
+        The transformation to apply to the target
+    """
+    def __init__(self, mnist_ds, digits, args=None, input_transform=None, target_transform=None):
 
         self.digits = digits
         self.args = MNISTNetArgs() if not args else args
         mask = np.isin(mnist_ds.targets, digits)
         self.data = mnist_ds.data[mask].clone()
         self.targets = mnist_ds.targets[mask].clone()
-        self.transform = transform
+        self.input_transform = input_transform
         self.target_transform = target_transform
 
     def __getitem__(self, index):
+        """
+        Implementation of a function required to extend Dataset. Returns\
+        the dataset item at the given index.
 
+        Parameters
+        ----------
+        index: int
+            The index of the input + target to return.
+
+        Returns
+        -------
+
+        pair of torch.tensors
+            The input and the target.
+        """
         img, target = self.data[index], self.targets[index]
-
-        # doing this so that it is consistent with all other datasets
-        # to return a PIL Image
         img = Image.fromarray(img.numpy(), mode='L')
 
-        if self.transform is not None: img = self.transform(img)
+        if self.input_transform is not None: img = self.input_transform(img)
         if self.target_transform is not None: target = self.target_transform(target)
 
         return img, target
 
     def __len__(self):
+        """
+        Implementation of a function required to extend Dataset. Returns\
+        the length of the dataset.
+
+        Returns
+        -------
+
+        int:
+            The length of the dataset.
+        """
         return len(self.data)
 
     def get_data_loader(self, use_cuda=False, kwargs=None):
+        """
+        Returns a DataLoader object for this dataset
+
+
+        Parameters
+        ----------
+
+        use_cuda: bool (default False)
+            Whether to use cuda or not.
+
+        kwargs: dict
+            Paramters to pass on to the DataLoader
+
+
+        Returns
+        -------
+        
+        DataLoader:
+            A dataloader for this dataset.
+        """
+
         if kwargs is None:
             kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
@@ -118,15 +175,42 @@ class MNISTSubSet(torch.utils.data.Dataset):
             self, batch_size=self.args.batch_size, shuffle=True, **kwargs)
 
     @staticmethod
-    def default_data_transform():
+    def default_input_transform():
+        """
+        Returns a default input transformation
+        
+        Returns
+        -------
+        
+        torch.transforms:
+            A default set of transformations for the inputs.
+        """
         return transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])
 
     @staticmethod
-    def default_mnist_ds(is_train=True, data_transform=None):
-        return datasets.MNIST('../data', train=is_train, download=True, transform=data_transform)
+    def default_mnist_ds(is_train=True, input_transform=None):
+        """
+        Returns a default dataset.MNIST dataset.
+
+        Parameters
+        ---------
+
+        is_train: bool
+            Whether the dataset is for training or not.
+
+        input_transform: transforms
+            The input data transformation to use
+
+        Returns
+        -------
+
+        dataset.Dataset:
+            The default mnist dataset.
+        """
+        return datasets.MNIST('../data', train=is_train, download=True, transform=input_transform)
 
     @staticmethod
     def default_dataset(is_train):
@@ -145,18 +229,20 @@ class MNISTSubSet(torch.utils.data.Dataset):
         MNISTSubSet:
             The whole train or test dataset.
         """
-        data_transform = MNISTSubSet.default_data_transform()
+        data_transform = MNISTSubSet.default_input_transform()
 
         return MNISTSubSet(
             MNISTSubSet.default_mnist_ds(is_train, data_transform),
             digits=list(range(0, 10)),
-            transform=data_transform
+            input_transform=data_transform
         )
 
 
 class MNISTModelTrainer(FedAvgModelTrainer):
     """
-    Trainer for the MNIST data for the FedAvg algorithm.
+    Trainer for the MNIST data for the FedAvg algorithm. Extends
+    the FedAvgModelTrainer, and implements all the relevant domain
+    specific logic.
 
     Parameters
     ----------
@@ -166,6 +252,15 @@ class MNISTModelTrainer(FedAvgModelTrainer):
 
     model: MNISTNet (default None)
         The model for training.
+
+    train_loader: DataLoader
+        The DataLoader for the train dataset.
+
+    test_loader: DataLoader
+        The DataLoader for the test dataset.
+
+    batches_per_iter: int
+        The number of batches to use per train() call.
     """
     def __init__(
             self,
@@ -200,19 +295,6 @@ class MNISTModelTrainer(FedAvgModelTrainer):
         Run the training on self.model using the data in the train_loader,
         using the given optimizer for the given number of epochs.
         print the results.
-
-
-        Parameters
-        ---------
-
-        train_loader: torch.utils.data.DataLoader
-            The dataloader containing the training dataset.
-
-        optimizer: torch.optimizer
-            The optimizer to use for the training.
-
-        epoch: int
-            The number of epochs to run the training for.
         """
         self.model.train()
         for batch_idx, (data, target) in enumerate(self.train_loader):
@@ -240,12 +322,6 @@ class MNISTModelTrainer(FedAvgModelTrainer):
         """
         Run the test on self.model using the data in the test_loader and
         print the results.
-
-        Parameters
-        ---------
-
-        test_loader: torch.utils.data.DataLoader
-            The dataloader containing the test dataset.
         """
         self.model.eval()
         test_loss = 0
@@ -265,7 +341,13 @@ class MNISTModelTrainer(FedAvgModelTrainer):
 
     def get_model(self):
         """
-        Returns the model for this trainer
+        Returns the model for this trainer.
+
+        Returns
+        -------
+
+        MNISTNet:
+            The model used in this trainer.
         """
         return self.model
 
@@ -278,7 +360,6 @@ class MNISTModelTrainer(FedAvgModelTrainer):
 
         model_file: io.BytesIO or similar object
             This object should contain a serilaized model.
-
         """
         self.model = torch.load(model_file)
         self.optimizer = optim.Adadelta(self.model.parameters(), lr=self.args.lr)

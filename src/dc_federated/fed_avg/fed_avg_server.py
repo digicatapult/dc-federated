@@ -1,6 +1,5 @@
 """
-Contains a single class illustrating the use of the classes in
-dc_federated.backend.DCFServer.
+Contains the implementation of the server side logic for the FedAvg algorithm.
 """
 
 import pickle

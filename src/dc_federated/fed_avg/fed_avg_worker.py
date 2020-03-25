@@ -1,6 +1,5 @@
 """
-Contains a single class illustrating the use of the classes in
-dc_federated.backend.DCFWorker.
+Contains the worker side implementation of the FedAvg algorithm.
 """
 
 import io
@@ -23,6 +22,18 @@ logger.setLevel(level=logging.INFO)
 class FedAvgWorker(object):
     """
     Class to implement the worker side of the FedAvg algorithm.
+
+    Parameters
+    ----------
+
+    fed_model_trainer: FedAvgModelTrainer
+        The trainer for the DNN model for the worker.
+
+    server_host_ip: str
+        The ip-address of the host of the server.
+
+    server_port: int
+        The port at which the serer should listen to
     """
     def __init__(self, fed_model_trainer, server_host_ip=None, server_port=None):
         self.fed_model = fed_model_trainer

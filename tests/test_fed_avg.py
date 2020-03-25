@@ -1,6 +1,10 @@
 """
-Tests for the FedAvg algorithm.
+Tests for the FedAvgServer logic. The FedAvgWorker is not tested here because
+it is implicitly tested by the implementation of MNIST version of FedAvg.
+Additionally, the logic in all the functions in FedAvgWorker is straightforward
+enough that the amount of requried testing infrastructure is not justified.
 """
+
 import pickle
 import io
 
@@ -8,7 +12,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from dc_federated.fed_avg import FedAvgServer, FedAvgWorker, FedAvgModelTrainer
+from dc_federated.fed_avg import FedAvgServer, FedAvgModelTrainer
 
 
 class FedAvgTestModel(nn.Module):
@@ -125,6 +129,3 @@ def test_fed_avg_server():
 
 if __name__ == '__main__':
     test_fed_avg_server()
-
-
-

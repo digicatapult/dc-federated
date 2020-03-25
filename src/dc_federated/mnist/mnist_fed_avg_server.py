@@ -1,6 +1,7 @@
 """
-Simple runner to start a example global model server.
+Simple runner to start FedAvgServer server for the MNIST dataset.
 """
+
 
 from dc_federated.fed_avg.fed_avg_server import FedAvgServer
 from dc_federated.mnist.mnist_fed_model import MNISTModelTrainer, MNISTSubSet

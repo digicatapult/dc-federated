@@ -1,3 +1,7 @@
+"""
+Simple runner to start FedAvgWorker for the MNIST dataset.
+"""
+
 import sys
 import argparse
 
@@ -24,7 +28,7 @@ def get_args():
                    required=True)
 
     p.add_argument("--digit-class",
-                   help="The digit set this worker should focus on - allowed values are 0, 2 and 3.",
+                   help="The digit set this worker should focus on - allowed values are 0, 1 and 2.",
                    type=int,
                    required=True)
 
@@ -34,10 +38,11 @@ def get_args():
 
 def run():
     """
-    This should be run to start a local model runner loop to test the backend + model
-    integration in a distributed setting. Once the global model server has been started
-    in a another machine using python federated_global_model.py, run this runner in
-    other remote machines using the parameters provided by the global model server.
+    This should be run to start a FedAvgWorker. Run this script with the --help option
+    to see what the options are.
+
+    --digit-class 0 corresponds to worker training only on digits 0 - 3,
+    1 corresponds to worker training only on digits 4 - 6 and 2 to 7 - 9.
     """
     digit_classes = [[0, 1, 2, 3],
                      [4, 5, 6],
@@ -45,20 +50,20 @@ def run():
 
     args = get_args()
 
-    data_transform = MNISTSubSet.default_data_transform()
-    mnist_ds_train = MNISTSubSet.default_mnist_ds(is_train=True, data_transform=data_transform)
-    mnist_ds_test = MNISTSubSet.default_mnist_ds(is_train=False, data_transform=data_transform)
+    data_transform = MNISTSubSet.default_input_transform()
+    mnist_ds_train = MNISTSubSet.default_mnist_ds(is_train=True, input_transform=data_transform)
+    mnist_ds_test = MNISTSubSet.default_mnist_ds(is_train=False, input_transform=data_transform)
 
     local_model_trainer = MNISTModelTrainer(
         train_loader=MNISTSubSet(
             mnist_ds_train,
             digits=digit_classes[args.digit_class],
-            transform=data_transform
+            input_transform=data_transform
         ).get_data_loader(),
         test_loader=MNISTSubSet(
             mnist_ds_test,
             digits=digit_classes[args.digit_class],
-            transform=data_transform
+            input_transform=data_transform
         ).get_data_loader()
     )
 
