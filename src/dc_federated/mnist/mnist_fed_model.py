@@ -289,7 +289,6 @@ class MNISTModelTrainer(FedAvgModelTrainer):
         self.round_type = round_type
 
         # for housekeepiing.
-        self._train_max_batches = len(self.train_loader) / self.args.batch_size
         self._train_batch_count = 0
         self._train_epoch_count = 0
 
@@ -327,27 +326,30 @@ class MNISTModelTrainer(FedAvgModelTrainer):
         """
         current_iter_epoch_start = self._train_epoch_count
         self.model.train()
-        for batch_idx, (data, target) in enumerate(self.train_loader):
-            data, target = data.to(self.device), target.to(self.device)
-            self.optimizer.zero_grad()
-            output = self.model(data)
-            loss = F.nll_loss(output, target)
-            loss.backward()
-            self.optimizer.step()
-            if self._train_batch_count % self.args.log_interval == 0:
-                print(f"Train Epoch: {self._train_epoch_count}"
-                      f" [{self._train_batch_count * len(data)}/{len(self.train_loader.dataset)}"
-                      f"({100. * self._train_batch_count / len(self.train_loader):.0f}%)]\tLoss: {loss.item():.6f}")
-            self._train_batch_count += 1
+        stop_training = False
+        while not stop_training:
+            for batch_idx, (data, target) in enumerate(self.train_loader):
+                data, target = data.to(self.device), target.to(self.device)
+                self.optimizer.zero_grad()
+                output = self.model(data)
+                loss = F.nll_loss(output, target)
+                loss.backward()
+                self.optimizer.step()
+                if self._train_batch_count % self.args.log_interval == 0:
+                    print(f"Train Epoch: {self._train_epoch_count}"
+                          f" [{self._train_batch_count * len(data)}/{len(self.train_loader.dataset)}"
+                          f"({100. * self._train_batch_count / len(self.train_loader):.0f}%)]\tLoss: {loss.item():.6f}")
+                self._train_batch_count += 1
 
-            # housekeeping after a single epoch
-            if self._train_batch_count >= len(self.train_loader):
-                self._train_epoch_count += 1
-                self._train_batch_count = 0
-                self.scheduler.step()
+                # housekeeping after a single epoch
+                if self._train_batch_count >= len(self.train_loader):
+                    self._train_epoch_count += 1
+                    self._train_batch_count = 0
+                    self.scheduler.step()
 
-            if self.stop_train(batch_idx, current_iter_epoch_start):
-                break
+                if self.stop_train(batch_idx, current_iter_epoch_start):
+                    stop_training = True
+                    break
 
     def test(self):
         """
@@ -417,6 +419,9 @@ class MNISTModelTrainer(FedAvgModelTrainer):
         -------
 
         int:
-            The number of batches per ietration
+            The number of batches per iteration.
         """
-        return self.rounds_per_iter
+        if self.round_type == 'batches':
+            return self.rounds_per_iter * self.args.batch_size
+        else:
+            return self.rounds_per_iter * len(self.train_loader) * self.args.batch_size
