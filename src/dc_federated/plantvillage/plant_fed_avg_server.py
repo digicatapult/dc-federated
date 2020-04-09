@@ -14,8 +14,8 @@ def run():
     runner(s) in local_model.py in other devices. Run `python federated_local_model.py -h' for instructions
     on how to do so.
     """
-    train_data = '~/code/PlantVillageProject/dataset/processed/train1'
-    valid_data = '~/code/PlantVillageProject/dataset/processed/val'
+    train_data = '~/code/PlantVillageData/dataset/processed/train1'
+    valid_data = '~/code/PlantVillageData/dataset/processed/val'
     global_model_trainer = MobileNetv2Trainer(
         train_loader= PlantVillageSubSet.default_dataset(True, train_data, (224,224)).get_data_loader(),
         test_loader = PlantVillageSubSet.default_dataset(False, valid_data, (224,224)).get_data_loader())

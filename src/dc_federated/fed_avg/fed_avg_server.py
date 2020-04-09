@@ -133,7 +133,7 @@ class FedAvgServer(object):
             for sd, sz  in zip(state_dicts[1:], update_sizes[1:]):
                 agg_val = agg_val + sd[key] * sz
             agg_val = agg_val / sum(update_sizes)
-            return torch.tensor(agg_val.numpy())
+            return torch.tensor(agg_val.cpu().clone().numpy())
 
         # gather the model-updates to use for the update
         state_dicts_to_update_with = []

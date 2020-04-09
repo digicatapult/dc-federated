@@ -44,8 +44,8 @@ def run():
     args = get_args()
 
 
-    train_data = '~/code/PlantVillageProject/dataset/processed/train'+str(args.worker_id)
-    valid_data = '~/code/PlantVillageProject/dataset/processed/val'
+    train_data = '~/code/PlantVillageData/dataset/processed/train'+str(args.worker_id)
+    valid_data = '~/code/PlantVillageData/dataset/processed/val'
     print(train_data)
 
     train_data_transform = PlantVillageSubSet.default_input_transform(True, (224,224))
