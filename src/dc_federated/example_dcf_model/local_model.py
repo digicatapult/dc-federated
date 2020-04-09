@@ -27,12 +27,16 @@ class ExampleLocalModel(object):
     object via a running DCFServer instance. For testing purposes, it writes all the
     models it creates and receives to disk.
     """
-    def __init__(self):
+    def __init__(self, server_host_ip=None, server_port=None):
         self.local_model = ExampleModelClass()
         self.last_update_time = datetime(2017, 1, 1)
+
+        server_host_ip = get_host_ip() if server_host_ip is None else server_host_ip
+        server_port = 8080 if server_port is None else server_port
+
         self.worker = DCFWorker(
-            server_host_ip=get_host_ip(),
-            server_port=8080
+            server_host_ip=server_host_ip,
+            server_port=server_port
         )
 
         self.global_model = None
