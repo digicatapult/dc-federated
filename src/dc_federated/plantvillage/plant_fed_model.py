@@ -30,21 +30,21 @@ class MobileNetv2(nn.Module):
         model_urls = {
             'mobilenet_v2': 'https://download.pytorch.org/models/mobilenet_v2-b0353104.pth'
         }
-        
+
         # Obtain the desired model from the pretrainedmodels library
         self.model = models.__dict__['mobilenet_v2'](num_classes=num_classes)
-        
+
         # Loads the Torch serialized pretrained model at the given URL.
         pretrained_dict = model_zoo.load_url(model_urls['mobilenet_v2'])
-        
+
         # Filter out unnecessary keys in pretraine model state dict
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in self.model.state_dict()}
         # Overwrite entries in the model state dict
-        self.model.state_dict().update(pretrained_dict) 
-        
+        self.model.state_dict().update(pretrained_dict)
+
         # Load the new state dict
         self.model.load_state_dict(self.model.state_dict())
- 
+
 
     def forward(self, x):
         return self.model(x)
@@ -62,7 +62,7 @@ class MobileNetv2Args(object):
         self.gamma = 0.7
         # self.no_cuda = False
         self.seed = 1
-        self.log_interval = 1
+        self.log_interval = 5
         self.save_model = False
 
 
@@ -126,7 +126,7 @@ class PlantVillageSubSet(torch.utils.data.Dataset):
         tuple of a pair of torch.tensors
             The input and the target.
         """
-        
+
         return self.data.__getitem__(index)
 
     def __len__(self):
@@ -158,7 +158,7 @@ class PlantVillageSubSet(torch.utils.data.Dataset):
 
         Returns
         -------
-        
+
         DataLoader:
             A dataloader for this dataset.
         """
@@ -183,7 +183,7 @@ class PlantVillageSubSet(torch.utils.data.Dataset):
 
         Returns
         -------
-        
+
         torch.transforms:
             A default set of transformations for the inputs.
         """
@@ -309,9 +309,8 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
         print the results.
         """
         self.model.train()
-        print('dataset lenght', len(self.train_loader))
+
         for batch_idx, (data, target) in enumerate(self.train_loader):
-            print('batch_idx', batch_idx)
             data, target = data.to(self.device), target.to(self.device)
             self.optimizer.zero_grad()
             output = self.model(data)
@@ -319,8 +318,8 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
             loss.backward()
             self.optimizer.step()
             if self._train_batch_count % self.args.log_interval == 0:
-                print(f"Train Epoch: {self._train_epoch_count}"
-                      f" [{self._train_batch_count * len(data)}/{len(self.train_loader.dataset)}"
+                print(f"Training Epoch: {self._train_epoch_count}"
+                      f"Progress: [{self._train_batch_count * len(data)}/{len(self.train_loader.dataset)}"
                       f"({100. * self._train_batch_count / len(self.train_loader):.0f}%)]\tLoss: {loss.item():.6f}")
             self._train_batch_count += 1
             if batch_idx > self.batches_per_iter:
@@ -353,8 +352,8 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
 
         test_loss /= len(self.test_loader.dataset)
 
-        print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: {correct}/{len(self.test_loader.dataset)}"
-              f"({100. * correct / len(self.test_loader.dataset):.0f}%)\n")
+        print(f"\nValidation set after epoch {self._train_epoch_count}: Average loss: {test_loss:.4f}, Accuracy: {correct}/{len(self.test_loader.dataset)}"
+              f"({100. * correct / len(self.test_loader.dataset):.0f}%)")
 
     def get_model(self):
         """

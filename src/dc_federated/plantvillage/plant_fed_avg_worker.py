@@ -46,7 +46,6 @@ def run():
 
     train_data = '~/code/PlantVillageData/dataset/processed/train'+str(args.worker_id)
     valid_data = '~/code/PlantVillageData/dataset/processed/val'
-    print(train_data)
 
     train_data_transform = PlantVillageSubSet.default_input_transform(True, (224,224))
     test_data_transform = PlantVillageSubSet.default_input_transform(False, (224,224))
@@ -63,6 +62,11 @@ def run():
             transform=test_data_transform
         ).get_data_loader()
     )
+
+    print("\n************ FEDERATED LEARNING EXPERIMENT ************")
+    print(f"\n\tStarting Federated Average Worker: {args.worker_id}")
+    print("\n************\n")
+    fed_avg_server.start()
 
     fed_avg_worker = FedAvgWorker(local_model_trainer, args.server_host_ip, args.server_port)
     fed_avg_worker.run_worker_loop()

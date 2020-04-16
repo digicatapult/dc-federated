@@ -96,7 +96,7 @@ class FedAvgWorker(object):
             while True:
                 self.fed_model.train()
                 self.fed_model.test()
-                logger.info(f"Finished training of local model for worker {self.worker_id}")
+                logger.info(f"Training iteration of local model for worker {self.worker_id} completed\n")
 
                 self.worker.send_model_update(
                     pickle.dumps((self.fed_model.get_per_session_train_size(),

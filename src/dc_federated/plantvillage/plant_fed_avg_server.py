@@ -21,8 +21,8 @@ def run():
         test_loader = PlantVillageSubSet.default_dataset(False, valid_data, (224,224)).get_data_loader())
 
     fed_avg_server = FedAvgServer(global_model_trainer=global_model_trainer, update_lim=4)
-    print("\n************")
-    print("Starting an Federated Average Server at"
+    print("\n************ FEDERATED LEARNING EXPERIMENT ************")
+    print("Starting a Federated Average Server at"
           f"\n\tserver-host-ip: {fed_avg_server.server.server_host_ip} \n\tserver-port: {fed_avg_server.server.server_port}")
     print("\n************\n")
     fed_avg_server.start()
