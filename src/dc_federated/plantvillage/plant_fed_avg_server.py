@@ -1,31 +1,53 @@
 """
 Simple runner to start FedAvgServer server for the PlantVillage dataset.
 """
-
+import argparse
 
 from dc_federated.fed_avg.fed_avg_server import FedAvgServer
-from dc_federated.plantvillage.plant_fed_model import MobileNetv2Trainer, PlantVillageSubSet
+from dc_federated.plantvillage.plant_fed_model import MobileNetV2Trainer, PlantVillageSubSet
+
+
+def get_args():
+    """
+    Parse the arguments for running the FedAvg server for PlantVillage dataset.
+    """
+    # Make parser object
+    p = argparse.ArgumentParser(
+        description="Start the FedAvg server for the PlantVillage with "
+                    "the train and validation data-folders provided.\n")
+
+    p.add_argument("--train-data-path",
+                   help="The path to the train data (created by the <insert-name> script).",
+                   type=str,
+                   required=True)
+
+    p.add_argument("--validation-data-path",
+                   help="The path to the validation data (created by the <insert-name> script).",
+                   type=str,
+                   required=True)
+
+    return p.parse_args()
 
 
 def run():
     """
-    This should be run to start the global server to test the backend + model integration
-    in a distributed setting. Once the server has started, run the corresponding local-model
-    runner(s) in local_model.py in other devices. Run `python federated_local_model.py -h' for instructions
-    on how to do so.
+    Main run function to start a FedAvg server for the PlantVillage dataset.
     """
-    train_data = '~/code/PlantVillageData/dataset/processed/train1'
-    valid_data = '~/code/PlantVillageData/dataset/processed/val'
-    global_model_trainer = MobileNetv2Trainer(
-        train_loader= PlantVillageSubSet.default_dataset(True, train_data, (224,224)).get_data_loader(),
-        test_loader = PlantVillageSubSet.default_dataset(False, valid_data, (224,224)).get_data_loader())
+    args = get_args()
+    global_model_trainer = MobileNetV2Trainer(
+        train_loader=PlantVillageSubSet.default_dataset(
+            True, args.train_data_path, (224,224)).get_data_loader(),
+        test_loader=PlantVillageSubSet.default_dataset(
+            False, args.validation_data_path, (224,224)).get_data_loader()
+    )
 
     fed_avg_server = FedAvgServer(global_model_trainer=global_model_trainer, update_lim=4)
     print("\n************")
-    print("Starting an Federated Average Server at"
+    print("Starting an Federated Average server for PlantVillage at"
           f"\n\tserver-host-ip: {fed_avg_server.server.server_host_ip} \n\tserver-port: {fed_avg_server.server.server_port}")
     print("\n************\n")
     fed_avg_server.start()
+
 
 if __name__ == '__main__':
     run()
