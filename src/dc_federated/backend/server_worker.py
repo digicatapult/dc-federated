@@ -40,11 +40,11 @@ class DCFServer(object):
             This function is expected to return the current global model
             in some application dependent binary serialized form.
 
-    
+
         query_global_model_status_callback:  () -> str
             This function is expected to return a string giving the
             application dependent current status of the global model.
-        
+
         receive_worker_update_callback: dict -> bool
             This function should receive a worker-id and an application
             dependent binary serialized update from the worker. The
@@ -62,7 +62,7 @@ class DCFServer(object):
 
     """
     def __init__(
-        self, 
+        self,
         register_worker_callback,
         return_global_model_callback,
         query_global_model_status_callback,
@@ -86,9 +86,9 @@ class DCFServer(object):
 
     def register_worker(self):
         """
-        Creates a new worker-id, adds it to the internal list, calls the callback function 
+        Creates a new worker-id, adds it to the internal list, calls the callback function
         for the asscociated server model, and returns the id to the client.
-        
+
         Returns
         -------
 
@@ -144,20 +144,20 @@ class DCFServer(object):
         application.route(f"/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}", method='GET', callback=self.query_global_model_status_callback)
         application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}", method='POST', callback=self.receive_worker_update)
         application.add_hook('after_request', self.enable_cors)
-        
-        run(application, host=self.server_host_ip, port=self.server_port, debug=self.debug)
+
+        run(application, host=self.server_host_ip, port=self.server_port, debug=self.debug, quiet=True)
 
 
 class DCFWorker(object):
     """
     This class implements a worker API for the DCFServer
-    
+
     Parameters
     ----------
 
         server_host_ip: str
             The ip-address of the host of the server.
-    
+
         server_port: int
             The port at which the serer should listen to
     """
@@ -169,9 +169,9 @@ class DCFWorker(object):
 
     def register_worker(self):
         """
-        Returns a registration number for the worker from the server. 
+        Returns a registration number for the worker from the server.
         Each object of this class is registered only once.
-        
+
         Returns
         -------
 
@@ -181,11 +181,11 @@ class DCFWorker(object):
         if self.worker_id is None:
             self.worker_id = int(requests.get(f"{self.server_loc}/{REGISTER_WORKER_ROUTE}").content)
         return self.worker_id
-        
+
     def get_global_model(self):
         """
         Gets the binary string of the current global model from the server.
-        
+
         Returns
         -------
 
@@ -197,7 +197,7 @@ class DCFWorker(object):
     def get_global_model_status(self):
         """
         Returns the status of the current global model from the server.
-        
+
         Returns
         -------
 
@@ -208,9 +208,9 @@ class DCFWorker(object):
 
     def send_model_update(self, model_update):
         """
-        Sends the model update from the worker. Worker must register before sending 
+        Sends the model update from the worker. Worker must register before sending
         a model update.
-        
+
         Parameters
         ----------
 

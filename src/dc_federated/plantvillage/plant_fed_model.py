@@ -270,7 +270,7 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
             loss.backward()
             self.optimizer.step()
             if self._train_batch_count % self.args.log_interval == 0:
-                print(f"Training Epoch: {self._train_epoch_count}"
+                print(f"Training Epoch: {self._train_epoch_count} "
                       f"Progress: [{self._train_batch_count * len(data)}/{len(self.train_loader.dataset)}"
                       f"({100. * self._train_batch_count / len(self.train_loader):.0f}%)]\tLoss: {loss.item():.6f}")
             self._train_batch_count += 1

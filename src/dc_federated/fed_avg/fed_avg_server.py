@@ -109,12 +109,12 @@ class FedAvgServer(object):
             update_size, model_bytes = pickle.loads(model_update)
             self.worker_updates[worker_id] = (datetime.now(), update_size,
                                               torch.load(io.BytesIO(model_bytes)))
-            logger.info(f"Model update received from worker {worker_id}")
+            logger.info(f" Model update received from worker {worker_id}")
             if self.agg_model():
                 self.global_model_trainer.test()
             return f"Update received for worker {worker_id}"
         else:
-            logger.warning(f"Unregistered worker {worker_id} tried to send an update.")
+            logger.warning(f" Unregistered worker {worker_id} tried to send an update.")
             return f"Please register before sending an update."
 
     def agg_model(self):
@@ -126,7 +126,7 @@ class FedAvgServer(object):
         if self.unique_updates_since_last_agg < self.update_lim:
             return False
 
-        logger.info("\nUpdating the global model.\n")
+        logger.info(" Updating the global model.\n")
 
         def agg_params(key, state_dicts, update_sizes):
             agg_val = state_dicts[0][key] * update_sizes[0]
