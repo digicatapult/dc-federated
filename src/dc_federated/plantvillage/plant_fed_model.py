@@ -263,7 +263,6 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
         """
         self.model.train()
         for batch_idx, (data, target) in enumerate(self.train_loader):
-            print('batch_idx', batch_idx)
             data, target = data.to(self.device), target.to(self.device)
             self.optimizer.zero_grad()
             output = self.model(data)
@@ -271,8 +270,8 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
             loss.backward()
             self.optimizer.step()
             if self._train_batch_count % self.args.log_interval == 0:
-                print(f"Train Epoch: {self._train_epoch_count}"
-                      f" [{self._train_batch_count * len(data)}/{len(self.train_loader.dataset)}"
+                print(f"Training Epoch: {self._train_epoch_count}"
+                      f"Progress: [{self._train_batch_count * len(data)}/{len(self.train_loader.dataset)}"
                       f"({100. * self._train_batch_count / len(self.train_loader):.0f}%)]\tLoss: {loss.item():.6f}")
             self._train_batch_count += 1
             if batch_idx > self.batches_per_iter:
@@ -303,8 +302,8 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
 
         test_loss /= len(self.test_loader.dataset)
 
-        print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: {correct}/{len(self.test_loader.dataset)}"
-              f"({100. * correct / len(self.test_loader.dataset):.0f}%)\n")
+        print(f"\nValidation set after epoch {self._train_epoch_count}: Average loss: {test_loss:.4f}, Accuracy: {correct}/{len(self.test_loader.dataset)}"
+              f"({100. * correct / len(self.test_loader.dataset):.0f}%)")
 
     def get_model(self):
         """

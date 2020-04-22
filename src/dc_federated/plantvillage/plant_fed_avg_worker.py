@@ -78,6 +78,11 @@ def run():
         num_classes = cfg_dict['num_classes']
     )
 
+    print("\n************ FEDERATED LEARNING EXPERIMENT ************")
+    print(f"\n\tStarting Federated Average Worker: {args.worker_id}")
+    print("\n************\n")
+    fed_avg_server.start()
+
     fed_avg_worker = FedAvgWorker(local_model_trainer, args.server_host_ip, args.server_port)
     fed_avg_worker.run_worker_loop()
 

@@ -35,7 +35,7 @@ class FedAvgServer(object):
         global update before we update the global model.
     """
     def __init__(self, global_model_trainer, update_lim=10):
-        logger.info(f"Initializing server for model class {global_model_trainer.get_model().__class__.__name__}")
+        logger.info(f"Initializing FedAvg server for model class {global_model_trainer.get_model().__class__.__name__}")
 
         self.worker_updates = {}
         self.global_model_trainer = global_model_trainer
@@ -61,7 +61,7 @@ class FedAvgServer(object):
         worker_id: int
             The id of the new worker.
         """
-        logger.info(f"Regiserted worker {worker_id}")
+        logger.info(f"Registered worker {worker_id}")
         self.worker_updates[worker_id] = None
 
     def return_global_model(self):
@@ -126,7 +126,7 @@ class FedAvgServer(object):
         if self.unique_updates_since_last_agg < self.update_lim:
             return False
 
-        logger.info("Updating the global model.")
+        logger.info("\nUpdating the global model.\n")
 
         def agg_params(key, state_dicts, update_sizes):
             agg_val = state_dicts[0][key] * update_sizes[0]
