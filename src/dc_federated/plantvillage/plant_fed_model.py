@@ -1,56 +1,17 @@
 """
 Contains PlantVillage dataset specfic extension of FedAvgModelTrainer in
-MobileNetv2Trainer + associtaed helper class.
+MobileNetv2Trainer + associated helper class.
 """
-
-import numpy as np
-
-import argparse
-from collections import OrderedDict
-
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from PIL import Image
-from torchvision import datasets, transforms, models
+from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
-import torch.utils.model_zoo as model_zoo
 
 from dc_federated.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
 
-class MobileNetv2(nn.Module):
-    """
-    MobileNetv2 from torchvision.
-    """
-    def __init__(self, num_classes):
-        super(MobileNetv2, self).__init__()
-
-        model_urls = {
-            'mobilenet_v2': 'https://download.pytorch.org/models/mobilenet_v2-b0353104.pth'
-        }
-        
-        # Obtain the desired model from the pretrainedmodels library
-        self.model = models.__dict__['mobilenet_v2'](num_classes=num_classes)
-        
-        # Loads the Torch serialized pretrained model at the given URL.
-        pretrained_dict = model_zoo.load_url(model_urls['mobilenet_v2'])
-        
-        # Filter out unnecessary keys in pretraine model state dict
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in self.model.state_dict()}
-        # Overwrite entries in the model state dict
-        self.model.state_dict().update(pretrained_dict) 
-        
-        # Load the new state dict
-        self.model.load_state_dict(self.model.state_dict())
- 
-
-    def forward(self, x):
-        return self.model(x)
-
-
-class MobileNetv2Args(object):
+class MobileNetV2Args(object):
     """
     Class to abstract the arguments for a MobileNetv2ModelTrainer .
     """
@@ -60,11 +21,9 @@ class MobileNetv2Args(object):
         self.epochs = 20
         self.lr = 0.001
         self.gamma = 0.7
-        # self.no_cuda = False
         self.seed = 1
         self.log_interval = 1
         self.save_model = False
-
 
     def print(self):
         print(f"batch_size: {self.batch_size}")
@@ -72,7 +31,6 @@ class MobileNetv2Args(object):
         print(f"epochs: {self.epochs}")
         print(f"lr: {self.lr}")
         print(f"gamma: {self.gamma}")
-        # print(f"no_cuda: {self.no_cuda}")
         print(f"seed: {self.seed}")
         print(f"log_interval: {self.log_interval}")
         print(f"save_model: {self.save_model}")
@@ -80,8 +38,7 @@ class MobileNetv2Args(object):
 
 class PlantVillageSubSet(torch.utils.data.Dataset):
     """
-    Represents a PlantVillage dataset subset. This class deliver only a subset of
-    digits in the train and test sets.
+    Represents a PlantVillage dataset subset, corresponding to different farmers.
 
     Parameters
     ----------
@@ -92,22 +49,13 @@ class PlantVillageSubSet(torch.utils.data.Dataset):
     args: MobileNetv2Args (default None)
         The arguments for the training.
 
-    input_transform: torch.transforms (default None)
+    transform: torch.transforms (default None)
         The transformation to apply to the inputs
-
-    target_transform: torch.transforms (default None)
-        The transformation to apply to the target
     """
     def __init__(self, plant_ds,  args=None, transform=None):
 
-        # self.digits = digits
-        self.args = MobileNetv2Args() if not args else args
-        # mask = np.isin(mnist_ds.targets, digits)
-        # self.data = mnist_ds.data[mask].clone()
-        # self.targets = mnist_ds.targets[mask].clone()
-        # self.input_transform = input_transform
+        self.args = MobileNetV2Args() if not args else args
         self.data = plant_ds
-        # self.root_dir = root_dir
         self.transform = transform
 
     def __getitem__(self, index):
@@ -126,7 +74,6 @@ class PlantVillageSubSet(torch.utils.data.Dataset):
         tuple of a pair of torch.tensors
             The input and the target.
         """
-        
         return self.data.__getitem__(index)
 
     def __len__(self):
@@ -144,7 +91,6 @@ class PlantVillageSubSet(torch.utils.data.Dataset):
     def get_data_loader(self, use_cuda=True, kwargs=None):
         """
         Returns a DataLoader object for this dataset
-
 
         Parameters
         ----------
@@ -220,7 +166,6 @@ class PlantVillageSubSet(torch.utils.data.Dataset):
         dataset.Dataset:
             The default plant dataset.
         """
-        print('data_path', root)
         return datasets.ImageFolder(root = root, transform=transform)
 
     @staticmethod
@@ -248,11 +193,10 @@ class PlantVillageSubSet(torch.utils.data.Dataset):
         )
 
 
-class MobileNetv2Trainer(FedAvgModelTrainer):
+class MobileNetV2Trainer(FedAvgModelTrainer):
     """
-    Trainer for the Mobilenetv2 model for the FedAvg algorithm. Extends
-    the FedAvgModelTrainer, and implements all the relevant domain
-    specific logic.
+    Trainer for the MobileNetV2 model for PlantVillage for the FedAvg algorithm. Extends
+    the FedAvgModelTrainer, and implements all the relevant domain specific logic.
 
     Parameters
     ----------
@@ -263,14 +207,17 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
     model: MobileNetv2 (default None)
         The model for training.
 
-    train_loader: DataLoader
+    train_loader: DataLoader (default None)
         The DataLoader for the train dataset.
 
-    test_loader: DataLoader
+    test_loader: DataLoader (default None)
         The DataLoader for the test dataset.
 
-    batches_per_iter: int
+    batches_per_iter: int (default 10)
         The number of batches to use per train() call.
+
+    num_classes: int (default 9)
+        The number of classes in the network.
     """
     def __init__(
             self,
@@ -281,11 +228,13 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
             batches_per_iter=10,
             num_classes=9):
 
-        self.args = MobileNetv2Args() if not args else args
-
-        self.use_cuda = True #not self.args.no_cuda and torch.cuda.is_available()
-        self.device = torch.device("cuda" if self.use_cuda else "cpu")
-        self.model = MobileNetv2(num_classes).to(self.device) if not model else model
+        self.args = MobileNetV2Args() if not args else args
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = torch.hub.load(
+            'pytorch/vision:v0.5.0',
+            'mobilenet_v2',
+            pretrained=False,
+            num_classes=num_classes).to(self.device) if not model else model
 
         self.train_loader = \
             PlantVillageSubSet.default_dataset(True).get_loader() if not train_loader else train_loader
@@ -294,7 +243,7 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
 
         self.batches_per_iter = batches_per_iter
 
-        # for housekeepiing.
+        # for housekeeping.
         self._train_max_batches = len(self.train_loader) / self.args.batch_size
         self._train_batch_count = 0
         self._train_epoch_count = 0
@@ -305,11 +254,10 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
     def train(self):
         """
         Run the training on self.model using the data in the train_loader,
-        using the given optimizer for the given number of epochs.
-        print the results.
+        using the given optimizer for the given number of epochs and print the model
+        performance on the validation set.
         """
         self.model.train()
-        print('dataset lenght', len(self.train_loader))
         for batch_idx, (data, target) in enumerate(self.train_loader):
             print('batch_idx', batch_idx)
             data, target = data.to(self.device), target.to(self.device)
@@ -332,7 +280,6 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
             self._train_batch_count = 0
             self.scheduler.step()
 
-
     def test(self):
         """
         Run the test on self.model using the data in the test_loader and
@@ -344,7 +291,6 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
 
         with torch.no_grad():
             for batch_idx, (data, target) in enumerate(self.test_loader):
-            # for data, target in self.test_loader:
                 data, target = data.to(self.device), target.to(self.device)
                 output = self.model(data)
                 test_loss += F.cross_entropy(output, target, reduction='sum').item()  # sum up batch loss
@@ -363,7 +309,7 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
         Returns
         -------
 
-        MobileNetv2:
+        MobileNetV2:
             The model used in this trainer.
         """
         return self.model
@@ -376,7 +322,7 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
         -----------
 
         model_file: io.BytesIO or similar object
-            This object should contain a serilaized model.
+            This object should contain a serialised model.
         """
         self.model = torch.load(model_file)
         self.optimizer = optim.Adadelta(self.model.parameters(), lr=self.args.lr)
@@ -403,6 +349,6 @@ class MobileNetv2Trainer(FedAvgModelTrainer):
         -------
 
         int:
-            The number of batches per ietration
+            The number of batches per iteration
         """
         return self.batches_per_iter

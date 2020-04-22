@@ -6,17 +6,17 @@ import sys
 import argparse
 
 from dc_federated.fed_avg.fed_avg_worker import FedAvgWorker
-from dc_federated.plantvillage.plant_fed_model import MobileNetv2Trainer, PlantVillageSubSet
+from dc_federated.plantvillage.plant_fed_model import MobileNetV2Trainer, PlantVillageSubSet
 
 
 def get_args():
     """
-    Parse the argument for running the example local model for the distributed
-    federated test.
+    Parse the arguments for running the FedAvg worker for the PlantVillage dataset.
     """
     # Make parser object
     p = argparse.ArgumentParser(
-        description="Run this with the parameter provided by running the mnist_fed_avg_server\n")
+        description="Start a FedAvg worker for the PlangVillage dataset.\n"
+                    "Run this with the parameter provided by running the plant_fed_avg_server.py\n")
 
     p.add_argument("--server-host-ip",
                    help="The ip of the host of server",
@@ -28,7 +28,17 @@ def get_args():
                    required=True)
 
     p.add_argument("--worker-id",
-                   help="The number of the worker",
+                   help="The id of the worker",
+                   type=str,
+                   required=True)
+
+    p.add_argument("--train-data-path",
+                   help="The path to the train data (created by the <insert-name> script).",
+                   type=str,
+                   required=True)
+
+    p.add_argument("--validation-data-path",
+                   help="The path to the validation data (created by the <insert-name> script).",
                    type=str,
                    required=True)
 
@@ -37,23 +47,17 @@ def get_args():
 
 def run():
     """
-    This should be run to start a FedAvgWorker. Run this script with the --help option
-    to see what the options are.
+    Main run function to start a FedAvg worker for the PlantVillage dataset.
     """
-
     args = get_args()
-
-
-    train_data = '~/code/PlantVillageData/dataset/processed/train'+str(args.worker_id)
-    valid_data = '~/code/PlantVillageData/dataset/processed/val'
-    print(train_data)
-
     train_data_transform = PlantVillageSubSet.default_input_transform(True, (224,224))
     test_data_transform = PlantVillageSubSet.default_input_transform(False, (224,224))
-    plant_ds_train = PlantVillageSubSet.default_plant_ds(root = train_data, transform=train_data_transform)
-    plant_ds_test = PlantVillageSubSet.default_plant_ds(root = valid_data, transform=test_data_transform)
+    plant_ds_train = PlantVillageSubSet.default_plant_ds(
+        root=args.train_data_path, transform=train_data_transform)
+    plant_ds_test = PlantVillageSubSet.default_plant_ds(
+        root=args.validation_data_path, transform=test_data_transform)
 
-    local_model_trainer = MobileNetv2Trainer(
+    local_model_trainer = MobileNetV2Trainer(
         train_loader=PlantVillageSubSet(
             plant_ds_train,
             transform=train_data_transform
