@@ -73,7 +73,9 @@ def run():
         test_loader=PlantVillageSubSet(
             plant_ds_test,
             transform=test_data_transform
-        ).get_data_loader()
+        ).get_data_loader(),
+        batches_per_iter = cfg_dict['batches_per_iter'],
+        num_classes = cfg_dict['num_classes']
     )
 
     fed_avg_worker = FedAvgWorker(local_model_trainer, args.server_host_ip, args.server_port)

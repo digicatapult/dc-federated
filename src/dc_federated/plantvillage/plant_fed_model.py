@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
+import yaml
 
 from dc_federated.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
@@ -16,14 +17,17 @@ class MobileNetV2Args(object):
     Class to abstract the arguments for a MobileNetv2ModelTrainer .
     """
     def __init__(self):
-        self.batch_size = 16
-        self.test_batch_size = 16
-        self.epochs = 20
-        self.lr = 0.001
-        self.gamma = 0.7
-        self.seed = 1
-        self.log_interval = 1
-        self.save_model = False
+        cfg = open("PlantVillage_cfg.yaml", 'r')
+        cfg_dict = yaml.load(cfg)
+
+        self.batch_size = cfg_dict['batch_size']
+        self.test_batch_size = cfg_dict['test_batch_size']
+        self.epochs = cfg_dict['epochs']
+        self.lr = cfg_dict['lr']
+        self.gamma = cfg_dict['gamma']
+        self.seed = cfg_dict['seed']
+        self.log_interval = cfg_dict['log_interval']
+        self.save_model = cfg_dict['save_model']
 
     def print(self):
         print(f"batch_size: {self.batch_size}")
@@ -104,7 +108,7 @@ class PlantVillageSubSet(torch.utils.data.Dataset):
 
         Returns
         -------
-        
+
         DataLoader:
             A dataloader for this dataset.
         """
@@ -129,7 +133,7 @@ class PlantVillageSubSet(torch.utils.data.Dataset):
 
         Returns
         -------
-        
+
         torch.transforms:
             A default set of transformations for the inputs.
         """

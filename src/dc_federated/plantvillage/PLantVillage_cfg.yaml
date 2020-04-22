@@ -9,7 +9,18 @@ output_dataset:
   test_path: /home/ubuntu/code/PlantVillageData/dataset/processed/test/
   train_path: /home/ubuntu/code/PlantVillageData/dataset/processed/train
 
-# List of categories to ignore for the analysis
+# List of categories and categories to ignore for the analysis
+categories: ['Soybean___healthy', 'Tomato___Tomato_mosaic_virus', 'Cherry_(including_sour)___healthy', 'Strawberry___Leaf_scorch',
+            'Tomato___Spider_mites Two-spotted_spider_mite', 'Pepper,_bell___Bacterial_spot', 'Tomato___Bacterial_spot',
+            'Apple___Apple_scab', 'Potato___Early_blight', 'Tomato___Late_blight', 'Raspberry___healthy',
+            'Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot', 'Corn_(maize)___Northern_Leaf_Blight',
+            'Corn_(maize)___Common_rust_', 'Grape___Esca_(Black_Measles)', 'Cherry_(including_sour)___Powdery_mildew',
+            'Apple___Black_rot', 'Corn_(maize)___healthy', 'Tomato___Target_Spot', 'Orange___Haunglongbing_(Citrus_greening)',
+            'Tomato___Tomato_Yellow_Leaf_Curl_Virus', 'Squash___Powdery_mildew', 'Apple___Cedar_apple_rust', 'Grape___healthy',
+            'Apple___healthy', 'Tomato___Leaf_Mold', 'Peach___Bacterial_spot', 'Tomato___Early_blight',
+            'Grape___Leaf_blight_(Isariopsis_Leaf_Spot)', 'Peach___healthy', 'Blueberry___healthy', 'Potato___Late_blight',
+            'Pepper,_bell___healthy', 'Grape___Black_rot', 'Tomato___healthy', 'Potato___healthy', 'Strawberry___healthy',
+            'Tomato___Septoria_leaf_spot']
 excluded_categories: ['Cherry_(including_sour)___Powdery_mildew', 'Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot',
                       'Squash___Powdery_mildew', 'Peach___Bacterial_spot', 'Potato___healthy',
                       'Pepper,_bell___Bacterial_spot', 'Corn_(maize)___healthy',
@@ -26,3 +37,16 @@ distributions: [[0, 0.5, 0.1, 0.5, 0.1, 0.6, 0.2, 0.2, 0],
                 [0, 0.2,  0.7, 0.3, 0.3, 0, 0.35, 0.25, 0],
                 [0.2, 0.2, 0.2, 0, 0.6, 0.4, 0.3, 0.3, 0.3],
                 [0.8, 0.1, 0, 0.2, 0, 0, 0.15, 0.25, 0.7]]
+
+
+# Hyperarameters for training the model
+batch_size: 16
+test_batch_size: 16
+epochs: 20
+lr: 0.001
+gamma: 0.7
+seed: 1
+log_interval: 10
+save_model: False
+batches_per_iter: 10 # Number of batches per worker training iteration
+num_classes: 9 # Number of classes
