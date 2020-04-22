@@ -4,6 +4,7 @@ Simple runner to start FedAvgWorker for the PlantVillage dataset.
 
 import sys
 import argparse
+import yaml
 
 from dc_federated.fed_avg.fed_avg_worker import FedAvgWorker
 from dc_federated.plantvillage.plant_fed_model import MobileNetV2Trainer, PlantVillageSubSet
@@ -35,12 +36,12 @@ def get_args():
     p.add_argument("--train-data-path",
                    help="The path to the train data (created by the <insert-name> script).",
                    type=str,
-                   required=True)
+                   required=False)
 
     p.add_argument("--validation-data-path",
                    help="The path to the validation data (created by the <insert-name> script).",
                    type=str,
-                   required=True)
+                   required=False)
 
     return p.parse_args()
 
@@ -50,6 +51,13 @@ def run():
     Main run function to start a FedAvg worker for the PlantVillage dataset.
     """
     args = get_args()
+    cfg = open("PlantVillage_cfg.yaml", 'r')
+    cfg_dict = yaml.load(cfg)
+    if args.train_data_path is None:
+        args.train_data_path = cfg_dict['output_dataset']['train_path']+str(args.worker_id)
+    if args.validation_data_path is None:
+        args.validation_data_path = cfg_dict['output_dataset']['val_path']
+
     train_data_transform = PlantVillageSubSet.default_input_transform(True, (224,224))
     test_data_transform = PlantVillageSubSet.default_input_transform(False, (224,224))
     plant_ds_train = PlantVillageSubSet.default_plant_ds(

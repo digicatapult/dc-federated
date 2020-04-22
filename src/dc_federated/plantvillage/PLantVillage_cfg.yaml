@@ -5,6 +5,9 @@ orig_dataset:
   path: /home/ubuntu/code/PlantVillageData/dataset/color/
 output_dataset:
   path: /home/ubuntu/code/PlantVillageData/dataset/processed/
+  val_path: /home/ubuntu/code/PlantVillageData/dataset/processed/val/
+  test_path: /home/ubuntu/code/PlantVillageData/dataset/processed/test/
+  train_path: /home/ubuntu/code/PlantVillageData/dataset/processed/train
 
 # List of categories to ignore for the analysis
 excluded_categories: ['Cherry_(including_sour)___Powdery_mildew', 'Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot',
