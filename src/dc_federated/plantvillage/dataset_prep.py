@@ -27,48 +27,6 @@ from os import listdir
 import yaml
 
 
-def clean_listdir(categories):
-    """
-    Remove .DS_Store from a list of directories entries.
-
-    Parameters
-    ----------
-    categories: list of str
-        The list of files and folders present in the dataset folder.
-
-    Returns
-    -------
-
-    categories: list of str
-        The list of categories present in the dataset folder.
-    """
-    for cat in categories :
-        # remove .DS_Store from list
-        if cat == ".DS_Store" :
-            categories.remove(cat)
-    return categories
-
-
-def remove_cat(excluded_categories, categories):
-    """
-    Remove excluded categories from the categories list.
-
-    Parameters
-    ----------
-    categories: list of str
-        The list of all categories present in the dataset folder.
-
-    Returns
-    -------
-
-    categories: list of str
-        The list of categories of interest.
-    """
-    for cat in excluded_categories:
-        categories.remove(cat)
-    return categories
-
-
 def distributions_list(distributions, categories): ####### Make a class #########
     """
     Map the categories to the fraction of the dataset for each worker subset.
@@ -249,14 +207,9 @@ def run():
     val_dir = os.path.join(base_dir,'val')
     test_dir = os.path.join(base_dir,'test')
 
-    # List the dataset categories
-    categories = clean_listdir(listdir(data_dir))
-    print('Dataset categories: \n{}\n\nNumber of categories: {}'.format(categories, len(categories)))
 
     # Select categories to remove from the analysis
-    excluded_categories = cfg_dict['excluded_categories']
-
-    categories = remove_cat(excluded_categories, categories)
+    categories = cfg_dict['included_categories']
     print('Dataset categories: \n{}\n\nNumber of categories: {}'.format(categories, len(categories)))
 
     # Define distribution for various training subsets
