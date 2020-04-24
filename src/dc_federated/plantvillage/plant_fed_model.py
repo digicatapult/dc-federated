@@ -42,7 +42,9 @@ class MobileNetV2Args(object):
 
 class PlantVillageSubSet(torch.utils.data.Dataset):
     """
-    Represents a PlantVillage dataset subset, corresponding to different farmers.
+    Represents a PlantVillage dataset subset. This class wraps around the
+    ImageFolder class object to deliver only a subset of the PlantVillage
+    dataset in the train and test sets.
 
     Parameters
     ----------
@@ -221,7 +223,7 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
         The number of batches to use per train() call.
 
     num_classes: int (default 9)
-        The number of classes in the network.
+        The number of classes to be predicted by the model.
     """
     def __init__(
             self,
@@ -230,7 +232,9 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
             train_loader=None,
             test_loader=None,
             batches_per_iter=10,
-            num_classes=9):
+            num_classes=9,
+            global_model = False,
+            checkpoints = ''):
 
         self.args = MobileNetV2Args() if not args else args
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -254,6 +258,9 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.args.lr)
         self.scheduler = StepLR(self.optimizer, step_size=10, gamma=self.args.gamma)
+        self.global_model = global_model
+        self.checkpoints = checkpoints
+        self.best_acc = 0
 
     def train(self):
         """
@@ -301,8 +308,16 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
         test_loss /= len(self.test_loader.dataset)
+        test_acc = correct/len(self.test_loader.dataset)
 
-        print(f"\nValidation set after epoch {self._train_epoch_count}: Average loss: {test_loss:.4f}, Accuracy: {correct}/{len(self.test_loader.dataset)}"
+        if self.save_model and self.global_model:
+            is_best = test_acc > self.best_acc
+            self.best_acc = max(test_acc, self.best_acc)
+            if is_best:
+                self.save_model(self.checkpoints)
+
+
+        print(f"\nValidation set after epoch {self._train_epoch_count}: Average loss: {test_loss:.4f}, Accuracy: {test_acc}"
               f"({100. * correct / len(self.test_loader.dataset):.0f}%)")
 
     def get_model(self):
@@ -355,3 +370,15 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
             The number of batches per iteration
         """
         return self.batches_per_iter
+
+    def save_model(self, path):
+        """
+        Save a model parameters.
+
+        Parameters
+        -----------
+
+        path: str
+            Folder where to save the model.
+        """
+        torch.save(self.model, path)

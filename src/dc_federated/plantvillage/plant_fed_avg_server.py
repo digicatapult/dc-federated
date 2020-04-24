@@ -18,12 +18,22 @@ def get_args():
                     "the train and validation data-folders provided.\n")
 
     p.add_argument("--train-data-path",
-                   help="The path to the train data (created by the <insert-name> script).",
+                   help="The path to the train data.",
                    type=str,
                    required=False)
 
     p.add_argument("--validation-data-path",
-                   help="The path to the validation data (created by the <insert-name> script).",
+                   help="The path to the validation data.",
+                   type=str,
+                   required=False)
+
+    p.add_argument("--checkpoint-path",
+                   help="The path to save the global model checkpoint.",
+                   type=str,
+                   required=False)
+
+    p.add_argument("--update-lim",
+                   help="The number of desired workers updates ber iteration.",
                    type=str,
                    required=False)
 
@@ -38,19 +48,26 @@ def run():
 
     cfg = open("PlantVillage_cfg.yaml", 'r')
     cfg_dict = yaml.load(cfg)
+
     if args.train_data_path is None:
         args.train_data_path = cfg_dict['output_dataset']['path']
     if args.validation_data_path is None:
         args.validation_data_path = cfg_dict['output_dataset']['val_path']
+    if args.checkpoint_path is None:
+        args.checkpoint_path = cfg_dict['checkpoint_path']
+    if args.update_lim is None:
+        args.update_lim = cfg_dict['update_lim']
 
     global_model_trainer = MobileNetV2Trainer(
         train_loader=PlantVillageSubSet.default_dataset(
             True, args.train_data_path, (224,224)).get_data_loader(),
         test_loader=PlantVillageSubSet.default_dataset(
-            False, args.validation_data_path, (224,224)).get_data_loader()
+            False, args.validation_data_path, (224,224)).get_data_loader(),
+        global_model=True,
+        checkpoints=args.checkpoint_path
     )
 
-    fed_avg_server = FedAvgServer(global_model_trainer=global_model_trainer, update_lim=4)
+    fed_avg_server = FedAvgServer(global_model_trainer=global_model_trainer, update_lim=args.update_lim)
     print("\n******** FEDERATED LEARNING EXPERIMENT ********")
     print("Starting an Federated Average server for PlantVillage at"
           f"\n\tserver-host-ip: {fed_avg_server.server.server_host_ip} \n\tserver-port: {fed_avg_server.server.server_port}")

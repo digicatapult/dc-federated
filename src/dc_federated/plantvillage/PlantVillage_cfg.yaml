@@ -2,14 +2,14 @@
 # Original dataset:   'PlantVillageData/dataset/'+data_type, i.e. "color"
 # Output dataset:     'PlantVillageData/dataset/dataset/processed/'
 orig_dataset:
-  path: /home/ubuntu/code/PlantVillageData/dataset/color/
+  path: /home/ubuntu/code/PlantVillage-Dataset/raw/color/
 output_dataset:
   path: /home/ubuntu/code/PlantVillageData/dataset/processed/
   val_path: /home/ubuntu/code/PlantVillageData/dataset/processed/val/
   test_path: /home/ubuntu/code/PlantVillageData/dataset/processed/test/
   train_path: /home/ubuntu/code/PlantVillageData/dataset/processed/train
 
-# List of categories and categories to ignore for the analysis
+# List of categories and categories to include to the analysis
 categories: ['Soybean___healthy', 'Tomato___Tomato_mosaic_virus', 'Cherry_(including_sour)___healthy', 'Strawberry___Leaf_scorch',
             'Tomato___Spider_mites Two-spotted_spider_mite', 'Pepper,_bell___Bacterial_spot', 'Tomato___Bacterial_spot',
             'Apple___Apple_scab', 'Potato___Early_blight', 'Tomato___Late_blight', 'Raspberry___healthy',
@@ -21,16 +21,9 @@ categories: ['Soybean___healthy', 'Tomato___Tomato_mosaic_virus', 'Cherry_(inclu
             'Grape___Leaf_blight_(Isariopsis_Leaf_Spot)', 'Peach___healthy', 'Blueberry___healthy', 'Potato___Late_blight',
             'Pepper,_bell___healthy', 'Grape___Black_rot', 'Tomato___healthy', 'Potato___healthy', 'Strawberry___healthy',
             'Tomato___Septoria_leaf_spot']
-excluded_categories: ['Cherry_(including_sour)___Powdery_mildew', 'Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot',
-                      'Squash___Powdery_mildew', 'Peach___Bacterial_spot', 'Potato___healthy',
-                      'Pepper,_bell___Bacterial_spot', 'Corn_(maize)___healthy',
-                      'Grape___Leaf_blight_(Isariopsis_Leaf_Spot)', 'Peach___healthy', 'Blueberry___healthy',
-                      'Pepper,_bell___healthy', 'Grape___Esca_(Black_Measles)', 'Cherry_(including_sour)___healthy',
-                      'Orange___Haunglongbing_(Citrus_greening)', 'Grape___healthy', 'Potato___Late_blight',
-                      'Grape___Black_rot', 'Soybean___healthy', 'Potato___Early_blight', 'Corn_(maize)___Common_rust_',
-                      'Corn_(maize)___Northern_Leaf_Blight', 'Raspberry___healthy', 'Tomato___Leaf_Mold', 'Tomato___Target_Spot',
-                      'Tomato___Early_blight', 'Tomato___Tomato_Yellow_Leaf_Curl_Virus', 'Tomato___Septoria_leaf_spot',
-                      'Tomato___Spider_mites Two-spotted_spider_mite', 'Tomato___Tomato_mosaic_virus']
+included_categories: ['Strawberry___Leaf_scorch','Tomato___Bacterial_spot', 'Apple___Apple_scab',
+                      'Tomato___Late_blight', 'Apple___Black_rot', 'Apple___Cedar_apple_rust',
+                      'Apple___healthy', 'Tomato___healthy', 'Strawberry___healthy',]
 
 # Define distribution of images for each worker training subsets for each categories
 distributions: [[0, 0.5, 0.1, 0.5, 0.1, 0.6, 0.2, 0.2, 0],
@@ -50,3 +43,5 @@ log_interval: 10
 save_model: False
 batches_per_iter: 10 # Number of batches per worker training iteration
 num_classes: 9 # Number of classes
+checkpoint_path: /home/ubuntu/code/FederatedLearningDemo/checkpoints/trained_mobilenetv2.pt
+update_lim: 4 # Number of workers requested
