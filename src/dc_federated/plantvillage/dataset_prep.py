@@ -24,6 +24,11 @@ from pathlib import Path
 import json
 from os import listdir
 import yaml
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('dc_federated.dataset_prep')
+logger.setLevel(level=logging.INFO)
 
 
 def distributions_list(distributions, categories): ####### Make a class #########
@@ -187,7 +192,7 @@ def create_subsets(data_dir, test_dir, val_dir, train_dir, categories, distribs,
         The maximal number of images retained for a category.
     """
     try:
-        print("[INFO] Loading images ...")
+        logger.info(f" Loading images ...")
         root_dir = listdir(data_dir)
 
         train_images = [0] * len(categories)
@@ -195,7 +200,7 @@ def create_subsets(data_dir, test_dir, val_dir, train_dir, categories, distribs,
         for plant_disease_folder in categories:
             source_directory = os.path.join(data_dir,plant_disease_folder)
             plant_disease_folder_list = listdir(source_directory)
-            print("[INFO] Processing {} with {} images".format(plant_disease_folder, len(plant_disease_folder_list)))
+            logger.info(f" Processing {plant_disease_folder} with {len(plant_disease_folder_list)} images")
             for image in plant_disease_folder_list:
                 # remove .DS_Store from list
                 if image == ".DS_Store" :
@@ -227,9 +232,9 @@ def create_subsets(data_dir, test_dir, val_dir, train_dir, categories, distribs,
                 start_idx += train_subset
                 i += 1
 
-        print("[INFO] Image loading completed")
+        logger.info(f" Image loading completed")
     except Exception as e:
-        print("Error : {}">format(e))
+        logger.info(f" Error : {format(e)}")
 
 
 def run():
@@ -243,7 +248,7 @@ def run():
     test_dir = os.path.join(base_dir,'test')
 
     categories = cfg_dict['included_categories']
-    print('Dataset categories: \n{}\n\nNumber of categories: {}'.format(categories, len(categories)))
+    logger.info(f" \nDataset categories: \n{categories}\nNumber of categories: {len(categories)}\n")
 
     # Define distribution for various training subsets
     distributions = cfg_dict['distributions']
