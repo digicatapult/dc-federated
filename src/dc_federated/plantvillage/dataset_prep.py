@@ -4,9 +4,8 @@ Create train, test and validation sets for training a classifier for leaf diseas
 
 Create as many subsets as needed for the training and validation data, with predefined
 distributions for the training sets between the various workers.
-Each training set folder, corresponding to a worker, will be identified by an integer
+Each training set folder, corresponding to a worker, will be identified by an integer,
 starting from 0.
-
 
 The output datasets are organised as follow:
     Original dataset:   'PlantVillageData/dataset/'+data_type, i.e. "color"
@@ -135,7 +134,35 @@ def copy_subset(list_img, bound_inf, bound_sup, category, directory, source_dire
             copy_image(directory, category, image, source_directory)
 
 
-def create_subsets(data_dir, test_dir, val_dir, train_dir, categories, distribs):
+def select_img(plant_disease_folder_list, max_size):
+    """
+    Return shuffled sublist of images to split between train, val and test sets.
+
+    Parameters
+    ----------
+    plant_disease_folder_list: list
+        The whole list of images for a category
+
+    max_size:
+        The maximal number of images retained for a category.
+
+    Returns
+    -------
+    plant_disease_folder_list: list
+        A shuffled sublist of images to split between train, val and test sets.
+
+    img_number: into
+        Number of images to splits between train, val and test sets.
+    """
+    np.random.shuffle(plant_disease_folder_list)
+    img_number = min(len(plant_disease_folder_list), max_size)
+    plant_disease_folder_list = plant_disease_folder_list[:img_number]
+
+    return plant_disease_folder_list, img_number
+
+
+def create_subsets(data_dir, test_dir, val_dir, train_dir, categories, distribs,
+                    test_split, val_split, max_size):
     """
     Create the different subsets for original data for the PlantVillage dataset.
 
@@ -152,6 +179,12 @@ def create_subsets(data_dir, test_dir, val_dir, train_dir, categories, distribs)
 
     distribs: list of tuples
         The list of categories and subset fraction pairs for each worker.
+
+    test_split, val_split: float
+        Define the proportion of images going in the test and validation sets.
+
+    max_size:
+        The maximal number of images retained for a category.
     """
     try:
         print("[INFO] Loading images ...")
@@ -160,28 +193,31 @@ def create_subsets(data_dir, test_dir, val_dir, train_dir, categories, distribs)
         train_images = [0] * len(categories)
 
         for plant_disease_folder in categories:
-            plant_disease_folder_list = listdir(os.path.join(data_dir,plant_disease_folder))
+            source_directory = os.path.join(data_dir,plant_disease_folder)
+            plant_disease_folder_list = listdir(source_directory)
             print("[INFO] Processing {} with {} images".format(plant_disease_folder, len(plant_disease_folder_list)))
             for image in plant_disease_folder_list:
                 # remove .DS_Store from list
                 if image == ".DS_Store" :
                     plant_disease_folder_list.remove(image)
 
-            source_directory = os.path.join(data_dir,plant_disease_folder)
-            test_images = len(plant_disease_folder_list)//10
-            valid_images = len(plant_disease_folder_list)//6
+            # Return shuffled sublist of images to split between train, val and test sets.
+            plant_disease_folder_list, img_number = select_img(plant_disease_folder_list, max_size)
+
+            test_images = int(img_number*test_split)
+            valid_images = int(img_number*val_split)
 
             # Copy test image samples
             copy_subset(plant_disease_folder_list, 0, test_images, plant_disease_folder,
                         test_dir, source_directory)
 
             # Copy validation image samples
-            copy_subset(plant_disease_folder_list, -valid_images, -1, plant_disease_folder,
+            copy_subset(plant_disease_folder_list, test_images, test_images+valid_images, plant_disease_folder,
                         val_dir, source_directory)
 
             # Preparation of the split train sets
-            train_images = min(len(plant_disease_folder_list)-test_images-valid_images, 1200)
-            start_idx = test_images
+            train_images = img_number-test_images-valid_images
+            start_idx = test_images+valid_images
             i = 0
             for farms in distribs:
                 train_subset = round(train_images * farms[plant_disease_folder])
@@ -190,7 +226,6 @@ def create_subsets(data_dir, test_dir, val_dir, train_dir, categories, distribs)
                             plant_disease_folder, train_dir+str(i), source_directory)
                 start_idx += train_subset
                 i += 1
-
 
         print("[INFO] Image loading completed")
     except Exception as e:
@@ -207,8 +242,6 @@ def run():
     val_dir = os.path.join(base_dir,'val')
     test_dir = os.path.join(base_dir,'test')
 
-
-    # Select categories to remove from the analysis
     categories = cfg_dict['included_categories']
     print('Dataset categories: \n{}\n\nNumber of categories: {}'.format(categories, len(categories)))
 
@@ -217,8 +250,13 @@ def run():
     distribs = distributions_list(distributions, categories)
 
     # Create the datasets
+    test_split = cfg_dict['test_split']
+    val_split = cfg_dict['val_split']
+    max_size = cfg_dict['max_size']
+    np.random.seed(42)
     create_directories(base_dir, train_dir, val_dir, test_dir, distribs)
-    create_subsets(data_dir, test_dir, val_dir, train_dir, categories, distribs)
+    create_subsets(data_dir, test_dir, val_dir, train_dir, categories, distribs,
+                        test_split, val_split, max_size)
 
 
 if __name__ == '__main__':
