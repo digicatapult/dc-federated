@@ -412,14 +412,17 @@ class MNISTModelTrainer(FedAvgModelTrainer):
 
     def get_per_session_train_size(self):
         """
-        Returns the number of batches per iter as the per session train size as
-        the number of batches and size of batches are same for MNIST.
-
+        Returns the size of the training set  used to train the local model
+        in each iteration for use within FedAvg algorithm. If the
+        round_type command line argument is 'batches', returns the number of
+        batches per iteration, otherwise returns the actual number of samples
+        used.
+        
         Returns
         -------
 
         int:
-            The number of batches per iteration.
+            The number of samples
         """
         if self.round_type == 'batches':
             return self.rounds_per_iter * self.args.batch_size
