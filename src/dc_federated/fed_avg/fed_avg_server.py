@@ -50,6 +50,7 @@ class FedAvgServer(object):
         )
 
         self.unique_updates_since_last_agg = 0
+        self.iteration = 0
 
     def register_worker(self, worker_id):
         """
@@ -111,7 +112,7 @@ class FedAvgServer(object):
                                               torch.load(io.BytesIO(model_bytes)))
             logger.info(f" Model update received from worker {worker_id}")
             if self.agg_model():
-                self.global_model_trainer.test()
+                self.global_model_trainer.test(iteration = self.iteration)
             return f"Update received for worker {worker_id}"
         else:
             logger.warning(f" Unregistered worker {worker_id} tried to send an update.")
@@ -154,6 +155,7 @@ class FedAvgServer(object):
 
         self.last_global_model_update_timestamp = datetime.now()
         self.unique_updates_since_last_agg = 0
+        self.iteration += 1
 
         return True
 

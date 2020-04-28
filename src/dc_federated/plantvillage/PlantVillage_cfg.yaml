@@ -79,4 +79,5 @@ save_model: False
 batches_per_iter: 10 # Number of batches per worker training iteration
 num_classes: 9 # Number of classes
 checkpoint_path: /home/ubuntu/code/FederatedLearningDemo/checkpoints/trained_mobilenetv2.pt
+training_stats_path:  /home/ubuntu/code/FederatedLearningDemo/checkpoints/training_stats.csv
 update_lim: 4 # Number of workers requested

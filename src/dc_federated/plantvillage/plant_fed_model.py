@@ -8,6 +8,8 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import yaml
+import csv
+import os
 
 from dc_federated.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
@@ -28,6 +30,7 @@ class MobileNetV2Args(object):
         self.seed = cfg_dict['seed']
         self.log_interval = cfg_dict['log_interval']
         self.save_model = cfg_dict['save_model']
+        self.training_stats_path = cfg_dict['training_stats_path']
 
     def print(self):
         print(f"batch_size: {self.batch_size}")
@@ -261,6 +264,7 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
         self.global_model = global_model
         self.checkpoints = checkpoints
         self.best_acc = 0
+        self.training_stats = {}
 
     def train(self):
         """
@@ -290,7 +294,7 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
             self._train_batch_count = 0
             self.scheduler.step()
 
-    def test(self):
+    def test(self, iteration=0):
         """
         Run the test on self.model using the data in the test_loader and
         print the results.
@@ -310,7 +314,10 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
         test_loss /= len(self.test_loader.dataset)
         test_acc = correct/len(self.test_loader.dataset)
 
-        if self.save_model and self.global_model:
+        if self.global_model:
+            self.record_stats(test_loss, test_acc, iteration)
+
+        if self.args.save_model and self.global_model:
             is_best = test_acc > self.best_acc
             self.best_acc = max(test_acc, self.best_acc)
             if is_best:
@@ -382,3 +389,31 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
             Folder where to save the model.
         """
         torch.save(self.model, path)
+
+    def record_stats(self, loss, accuracy, iteration):
+        """
+        Save stats for the global model training as .csv file.
+
+        Parameters
+        -----------
+
+        loss: float
+            The global model validation loss.
+        accuracy: float
+            The global model validation accuracy.
+        iteration: int
+            The current iteration number.
+        """
+        if iteration == 1:
+            self.training_stats['loss'] = []
+            self.training_stats['accuracy'] = []
+            self.training_stats['iteration'] = []
+
+        self.training_stats['loss'].append(loss)
+        self.training_stats['accuracy'].append(accuracy)
+        self.training_stats['iteration'].append(iteration)
+
+        with open(self.args.training_stats_path, 'w') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(self.training_stats.keys())
+            writer.writerows(zip(*self.training_stats.values()))
