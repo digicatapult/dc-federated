@@ -44,6 +44,9 @@ def test_server_functionality():
         else:
             return f"Unregistered worker {worker_id} tried to send an update."
 
+    def test_glob_mod_chng_cb():
+        pass
+
     dcf_server = DCFServer(
         test_register_func_cb,
         test_ret_global_model_cb,
@@ -108,7 +111,7 @@ def test_server_functionality():
 
     # *********** #
     # now test a DCFWorker on the same server.
-    dcf_worker = DCFWorker(dcf_server.server_host_ip, dcf_server.server_port)
+    dcf_worker = DCFWorker(dcf_server.server_host_ip, dcf_server.server_port, test_glob_mod_chng_cb)
 
     # test worker registration
     dcf_worker.register_worker()

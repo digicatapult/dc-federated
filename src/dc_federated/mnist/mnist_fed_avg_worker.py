@@ -32,6 +32,17 @@ def get_args():
                    type=int,
                    required=True)
 
+    p.add_argument("--round-type",
+                   help="What defines a training round. Allowed values (batches, epochs)",
+                   type=str,
+                   default='batches',
+                   required=False)
+
+    p.add_argument("--rounds-per-iter",
+                   help="The number of rounds per iteration of training of the worker.",
+                   type=int,
+                   default=10,
+                   required=False)
 
     return p.parse_args()
 
@@ -64,11 +75,13 @@ def run():
             mnist_ds_test,
             digits=digit_classes[args.digit_class],
             input_transform=data_transform
-        ).get_data_loader()
+        ).get_data_loader(),
+        round_type=args.round_type,
+        rounds_per_iter=args.rounds_per_iter
     )
 
     fed_avg_worker = FedAvgWorker(local_model_trainer, args.server_host_ip, args.server_port)
-    fed_avg_worker.run_worker_loop()
+    fed_avg_worker.start()
 
 
 if __name__ == '__main__':

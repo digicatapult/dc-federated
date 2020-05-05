@@ -259,8 +259,12 @@ class MNISTModelTrainer(FedAvgModelTrainer):
     test_loader: DataLoader
         The DataLoader for the test dataset.
 
-    batches_per_iter: int
-        The number of batches to use per train() call.
+    rounds_per_iter: int
+        The number of rounds to use per train() call.
+
+    round_type: str (default 'batches')
+        How to measure the number of training iterations. Allowed
+        values are 'batches' and 'epochs'
     """
     def __init__(
             self,
@@ -268,7 +272,8 @@ class MNISTModelTrainer(FedAvgModelTrainer):
             model=None,
             train_loader=None,
             test_loader=None,
-            batches_per_iter=10):
+            rounds_per_iter=10,
+            round_type='batches'):
         self.args = MNISTNetArgs() if not args else args
 
         self.use_cuda = not self.args.no_cuda and torch.cuda.is_available()
@@ -280,15 +285,38 @@ class MNISTModelTrainer(FedAvgModelTrainer):
         self.test_loader = \
             MNISTSubSet.default_dataset(False).get_loader() if not test_loader else test_loader
 
-        self.batches_per_iter = batches_per_iter
+        self.rounds_per_iter = rounds_per_iter
+        self.round_type = round_type
 
         # for housekeepiing.
-        self._train_max_batches = len(self.train_loader) / self.args.batch_size
         self._train_batch_count = 0
         self._train_epoch_count = 0
 
         self.optimizer = optim.Adadelta(self.model.parameters(), lr=self.args.lr)
         self.scheduler = StepLR(self.optimizer, step_size=1, gamma=self.args.gamma)
+
+    def stop_train(self, batch_idx, current_iter_epoch_start):
+        """
+        Whether to stop the train the current training loop based on
+        self.round_per_iter and self.round_type
+
+        Parameters
+        ----------
+
+        batch_idx: int
+            The index of current batch in the current epoch.
+
+        current_iter_epoch_start: int
+            The epoch at the start of the current training round.
+
+        Returns
+        -------
+
+        bool:
+            True if the training should be stopped.
+        """
+        return batch_idx > self.rounds_per_iter if self.round_type == 'batches' else\
+            self._train_epoch_count - current_iter_epoch_start == self.rounds_per_iter
 
     def train(self):
         """
@@ -296,27 +324,32 @@ class MNISTModelTrainer(FedAvgModelTrainer):
         using the given optimizer for the given number of epochs.
         print the results.
         """
+        current_iter_epoch_start = self._train_epoch_count
         self.model.train()
-        for batch_idx, (data, target) in enumerate(self.train_loader):
-            data, target = data.to(self.device), target.to(self.device)
-            self.optimizer.zero_grad()
-            output = self.model(data)
-            loss = F.nll_loss(output, target)
-            loss.backward()
-            self.optimizer.step()
-            if self._train_batch_count % self.args.log_interval == 0:
-                print(f"Train Epoch: {self._train_epoch_count}"
-                      f" [{self._train_batch_count * len(data)}/{len(self.train_loader.dataset)}"
-                      f"({100. * self._train_batch_count / len(self.train_loader):.0f}%)]\tLoss: {loss.item():.6f}")
-            self._train_batch_count += 1
-            if batch_idx > self.batches_per_iter:
-                break
+        stop_training = False
+        while not stop_training:
+            for batch_idx, (data, target) in enumerate(self.train_loader):
+                data, target = data.to(self.device), target.to(self.device)
+                self.optimizer.zero_grad()
+                output = self.model(data)
+                loss = F.nll_loss(output, target)
+                loss.backward()
+                self.optimizer.step()
+                if self._train_batch_count % self.args.log_interval == 0:
+                    print(f"Train Epoch: {self._train_epoch_count}"
+                          f" [{self._train_batch_count * len(data)}/{len(self.train_loader.dataset)}"
+                          f"({100. * self._train_batch_count / len(self.train_loader):.0f}%)]\tLoss: {loss.item():.6f}")
+                self._train_batch_count += 1
 
-        # housekeeping after a single epoch
-        if self._train_batch_count >= len(self.train_loader):
-            self._train_epoch_count += 1
-            self._train_batch_count = 0
-            self.scheduler.step()
+                # housekeeping after a single epoch
+                if self._train_batch_count >= len(self.train_loader):
+                    self._train_epoch_count += 1
+                    self._train_batch_count = 0
+                    self.scheduler.step()
+
+                if self.stop_train(batch_idx, current_iter_epoch_start):
+                    stop_training = True
+                    break
 
     def test(self):
         """
@@ -386,6 +419,9 @@ class MNISTModelTrainer(FedAvgModelTrainer):
         -------
 
         int:
-            The number of batches per ietration
+            The number of batches per iteration.
         """
-        return self.batches_per_iter
+        if self.round_type == 'batches':
+            return self.rounds_per_iter * self.args.batch_size
+        else:
+            return self.rounds_per_iter * len(self.train_loader) * self.args.batch_size

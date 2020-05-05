@@ -33,8 +33,8 @@ def run():
     other remote machines using the parameters provided by the global model server.
     """
     args = get_args()
-    egm = ExampleLocalModel(args.server_host_ip, args.server_port)
-    egm.run_model()
+    elm = ExampleLocalModel(args.server_host_ip, args.server_port)
+    elm.start()
 
 
 if __name__ == '__main__':
