@@ -83,7 +83,7 @@ def run():
     print("\n***********************************************\n")
 
     fed_avg_worker = FedAvgWorker(local_model_trainer, args.server_host_ip, args.server_port)
-    fed_avg_worker.run_worker_loop()
+    fed_avg_worker.start()
 
 
 if __name__ == '__main__':
