@@ -5,6 +5,7 @@ they communicate as expected.
 
 import os
 import logging
+import threading
 
 from multiprocessing import Process
 import time
@@ -26,7 +27,6 @@ def test_example():
     parameters, written to disk by the two objects, that they parameters are
     identical or same as required by the logic.
     """
-
     egm = ExampleGlobalModel()
     server_process = Process(target=egm.start)
     server_process.start()
@@ -34,15 +34,16 @@ def test_example():
     time.sleep(3)
 
     elm = ExampleLocalModel()
-    worker_process = Process(target=elm.run_model)
-    worker_process.start()
+
+    th = threading.Thread(target=elm.start)
+    th.start()
 
     time.sleep(3)
-    # TODO: this sleep to let the server/workers
-    # finish is a hack - try to do something smarter
+
+    # TODO: the sleeps above to let the server/workers
+    # finish is a hack - try to do something smarter.
 
     server_process.kill()
-    worker_process.kill()
 
     # check that the global and local model parameters are equal
     logger.info("Checking tensors are equal")
@@ -70,7 +71,9 @@ def test_example():
                                     egm_global_model.parameters()):
         assert not torch.all(torch.eq(param_egm.data, param_elm.data))
 
-    logger.info("All tensors are equal and the local and global models are different - tests passed.")
+    logger.info("All tensors are equal and the local and global models are different")
+    logger.info("***************** ALL TESTS PASSED *****************")
+    logger.info("******* Ignore WARNINGs related to worker shutting down *******")
     logger.info("Cleaning up.")
     os.remove('egm_global_model.torch')
     os.remove('egm_worker_update_0.torch')

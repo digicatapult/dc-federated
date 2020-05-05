@@ -3,7 +3,7 @@ Defines the core server and worker classes for the federated learning.
 Abstracts away the lower level server/worker logic from the federated
 machine learning logic.
 """
-
+import time
 import requests
 import pickle
 import logging
@@ -40,11 +40,11 @@ class DCFServer(object):
             This function is expected to return the current global model
             in some application dependent binary serialized form.
 
-    
+
         query_global_model_status_callback:  () -> str
             This function is expected to return a string giving the
             application dependent current status of the global model.
-        
+
         receive_worker_update_callback: dict -> bool
             This function should receive a worker-id and an application
             dependent binary serialized update from the worker. The
@@ -62,7 +62,7 @@ class DCFServer(object):
 
     """
     def __init__(
-        self, 
+        self,
         register_worker_callback,
         return_global_model_callback,
         query_global_model_status_callback,
@@ -86,9 +86,9 @@ class DCFServer(object):
 
     def register_worker(self):
         """
-        Creates a new worker-id, adds it to the internal list, calls the callback function 
-        for the asscociated server model, and returns the id to the client.
-        
+        Creates a new worker-id, adds it to the internal list, calls the callback function
+        for the associated server model, and returns the id to the client.
+
         Returns
         -------
 
@@ -144,34 +144,50 @@ class DCFServer(object):
         application.route(f"/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}", method='GET', callback=self.query_global_model_status_callback)
         application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}", method='POST', callback=self.receive_worker_update)
         application.add_hook('after_request', self.enable_cors)
-        
-        run(application, host=self.server_host_ip, port=self.server_port, debug=self.debug)
+
+        run(application, host=self.server_host_ip, port=self.server_port, debug=self.debug, quiet=True)
 
 
 class DCFWorker(object):
     """
     This class implements a worker API for the DCFServer
-    
+
     Parameters
     ----------
 
         server_host_ip: str
             The ip-address of the host of the server.
-    
+
         server_port: int
             The port at which the serer should listen to
+
+        global_model_satus_changed_callback: function
+            The callback to run if server status has changed.
+
+        polling_wait_period: int
+            The number of seconds to wait before polling the server
+            for status information.
     """
-    def __init__(self, server_host_ip, server_port):
+    def __init__(
+            self,
+            server_host_ip,
+            server_port,
+            global_model_status_changed_callback,
+            polling_wait_period=1):
         self.server_host_ip = server_host_ip
         self.server_port = server_port
+        self.global_model_status_changed_callback = global_model_status_changed_callback
+        self.polling_wait_period = polling_wait_period
+
         self.server_loc = f"http://{self.server_host_ip}:{self.server_port}"
+        self.current_global_model_status = None
         self.worker_id = None
 
     def register_worker(self):
         """
-        Returns a registration number for the worker from the server. 
+        Returns a registration number for the worker from the server.
         Each object of this class is registered only once.
-        
+
         Returns
         -------
 
@@ -180,12 +196,13 @@ class DCFWorker(object):
         """
         if self.worker_id is None:
             self.worker_id = int(requests.get(f"{self.server_loc}/{REGISTER_WORKER_ROUTE}").content)
+        self.current_global_model_status = self.get_global_model_status()
         return self.worker_id
-        
+
     def get_global_model(self):
         """
         Gets the binary string of the current global model from the server.
-        
+
         Returns
         -------
 
@@ -197,7 +214,7 @@ class DCFWorker(object):
     def get_global_model_status(self):
         """
         Returns the status of the current global model from the server.
-        
+
         Returns
         -------
 
@@ -208,9 +225,9 @@ class DCFWorker(object):
 
     def send_model_update(self, model_update):
         """
-        Sends the model update from the worker. Worker must register before sending 
+        Sends the model update from the worker. Worker must register before sending
         a model update.
-        
+
         Parameters
         ----------
 
@@ -226,3 +243,19 @@ class DCFWorker(object):
             f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}",
             files={ID_AND_MODEL_KEY: pickle.dumps(data_dict)}
         ).content
+
+    def run(self):
+        """
+        Runs the main worker loop - this calls the server_status_changed_callback if the server_status
+        has changed.
+        """
+        try:
+            while True:
+                time.sleep(self.polling_wait_period)
+                status = self.get_global_model_status()
+                if self.current_global_model_status != status:
+                    self.current_global_model_status = status
+                    self.global_model_status_changed_callback()
+        except Exception as e:
+            logger.warning(str(e))
+            logger.info(f"Exiting DCFworker {self.worker_id} run loop.")

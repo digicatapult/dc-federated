@@ -35,7 +35,7 @@ class FedAvgServer(object):
         global update before we update the global model.
     """
     def __init__(self, global_model_trainer, update_lim=10):
-        logger.info(f"Initializing server for model class {global_model_trainer.get_model().__class__.__name__}")
+        logger.info(f"Initializing FedAvg server for model class {global_model_trainer.get_model().__class__.__name__}")
 
         self.worker_updates = {}
         self.global_model_trainer = global_model_trainer
@@ -50,6 +50,7 @@ class FedAvgServer(object):
         )
 
         self.unique_updates_since_last_agg = 0
+        self.iteration = 0
 
     def register_worker(self, worker_id):
         """
@@ -61,7 +62,7 @@ class FedAvgServer(object):
         worker_id: int
             The id of the new worker.
         """
-        logger.info(f"Regiserted worker {worker_id}")
+        logger.info(f"Registered worker {worker_id}")
         self.worker_updates[worker_id] = None
 
     def return_global_model(self):
@@ -109,12 +110,12 @@ class FedAvgServer(object):
             update_size, model_bytes = pickle.loads(model_update)
             self.worker_updates[worker_id] = (datetime.now(), update_size,
                                               torch.load(io.BytesIO(model_bytes)))
-            logger.info(f"Model update received from worker {worker_id}")
+            logger.info(f" Model update received from worker {worker_id}")
             if self.agg_model():
-                self.global_model_trainer.test()
+                self.global_model_trainer.test(iteration = self.iteration)
             return f"Update received for worker {worker_id}"
         else:
-            logger.warning(f"Unregistered worker {worker_id} tried to send an update.")
+            logger.warning(f" Unregistered worker {worker_id} tried to send an update.")
             return f"Please register before sending an update."
 
     def agg_model(self):
@@ -126,14 +127,14 @@ class FedAvgServer(object):
         if self.unique_updates_since_last_agg < self.update_lim:
             return False
 
-        logger.info("Updating the global model.")
+        logger.info(" Updating the global model.\n")
 
         def agg_params(key, state_dicts, update_sizes):
             agg_val = state_dicts[0][key] * update_sizes[0]
             for sd, sz  in zip(state_dicts[1:], update_sizes[1:]):
                 agg_val = agg_val + sd[key] * sz
             agg_val = agg_val / sum(update_sizes)
-            return torch.tensor(agg_val.numpy())
+            return torch.tensor(agg_val.cpu().clone().numpy())
 
         # gather the model-updates to use for the update
         state_dicts_to_update_with = []
@@ -154,6 +155,7 @@ class FedAvgServer(object):
 
         self.last_global_model_update_timestamp = datetime.now()
         self.unique_updates_since_last_agg = 0
+        self.iteration += 1
 
         return True
 

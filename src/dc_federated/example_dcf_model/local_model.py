@@ -34,13 +34,24 @@ class ExampleLocalModel(object):
         server_host_ip = get_host_ip() if server_host_ip is None else server_host_ip
         server_port = 8080 if server_port is None else server_port
 
+        print(f"Server host ip {server_host_ip}")
+
         self.worker = DCFWorker(
             server_host_ip=server_host_ip,
-            server_port=server_port
+            server_port=server_port,
+            global_model_status_changed_callback=self.global_model_status_changed_callback
         )
 
         self.global_model = None
-        self.worker_id = None
+
+        # register the worker
+        self.worker_id = self.worker.register_worker()
+        with open(f"elm_worker_update_{self.worker_id}.torch", 'wb') as f:
+            torch.save(self.local_model, f)
+
+        # send the model update
+        self.worker.send_model_update(self.serialize_model())
+
 
     def get_model_update_time(self):
         """
@@ -53,7 +64,7 @@ class ExampleLocalModel(object):
             The datetime of the last update of the model.
         """
         return datetime.strptime(
-            self.worker.get_global_model_status(),
+            self.worker.current_global_model_status,
             "%Y-%m-%d %H:%M:%S")
 
     def serialize_model(self):
@@ -71,27 +82,23 @@ class ExampleLocalModel(object):
         torch.save(self.local_model, model_data)
         return model_data.getvalue()
 
-    def run_model(self):
+    def global_model_status_changed_callback(self):
         """
-        Shows an example loop for the worker working with the server.
+        Example showing a callback for change to the global model status.
         """
-        # register the worker
-        self.worker_id = self.worker.register_worker()
-        with open(f"elm_worker_update_{self.worker_id}.torch", 'wb') as f:
-            torch.save(self.local_model, f)
+        if self.get_model_update_time() > self.last_update_time:
+            model_binary = self.worker.get_global_model()
 
-        # send over the local model to the server
-        self.worker.send_model_update(self.serialize_model())
+            if len(model_binary) > 0:
+                logger.info("I got the global model!! -- transforming...")
+                self.global_model = torch.load(io.BytesIO(model_binary))
+                with open("elm_global_model.torch", 'wb') as f:
+                    torch.save(self.global_model, f)
+                logger.info(self.global_model)
 
-        # wait until the global model has updated and then retrieve it.
-        while self.get_model_update_time() <= self.last_update_time:
-            time.sleep(5)
-
-        model_binary = self.worker.get_global_model()
-
-        if len(model_binary) > 0:
-            logger.info("I got the global model!! -- transforming...")
-            self.global_model = torch.load(io.BytesIO(model_binary))
-            with open("elm_global_model.torch", 'wb') as f:
-                torch.save(self.global_model, f)
-            logger.info(self.global_model)
+    def start(self):
+        """
+        Example showing how to start the worker - simply calls the
+        DCFWorker run().
+        """
+        self.worker.run()
