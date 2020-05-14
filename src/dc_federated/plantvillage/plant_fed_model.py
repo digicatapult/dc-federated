@@ -10,6 +10,8 @@ from torch.optim.lr_scheduler import StepLR
 import yaml
 import csv
 import os
+from PIL import Image
+
 
 from dc_federated.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
@@ -389,6 +391,144 @@ class MobileNetV2Trainer(FedAvgModelTrainer):
             Folder where to save the model.
         """
         torch.save(self.model, path)
+
+    def record_stats(self, loss, accuracy, iteration):
+        """
+        Save stats for the global model training as .csv file.
+
+        Parameters
+        -----------
+
+        loss: float
+            The global model validation loss.
+        accuracy: float
+            The global model validation accuracy.
+        iteration: int
+            The current iteration number.
+        """
+        if iteration == 1:
+            self.training_stats['loss'] = []
+            self.training_stats['accuracy'] = []
+            self.training_stats['iteration'] = []
+
+        self.training_stats['loss'].append(loss)
+        self.training_stats['accuracy'].append(accuracy)
+        self.training_stats['iteration'].append(iteration)
+
+        with open(self.args.training_stats_path, 'w') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(self.training_stats.keys())
+            writer.writerows(zip(*self.training_stats.values()))
+
+
+class MobileNetV2Eval():
+    """
+    Evaluator for the MobileNetV2 model for PlantVillage for the FedAvg algorithm.
+    Implements all the relevant domain specific logic.
+
+    Parameters
+    ----------
+
+    args: MobileNetv2Args (default None)
+        The arguments for the MobileNetv2
+
+    model: MobileNetv2 (default None)
+        The model for inference.
+
+    test_loader: DataLoader (default None)
+        The DataLoader for the test dataset.
+
+    num_classes: int (default 9)
+        The number of classes to be predicted by the model.
+    """
+    def __init__(
+            self,
+            args=None,
+            model=None,
+            test_loader=None,
+            batches_per_iter=10,
+            num_classes=9,
+            single_image_pred=False
+            ):
+
+        self.args = MobileNetV2Args() if not args else args
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.model = torch.hub.load(
+            'pytorch/vision:v0.5.0',
+            'mobilenet_v2',
+            pretrained=False,
+            num_classes=num_classes).to(self.device) if not model else torch.load(model)
+
+        self.test_loader = \
+            PlantVillageSubSet.default_dataset(False).get_loader() if not test_loader else test_loader
+
+        self.batches_per_iter = batches_per_iter
+
+    def test(self, iteration=0):
+        """
+        Run the test on self.model using the data in the test_loader and
+        print the results.
+        """
+        self.model.eval()
+        test_loss = 0
+        correct = 0
+
+        with torch.no_grad():
+            for batch_idx, (data, target) in enumerate(self.test_loader):
+                data, target = data.to(self.device), target.to(self.device)
+                output = self.model(data)
+                test_loss += F.cross_entropy(output, target, reduction='sum').item()  # sum up batch loss
+                pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+                correct += pred.eq(target.view_as(pred)).sum().item()
+
+        test_loss /= len(self.test_loader.dataset)
+        test_acc = correct/len(self.test_loader.dataset)
+
+        print(f"Test set: Average loss: {test_loss:.4f}, Accuracy: {test_acc:.4f}"
+              f"({100. * correct / len(self.test_loader.dataset):.0f}%)")
+
+    def predict(self, image_file, cat, class_to_idx):
+        """
+        Run the inference on self.model using the input image and print the results.
+        """
+        self.model.eval()
+
+        with torch.no_grad():
+            image = Image.open(image_file)
+            transf_image = PlantVillageSubSet.default_input_transform(False, (224,224))(image)
+            data = transf_image.unsqueeze_(0)
+            data = data.to(self.device)
+            output = self.model(data)
+            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            pred_cat = list(class_to_idx.keys())[list(class_to_idx.values()).index(pred)]
+            cat = class_to_idx[cat]
+
+        print(f"\nPrediction/actual category: {pred_cat} / {pred_cat}")
+
+    def load_model(self, model_file):
+        """
+        Loads a model from the given model file.
+
+        Parameters
+        -----------
+
+        model_file: io.BytesIO or similar object
+            This object should contain a serialised model.
+        """
+        self.model = torch.load(model_file)
+
+    def load_model_from_state_dict(self, state_dict):
+        """
+        Loads a model from the given model file.
+
+        Parameters
+        -----------
+
+        state_dict: dict
+            Dictionary of parameter tensors.
+        """
+        self.model.load_state_dict(state_dict)
 
     def record_stats(self, loss, accuracy, iteration):
         """
