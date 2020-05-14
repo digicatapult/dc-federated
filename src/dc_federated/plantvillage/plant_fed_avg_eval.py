@@ -1,5 +1,6 @@
 """
-Simple runner to start evaluation of FedAvg model trained on the PlantVillage dataset.
+Simple runner for evaluating or running inference with a model trained on the
+PlantVillage dataset using FedAvg.
 """
 
 import sys
@@ -12,15 +13,14 @@ from dc_federated.plantvillage.plant_fed_model import MobileNetV2Eval, PlantVill
 
 def get_args():
     """
-    Parse the arguments for running the FedAvg worker for the PlantVillage dataset.
+    Parse the arguments for evaluating or running inference with a model trained on the PlantVillage dataset.
     """
     # Make parser object
     p = argparse.ArgumentParser(
-        description="Start a FedAvg worker for the PlangVillage dataset.\n"
-                    "Run this with the parameter provided by running the plant_fed_avg_server.py\n")
+        description="Start inference with model trained on the PlangVillage dataset.\n")
 
     p.add_argument("--test-data-path",
-                   help="The path to the test data or an image.",
+                   help="The path to the test dataset or a single image.",
                    type=str,
                    required=False)
 
@@ -29,7 +29,8 @@ def get_args():
 
 def run():
     """
-    Main run function to start a FedAvg worker for the PlantVillage dataset.
+    Main run function to evaluate a model trained on the PlantVillage dataset.
+    The test can be ran over a test set or a single image.
     """
     args = get_args()
     cfg = open("PlantVillage_cfg.yaml", 'r')
@@ -64,7 +65,6 @@ def run():
         model_evaluator.predict(args.test_data_path, cat, plant_ds_test.class_to_idx)
     else:
         model_evaluator.test()
-
 
 
 if __name__ == '__main__':
