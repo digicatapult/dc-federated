@@ -2,12 +2,11 @@
 Simple runner to start FedAvgWorker for the PlantVillage dataset.
 """
 
-import sys
 import argparse
 import yaml
 
-from dc_federated.fed_avg.fed_avg_worker import FedAvgWorker
-from dc_federated.plantvillage.plant_fed_model import MobileNetV2Trainer, PlantVillageSubSet
+from dc_federated.algorithms.fed_avg.fed_avg_worker import FedAvgWorker
+from dc_federated.examples.plantvillage.plant_fed_model import MobileNetV2Trainer, PlantVillageSubSet
 
 
 def get_args():

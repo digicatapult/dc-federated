@@ -4,14 +4,13 @@ dc_federated.backend.DCFWorker.
 """
 
 import io
-import time
 from datetime import datetime
 import logging
 
 import torch
 
 from dc_federated.utils import get_host_ip
-from dc_federated.example_dcf_model.torch_nn_class import ExampleModelClass
+from dc_federated.examples.example_dcf_model.torch_nn_class import ExampleModelClass
 from dc_federated.backend import DCFWorker
 
 

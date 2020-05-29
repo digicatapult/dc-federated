@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 import torch
 from dc_federated.backend import DCFServer
-from dc_federated.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
+from dc_federated.algorithms.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
 
 logging.basicConfig(level=logging.INFO)

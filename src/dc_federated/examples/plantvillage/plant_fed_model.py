@@ -9,11 +9,10 @@ from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import yaml
 import csv
-import os
 from PIL import Image
 
 
-from dc_federated.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
+from dc_federated.algorithms.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
 
 class MobileNetV2Args(object):

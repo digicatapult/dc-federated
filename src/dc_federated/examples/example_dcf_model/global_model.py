@@ -9,7 +9,7 @@ import logging
 
 import torch
 
-from dc_federated.example_dcf_model.torch_nn_class import ExampleModelClass
+from dc_federated.examples.example_dcf_model.torch_nn_class import ExampleModelClass
 from dc_federated.backend import DCFServer
 
 

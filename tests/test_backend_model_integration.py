@@ -11,7 +11,7 @@ from multiprocessing import Process
 import time
 import torch
 
-from dc_federated.example_dcf_model import ExampleGlobalModel, ExampleLocalModel
+from dc_federated.examples.example_dcf_model import ExampleGlobalModel, ExampleLocalModel
 
 
 logging.basicConfig(level=logging.INFO)
