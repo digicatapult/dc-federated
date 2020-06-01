@@ -5,7 +5,7 @@ Simple runner to start FedAvgWorker for the MNIST dataset.
 import argparse
 
 from dc_federated.algorithms.fed_avg.fed_avg_worker import FedAvgWorker
-from dc_federated.examples.mnist import MNISTModelTrainer, MNISTSubSet
+from dc_federated.examples.mnist.mnist_fed_model import MNISTModelTrainer, MNISTSubSet
 
 
 def get_args():

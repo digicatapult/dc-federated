@@ -112,7 +112,7 @@ class FedAvgServer(object):
                                               torch.load(io.BytesIO(model_bytes)))
             logger.info(f" Model update received from worker {worker_id}")
             if self.agg_model():
-                self.global_model_trainer.test(iteration = self.iteration)
+                self.global_model_trainer.test()
             return f"Update received for worker {worker_id}"
         else:
             logger.warning(f" Unregistered worker {worker_id} tried to send an update.")

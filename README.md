@@ -1,6 +1,8 @@
 # The dc_federated Package
 
-This project contains the python [fedeareted learning](https://en.wikipedia.org/wiki/Federated_learning) library that was developed at Digital Catapult (UK), by the AIML team in London. It was designed to showcase federated learning on a small scale to DC clients - but was designed so that it be extended to a full scale highly performant library. Some quick facts:
+This repo contains the python [fedeareted learning](https://en.wikipedia.org/wiki/Federated_learning) library that was developed at Digital Catapult (UK), by the AI/ML team in London. It was designed to research, experiment with and demo federated learning on a small scale to DC clients - but was also designed so that it be extended to a full scale library. 
+
+## Some quick facts about the library
 
 - *Which machine learning platforms are supported?* The core of the library is *platform independent* and any machine learning platforms (tensorflow, pytorch, sklearn) or combination of platforms may be used with it.
   - The examples currently included in the library are based on pytorch.
@@ -11,11 +13,13 @@ This project contains the python [fedeareted learning](https://en.wikipedia.org/
 
 - *Does the library support worker authentication?* The library currently does not support any worker authentication. But we very much welcome contributions to improve this situation.
 
+## Additional Information
+
 For additional information, please look at the following documents.
 - For installation instructions, please see `docs/getting_started.md`
-- To run the basic federated MNIST example, please see `docs\mnist.md`
-- To run the more complex PlantVillage dataset examples, please see `docs\plant_village.md`
-- the architecture, please head on over to the `docs/architecture.md`. 
+- For descripition of architecture, please look at `docs/architecture.md`. 
+- To run the basic federated MNIST example, please see `docs/mnist.md`
+- To run the more complex PlantVillage dataset examples, please see `docs/plant_village.md`
 - more compelx example 
 - how to extend for additional algorithsm
 - how to extend for additional domains 
