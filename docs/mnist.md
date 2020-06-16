@@ -2,12 +2,12 @@
 
 This document will show you how to run the MNIST federated learning example included in the repo in a fully distributed fashion. In particular, it will show you:
 - how to start the server
-- how to start two three different workers in one or more machines that are on the same network as the server
-- run the FedAvg algorithm to solve the MNIST problem.
+- how to start three different workers in one or more machines that are connected via the internet
+- run the `FedAvg` algorithm to solve the MNIST problem.
 
 ### The problem
 
-The MNIST dataset is, at this point, one of the simplest machine vision benchmark problems for deep neural networks. It consists of images of handwritten digits (0 to 9) and the task is to recognize which digit each image corresponds to. In the federated setting we describe below, there are three workers and each worker will only have images for a particular subset of the images - worker 0 will have images for digits 0 - 3, worker 1 for 4 - 6 and worker 2 for 7 - 9. During federated learning the goal will be to create a model at the server that is equally good on the combined dataset but without looking at all three datasets.
+The MNIST dataset is, at this point, one of the simplest machine vision benchmark problems for deep neural networks. It consists of images of handwritten digits (0 to 9) and the task is to recognize which digit each image corresponds to. In the federated setting we describe below, there are three workers and each worker will only have images for a particular subset of the digits - worker `0` will have images for digits `0 - 3`, worker `1` for `4 - 6` and worker `2` for `7 - 9`. During federated learning the goal will be to create a model at the server that is equally good on the combined dataset but without looking at all three datasets.
 
 ### Running the Example
 
@@ -19,7 +19,9 @@ Clone and install the repo in the machines where you want to deploy the servers 
 
 #### Start The Server 
 
-Go to the terminal for the server and activate the environment:
+> NOTE: The machine that the server is running on must be enabled to host a webserver accessible to the machines running the workers. 
+
+First, go to the terminal for the server and activate the environment:
 ```bash
 > source /path/to/venv_dc_federated
 ```
@@ -49,11 +51,11 @@ But with different `server-host-ip` but the same `server-port`. You may see addi
 
 Now move to a terminal for a worker and `cd` into the location where the library is installed and, then to the mnist folder (same as above), activate the virtual enironment  and run:
 ```bash
-(venv_dc_federated)> python mnist_fed_avg_worker.py --server-host-ip 192.168.1.155 --server-port 8080 --digit-class 0 
+(venv_dc_federated)> python mnist_fed_avg_worker.py --server-host-ip 192.124.1.177  --server-port 8080 --digit-class 0 
 ```
-The `--digit-class 0` argument means that this worker only only train on digits `0-3`. Using arguments `1` and `2` correspond to training only on digits `4-6` and `7-9` respectively.
+The `--digit-class 0` argument means that this worker only only train on digits `0-3`. Using arguments `1` and `2` correspond to training only on digits `4-6` and `7-9` respectively. The `192.124.1.177` and `8080` should be replaced by the values obtained when the server was run. 
 
-You should see an output of the form
+Once you run the client, you should see an output of the form
 ```bash
 INFO:dc_federated.fed_avg.fed_avg_worker:Registered with FedAvg Server with worker id 0
 Train Epoch: 0 [0/24754(0%)]	Loss: 2.281546
@@ -73,11 +75,11 @@ INFO:dc_federated.fed_avg.fed_avg_server: Model update received from worker 0
 
 Move to the terminal of the next 2 workers and run 
 ```
-python mnist_fed_avg_worker.py --server-host-ip 192.168.1.155 --server-port 8080 --digit-class 1
+python mnist_fed_avg_worker.py --server-host-ip 192.124.1.177 --server-port 8080 --digit-class 1
 ```
 and 
 ```
-python mnist_fed_avg_worker.py --server-host-ip 192.168.1.155 --server-port 8080 --digit-class 2
+python mnist_fed_avg_worker.py --server-host-ip 192.124.1.177 --server-port 8080 --digit-class 2
 ```
 Note that only the `--digit-class` argument changes. 
 
