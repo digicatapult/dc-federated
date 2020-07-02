@@ -22,12 +22,12 @@ Clone and install the repo in the machines where you want to deploy the servers 
 
 ### Preparing the datasets
 
-In the following we assume you have cloned the repo in the folder `dc_fed_lib`. The original PlantVillage dataset shall be in the folder `dc_fed_lib`, and can be obtained by running:
+In the following we assume you have cloned the repo in the folder `dc_fed_lib`. The original PlantVillage dataset should be stored in the folder `dc_fed_lib`, and can be obtained by running:
 ```bash
 (venv_dc_federated)> git clone https://github.com/spMohanty/PlantVillage-Dataset
 ```
 
-Use the configuration file `PlantVillage_cfg.yaml` to define how to split of the dataset in multiple subsets and with customized distributions:
+First navigate to `dc_fed_lib/src/dc_federated/examples/plantvillage` then use the configuration file `PlantVillage_cfg.yaml` to define how to split the dataset in multiple subsets and with customized distributions:
 * target directory for the train, validation and test data,
 * PlantVillage dataset categories to use as a list,
 * PlantVillage dataset distributions per worker,
