@@ -27,7 +27,7 @@ First, go to the terminal for the server and activate the environment:
 ```
 Now `cd` into the `dc_federated` package root folder and then to the mnist example folder
 ```bash
-(venv_dc_federated)> cd src/examples/mnist
+(venv_dc_federated)> cd src/dc_federated/examples/mnist
 ```
 now start the server:
 ```bash
