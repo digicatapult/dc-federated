@@ -57,9 +57,9 @@ where `v` is the number of updates per iteration.
 
 By default, the projects expect 4 workers. `cd` into the folder containg the stuff. Start as many workers as required using:
 ```bash
-(venv_dc_federated)> python plant_fed_avg_worker.py --server-host-ip 192.124.1.177 --server-port 8080 --worker-id <v>
+(venv_dc_federated)> python plant_fed_avg_worker.py --server-host-ip *your_server_ip* --server-port 8080 --worker-id <v>
 ```
 where `v` is between `0` to `3`. Use the configuration file `PlantVillage_cfg.yaml` to define datasets location and the hyperparameters for training the models. Optionally, the training and validation data can be supplied as argument using:
 ```bash
-(venv_dc_federated)> python plant_fed_avg_worker.py --server-host-ip 192.124.1.177 --server-port 8080 --worker-id [worker id] --train-data-path [path] --validation-data-path [path]
+(venv_dc_federated)> python plant_fed_avg_worker.py --server-host-ip *your_server_ip* --server-port 8080 --worker-id [worker id] --train-data-path [path] --validation-data-path [path]
 ```
