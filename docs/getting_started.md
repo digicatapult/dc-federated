@@ -9,7 +9,7 @@ First, make sure that the `virtualenv` package is installed within your python e
 You can also use other virtual environemnt packages as well. Now `cd` into the folder `dc_fed_lib`, activate the environment and install the necessary packages:
 
 ```bash
-> source /path/to/venv_dc_federated
+> source /path/to/venv_dc_federated/bin/activate
 (venv_dc_federated)> pip install -r requirements.txt
 ```
 Finally, install this package itself by running: 
