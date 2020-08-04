@@ -7,17 +7,17 @@ In the following we assume you have cloned the repo in the folder `dc_federated`
 Make sure that you are using python 3.6 by running `python --version`. If not, the recommended way to manage python versions is to use [`pyenv`](https://github.com/pyenv/pyenv):
 
 ```bash
-pyenv install 3.6.11
-pyenv local 3.6.11
+pyenv install 3.7.8
+pyenv local 3.7.8
 ```
 
 Then check the python versions are correctly setup:
 
 ```bash
 > python -V
-Python 3.6.11
+Python 3.7.8
 > pip -V
-pip 18.1 from ~/.pyenv/versions/3.6.11/lib/python3.6/site-packages/pip (python 3.6)
+pip 18.1 from ~/.pyenv/versions/3.7.8/lib/python3.6/site-packages/pip (python 3.6)
 ```
 
 Then make sure that the `virtualenv` package is installed within your python environment. Then `cd` into a folder where you want your virtual environments to be and run:
