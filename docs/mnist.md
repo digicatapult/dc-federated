@@ -161,4 +161,4 @@ INFO:dc_federated.fed_avg.fed_avg_server: Model update received
 Note that for the server, the test set is based on the combined data set of all the digits, whereas for the workers the test set is only its local dataset on the subset of digits. Of course, in a real application, the server-side test results would not be available because the combined data is never available at the server! 
 
 
-Once You can stop by `Ctrl+C` on the server terminal.
+You can stop by pressing `Ctrl+C` on the server terminal.
