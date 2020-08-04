@@ -16,7 +16,7 @@ from dc_federated.utils import get_host_ip
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('dc_federated.backend.server_worker')
+logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 

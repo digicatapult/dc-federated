@@ -14,7 +14,7 @@ from dc_federated.backend import DCFServer
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('dc_federated.example_dcf_model.global_model')
+logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 

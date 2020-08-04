@@ -15,7 +15,7 @@ from dc_federated.algorithms.fed_avg.fed_avg_model_trainer import FedAvgModelTra
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('dc_federated.fed_avg.fed_avg_server')
+logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 

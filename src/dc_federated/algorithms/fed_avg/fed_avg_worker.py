@@ -15,7 +15,7 @@ from dc_federated.backend import DCFWorker
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('dc_federated.fed_avg.fed_avg_worker')
+logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 
