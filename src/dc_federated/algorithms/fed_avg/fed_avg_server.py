@@ -11,11 +11,11 @@ from collections import OrderedDict
 
 import torch
 from dc_federated.backend import DCFServer
-from dc_federated.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
+from dc_federated.algorithms.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('dc_federated.fed_avg.fed_avg_server')
+logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 
@@ -112,7 +112,7 @@ class FedAvgServer(object):
                                               torch.load(io.BytesIO(model_bytes)))
             logger.info(f" Model update received from worker {worker_id}")
             if self.agg_model():
-                self.global_model_trainer.test(iteration = self.iteration)
+                self.global_model_trainer.test()
             return f"Update received for worker {worker_id}"
         else:
             logger.warning(f" Unregistered worker {worker_id} tried to send an update.")

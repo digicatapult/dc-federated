@@ -3,12 +3,11 @@ Simple runner for evaluating or running inference with a model trained on the
 PlantVillage dataset using FedAvg.
 """
 
-import sys
 import argparse
 import yaml
 import os
 
-from dc_federated.plantvillage.plant_fed_model import MobileNetV2Eval, PlantVillageSubSet
+from dc_federated.examples.plantvillage.plant_fed_model import MobileNetV2Eval, PlantVillageSubSet
 
 
 def get_args():

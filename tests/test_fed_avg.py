@@ -12,7 +12,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from dc_federated.fed_avg import FedAvgServer, FedAvgModelTrainer
+from dc_federated.algorithms.fed_avg import FedAvgServer, FedAvgModelTrainer
 
 
 class FedAvgTestModel(nn.Module):

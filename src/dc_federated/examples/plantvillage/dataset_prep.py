@@ -27,7 +27,7 @@ import yaml
 import logging
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('dc_federated.dataset_prep')
+logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 

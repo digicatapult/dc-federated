@@ -5,9 +5,6 @@ MNISTModelTrainer + associtaed helper class.
 
 import numpy as np
 
-import argparse
-from collections import OrderedDict
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,7 +13,7 @@ from PIL import Image
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
-from dc_federated.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
+from dc_federated.algorithms.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
 
 class MNISTNet(nn.Module):

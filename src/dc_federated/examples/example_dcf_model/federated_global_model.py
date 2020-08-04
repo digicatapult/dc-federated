@@ -2,7 +2,7 @@
 Simple runner to start a example global model server.
 """
 
-from dc_federated.example_dcf_model import ExampleGlobalModel
+from dc_federated.examples.example_dcf_model import ExampleGlobalModel
 
 
 def run():

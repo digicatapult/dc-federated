@@ -3,8 +3,8 @@ Simple runner to start FedAvgServer server for the MNIST dataset.
 """
 
 
-from dc_federated.fed_avg.fed_avg_server import FedAvgServer
-from dc_federated.mnist.mnist_fed_model import MNISTModelTrainer, MNISTSubSet
+from dc_federated.algorithms.fed_avg.fed_avg_server import FedAvgServer
+from dc_federated.examples.mnist.mnist_fed_model import MNISTModelTrainer, MNISTSubSet
 
 
 def run():

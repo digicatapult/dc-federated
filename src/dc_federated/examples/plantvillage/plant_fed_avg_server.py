@@ -4,8 +4,8 @@ Simple runner to start FedAvgServer server for the PlantVillage dataset.
 import argparse
 import yaml
 
-from dc_federated.fed_avg.fed_avg_server import FedAvgServer
-from dc_federated.plantvillage.plant_fed_model import MobileNetV2Trainer, PlantVillageSubSet
+from dc_federated.algorithms.fed_avg.fed_avg_server import FedAvgServer
+from dc_federated.examples.plantvillage.plant_fed_model import MobileNetV2Trainer, PlantVillageSubSet
 
 
 def get_args():

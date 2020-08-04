@@ -2,11 +2,10 @@
 Simple runner to start FedAvgWorker for the MNIST dataset.
 """
 
-import sys
 import argparse
 
-from dc_federated.fed_avg.fed_avg_worker import FedAvgWorker
-from dc_federated.mnist.mnist_fed_model import MNISTModelTrainer, MNISTSubSet
+from dc_federated.algorithms.fed_avg.fed_avg_worker import FedAvgWorker
+from dc_federated.examples.mnist.mnist_fed_model import MNISTModelTrainer, MNISTSubSet
 
 
 def get_args():
