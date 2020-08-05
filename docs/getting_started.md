@@ -17,7 +17,7 @@ Then check the python versions are correctly setup:
 > python -V
 Python 3.7.8
 > pip -V
-pip 18.1 from ~/.pyenv/versions/3.7.8/lib/python3.6/site-packages/pip (python 3.6)
+pip 20.2.1 from ~/.pyenv/versions/3.7.8/lib/python3.7/site-packages/pip (python 3.7)
 ```
 
 Then make sure that the `virtualenv` package is installed within your python environment. Then `cd` into a folder where you want your virtual environments to be and run:
