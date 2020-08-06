@@ -4,7 +4,7 @@ In the following we assume you have cloned the repo in the folder `dc_federated`
 
 ## Python and virtualenv
 
-Make sure that you are using python 3.6 by running `python --version`. If not, the recommended way to manage python versions is to use [`pyenv`](https://github.com/pyenv/pyenv):
+Make sure that you are using python 3.7 by running `python --version`. If not, the recommended way to manage python versions is to use [`pyenv`](https://github.com/pyenv/pyenv):
 
 ```bash
 pyenv install 3.7.8
