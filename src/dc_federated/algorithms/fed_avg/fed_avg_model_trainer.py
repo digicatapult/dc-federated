@@ -1,5 +1,5 @@
 """
-Absrtact class definition for implementing the FedAvg algorithm.
+Abstract class definition for implementing the FedAvg algorithm.
 """
 
 from abc import ABC, abstractmethod

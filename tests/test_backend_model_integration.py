@@ -24,7 +24,7 @@ def test_example():
     This test will start a server using an instance of ExampleGlobalModel in a
     process, wait 3 seconds, and run a loop of an instance of ExampleLocalModel
     in a different process. After that it will test by looking at the model
-    parameters, written to disk by the two objects, that they parameters are
+    parameters, written to disk by the two objects, that their parameters are
     identical or same as required by the logic.
     """
     egm = ExampleGlobalModel()
@@ -43,7 +43,7 @@ def test_example():
     # TODO: the sleeps above to let the server/workers
     # finish is a hack - try to do something smarter.
 
-    server_process.kill()
+    server_process.terminate()
 
     # check that the global and local model parameters are equal
     logger.info("Checking tensors are equal")
@@ -71,9 +71,11 @@ def test_example():
                                     egm_global_model.parameters()):
         assert not torch.all(torch.eq(param_egm.data, param_elm.data))
 
-    logger.info("All tensors are equal and the local and global models are different")
+    logger.info(
+        "All tensors are equal and the local and global models are different")
     logger.info("***************** ALL TESTS PASSED *****************")
-    logger.info("******* Ignore WARNINGs related to worker shutting down *******")
+    logger.info(
+        "******* Ignore WARNINGs related to worker shutting down *******")
     logger.info("Cleaning up.")
     os.remove('egm_global_model.torch')
     os.remove('egm_worker_update_0.torch')
