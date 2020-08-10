@@ -10,3 +10,6 @@ RECEIVE_WORKER_UPDATE_ROUTE = 'receive_worker_update'
 WORKER_ID_KEY = 'worker_id'
 MODEL_UPDATE_KEY = 'model_update'
 ID_AND_MODEL_KEY = 'id_and_model'
+
+WORKER_AUTHENTICATION_PHRASE = 'Please authenticate me'
+ALL_WORKERS_ALLOWED = 'ALL WORKERS ALLOWED'
