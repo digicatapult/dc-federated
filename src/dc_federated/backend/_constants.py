@@ -12,4 +12,10 @@ MODEL_UPDATE_KEY = 'model_update'
 ID_AND_MODEL_KEY = 'id_and_model'
 
 WORKER_AUTHENTICATION_PHRASE = 'Please authenticate me'
-ALL_WORKERS_ALLOWED = 'ALL WORKERS ALLOWED'
+NO_AUTHENTICATION = 'No Authentication'
+AUTHENTICATED = 'Authenticated'
+INVALID_WORKER = "Invalid Worker"
+
+
+PUBLIC_KEY_STR = 'public_key_str'
+SIGNED_PHRASE = 'signed_phrase'

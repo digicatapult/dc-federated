@@ -51,7 +51,6 @@ class ExampleLocalModel(object):
         # send the model update
         self.worker.send_model_update(self.serialize_model())
 
-
     def get_model_update_time(self):
         """
         Queries the global model using the worker to get the last time

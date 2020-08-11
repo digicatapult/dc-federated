@@ -67,6 +67,8 @@ def gen_pair(filename):
         f.write(hex_seed.decode('utf-8'))
         print(f'Wrote public key to {pub_filename}')
 
+    return sk, vk
+
 
 def verify_pair(filename):
     """
@@ -94,9 +96,10 @@ def verify_pair(filename):
         vk_read.verify(signed_phrase)
     except BadSignatureError as be:
         print(f"Private key in {filename} does not match public key in {pub_filename}.")
-        return
+        return False
 
     print(f"Private key in {filename} matches public key in {pub_filename}.")
+    return True
 
 
 def run():

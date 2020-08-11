@@ -48,7 +48,7 @@ class DCFWorker(object):
             server_host_ip,
             server_port,
             global_model_status_changed_callback,
-            private_key_file,
+            private_key_file=None,
             polling_wait_period=1):
         self.server_host_ip = server_host_ip
         self.server_port = server_port
@@ -70,11 +70,11 @@ class DCFWorker(object):
         str:
             The hex string corresponding to the signed string.
         """
+        if self.private_key_file is None:
+            logger.warning("Unable to sign message - no private key file provided.")
+            return "No private key was provided when worker was started."
         with open(self.private_key_file, 'r') as f:
-            text = f.read()
-            if text == ALL_WORKERS_ALLOWED:
-                return text
-            hex_read = text.encode()
+            hex_read = f.read().encode()
             private_key_read = SigningKey(hex_read, encoder=HexEncoder)
             return private_key_read.sign(WORKER_AUTHENTICATION_PHRASE).hex().decode()
 
@@ -88,6 +88,10 @@ class DCFWorker(object):
         str:
             The hex string corresponding to the public key string.
         """
+        if self.private_key_file is None:
+            logger.warning("No public key file provided - server side authentication will not succeed.")
+            return "No public key was provided when worker was started."
+
         with open(self.private_key_file+'.pub', 'r') as f:
             return f.read().encode()
 
@@ -104,11 +108,14 @@ class DCFWorker(object):
         """
         if self.worker_id is None:
             data = {
-                'public_key_str': self.get_public_key_str(),
-                'signed_phrase': self.get_signed_phrase()
+                PUBLIC_KEY_STR: self.get_public_key_str(),
+                SIGNED_PHRASE: self.get_signed_phrase()
             }
-            self.worker_id = int(requests.post(f"{self.server_loc}/{REGISTER_WORKER_ROUTE}", data=data).content)
-            if self.worker_id == -1:
+            self.worker_id = requests.post(
+                f"{self.server_loc}/{REGISTER_WORKER_ROUTE}",
+                json=data).content.decode('UTF-8')
+
+            if self.worker_id == INVALID_WORKER:
                 raise ValueError("Server returned worker-id -1 which means it was unable to validate this worker. "
                                  "Please ensure that the private key you started this worker corresponds to the "
                                  "public key shared with the server.")
@@ -154,7 +161,6 @@ class DCFWorker(object):
             WORKER_ID_KEY: self.worker_id,
             MODEL_UPDATE_KEY: model_update
         }
-
         return requests.post(
             f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}",
             files={ID_AND_MODEL_KEY: pickle.dumps(data_dict)}
