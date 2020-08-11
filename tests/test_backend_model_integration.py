@@ -81,7 +81,11 @@ def test_example():
     os.remove('egm_worker_update_0.torch')
     os.remove('elm_global_model.torch')
     os.remove('elm_worker_update_0.torch')
+    
+    # kill the process
+    os.system(f"kill -KILL {os.getpid()}")
 
 
 if __name__ == '__main__':
     test_example()
+    
