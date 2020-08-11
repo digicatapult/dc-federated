@@ -1,7 +1,10 @@
 """
-Test authentication related facilities.
+Test worker authentication reltated functions
 """
+
 import os
+import time
+from threading import Thread
 
 from nacl.signing import SigningKey, VerifyKey
 from nacl.encoding import HexEncoder
@@ -11,12 +14,17 @@ from dc_federated.backend import DCFServer, DCFWorker
 from dc_federated.backend._constants import *
 from dc_federated.backend.worker_key_pair_tool import gen_pair, verify_pair
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.INFO)
 
 def test_worker_key_pair():
     key_file = "gen_pair_test"
     private_key, public_key = gen_pair(key_file)
 
-    test_phrase = "Test phrase"
+    test_phrase = b"Test phrase"
     try:
         public_key.verify(private_key.sign(test_phrase))
     except BadSignatureError as bse:
@@ -30,7 +38,7 @@ def test_worker_key_pair():
 
     # test the
     try:
-        loaded_public_key.verify(loaded_public_key.sign(test_phrase))
+        loaded_public_key.verify(loaded_private_key.sign(test_phrase))
     except BadSignatureError as bse:
         assert False
     assert verify_pair(key_file)
@@ -48,8 +56,13 @@ def test_worker_key_pair():
 def test_worker_authentication():
     # Create a set of keys to be supplied to the server
     num_workers = 10
-    private_keys = [SigningKey.generate() for n in range(num_workers)]
-    public_keys = [private_key.verify_key for private_key in private_keys]
+    private_keys = []
+    public_keys = []
+    worker_key_file_prefix = 'worker_key_file'
+    for n in range(num_workers):
+        private_key, public_key = gen_pair(worker_key_file_prefix + f'_{n}')
+        private_keys.append(private_key)
+        public_keys.append(public_key)
 
     worker_ids = []
     worker_updates = {}
@@ -75,10 +88,10 @@ def test_worker_authentication():
         pass
 
     worker_key_file = 'worker_public_keys.txt'
-
     with open(worker_key_file, 'w') as f:
-        for public_key in public_keys:
-            f.write(public_key)
+        for public_key in public_keys[:-1]:
+            f.write(public_key.encode(encoder=HexEncoder).decode('utf-8') + os.linesep)
+        f.write(public_keys[-1].encode(encoder=HexEncoder).decode('utf-8') + os.linesep)
 
     dcf_server = DCFServer(
         test_register_func_cb,
@@ -91,6 +104,41 @@ def test_worker_authentication():
     server_thread.start()
     time.sleep(2)
 
+    # create the worker
+    workers = [DCFWorker(dcf_server.server_host_ip,
+                         dcf_server.server_port,
+                         test_glob_mod_chng_cb,
+                         worker_key_file_prefix + f"_{n}")
+               for n in range(num_workers)]
+
+    for worker, key in zip(workers, public_keys):
+        worker.register_worker()
+        assert worker.worker_id == key.encode(encoder=HexEncoder).decode('utf-8')
+
+    # try to authenticate a unregistered worker
+    gen_pair('bad_worker')
+    bad_worker = DCFWorker(dcf_server.server_host_ip,
+                           dcf_server.server_port,
+                           test_glob_mod_chng_cb,
+                           'bad_worker')
+    try:
+        bad_worker.register_worker()
+    except ValueError:
+        assert True
+    else:
+        assert False
+
+    # delete the files
+    for n in range(num_workers):
+        os.remove(worker_key_file_prefix + f'_{n}')
+        os.remove(worker_key_file_prefix + f'_{n}.pub')
+    os.remove(worker_key_file)
+
+    logger.info("\n\n*** All Tests Passed - Testing completed successfully ***")
+    os.system(f"kill -KILL {os.getpid()}")
+    logger.info("*** Exit by pressing Ctrl+C ***")
+
 
 if __name__ == '__main__':
     test_worker_key_pair()
+    test_worker_authentication()

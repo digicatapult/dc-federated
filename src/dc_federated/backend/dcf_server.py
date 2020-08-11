@@ -226,10 +226,12 @@ class WorkerAuthenticator(object):
             logger.warning("Server was likely started without a list of valid public keys from workers.")
             return True, NO_AUTHENTICATION
         try:
+            if str_public_key not in self.keys:
+                return False, AUTHENTICATED
             self.keys[str_public_key].verify(signed_message.encode(), encoder=HexEncoder)
         except BadSignatureError:
             logger.warning(f"Failed to authenticate worker with public key: {str_public_key}.")
             return False, AUTHENTICATED
         else:
-            logger.warning(f"Successfully authenticated worker with public key: {str_public_key}.")
+            logger.info(f"Successfully authenticated worker with public key: {str_public_key}.")
             return True, AUTHENTICATED

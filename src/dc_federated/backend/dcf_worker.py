@@ -76,7 +76,7 @@ class DCFWorker(object):
         with open(self.private_key_file, 'r') as f:
             hex_read = f.read().encode()
             private_key_read = SigningKey(hex_read, encoder=HexEncoder)
-            return private_key_read.sign(WORKER_AUTHENTICATION_PHRASE).hex().decode()
+            return private_key_read.sign(WORKER_AUTHENTICATION_PHRASE).hex()
 
     def get_public_key_str(self):
         """
@@ -93,7 +93,7 @@ class DCFWorker(object):
             return "No public key was provided when worker was started."
 
         with open(self.private_key_file+'.pub', 'r') as f:
-            return f.read().encode()
+            return f.read()
 
     def register_worker(self):
         """
@@ -116,9 +116,10 @@ class DCFWorker(object):
                 json=data).content.decode('UTF-8')
 
             if self.worker_id == INVALID_WORKER:
-                raise ValueError("Server returned worker-id -1 which means it was unable to validate this worker. "
-                                 "Please ensure that the private key you started this worker corresponds to the "
-                                 "public key shared with the server.")
+                raise ValueError(
+                    "Server returned {INVALID_WORKER} which means it was unable to authenticate this worker. "
+                    "Please ensure that the private key you started this worker corresponds to the "
+                    "public key shared with the server.")
         self.current_global_model_status = self.get_global_model_status()
         return self.worker_id
 
