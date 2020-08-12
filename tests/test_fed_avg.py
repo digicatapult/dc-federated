@@ -125,6 +125,7 @@ def test_fed_avg_server():
     test_global_model.load_state_dict(global_update_dict)
 
     assert_models_equal(fed_avg_server.global_model_trainer.model, test_global_model)
+    
 
 if __name__ == '__main__':
     test_fed_avg_server()

@@ -4,7 +4,6 @@ way is to programmatically kill a server thread - so you have to kill the progra
 by pressing Ctrl+C.
 """
 import io
-import os
 from threading import Thread
 import pickle
 import logging
@@ -137,7 +136,6 @@ def test_server_functionality():
 
     # TODO: figure out how to kill the server thread and
     # TODO: eliminate this awfulness!
-
     logger.info("\n\n*** Testing completed successfully - exit by pressing Ctrl+C ***")
 
 
