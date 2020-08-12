@@ -132,7 +132,8 @@ class DCFWorker(object):
         binary string:
             The current global model returned by the server.
         """
-        return requests.get(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}").content
+        return requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
+                             json={WORKER_ID_KEY: self.worker_id}).content
 
     def get_global_model_status(self):
         """
@@ -144,7 +145,8 @@ class DCFWorker(object):
         str:
             The status of the current global model.
         """
-        return requests.get(f"{self.server_loc}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}").content.decode('UTF-8')
+        return requests.post(f"{self.server_loc}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
+                             json={WORKER_ID_KEY: self.worker_id}).content.decode('UTF-8')
 
     def send_model_update(self, model_update):
         """

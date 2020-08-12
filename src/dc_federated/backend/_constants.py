@@ -15,7 +15,7 @@ WORKER_AUTHENTICATION_PHRASE = b'Please authenticate me'
 NO_AUTHENTICATION = 'No Authentication'
 AUTHENTICATED = 'Authenticated'
 INVALID_WORKER = "Invalid Worker"
-
+UNREGISTERED_WORKER = 'Unregistered Worker'
 
 PUBLIC_KEY_STR = 'public_key_str'
 SIGNED_PHRASE = 'signed_phrase'

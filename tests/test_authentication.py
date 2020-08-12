@@ -15,6 +15,8 @@ from dc_federated.backend import DCFServer, DCFWorker
 from dc_federated.backend._constants import *
 from dc_federated.backend.worker_key_pair_tool import gen_pair, verify_pair
 
+import requests
+
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -130,6 +132,23 @@ def test_worker_authentication():
     else:
         assert False
 
+    # try to send an update through the using the bad worker public key
+    with open('bad_worker', 'r') as f:
+        bad_worker_key = f.read()
+
+    id_and_model_dict_good = {
+        ID_AND_MODEL_KEY: pickle.dumps({
+            WORKER_ID_KEY: bad_worker_key,
+            MODEL_UPDATE_KEY: pickle.dumps("Bad Model update!!")
+        })
+    }
+    response = requests.post(
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
+        files=id_and_model_dict_good
+    ).content
+
+    assert response.decode('utf-8') == UNREGISTERED_WORKER
+
     # delete the files
     for n in range(num_workers):
         os.remove(worker_key_file_prefix + f'_{n}')
@@ -137,6 +156,7 @@ def test_worker_authentication():
     os.remove(worker_key_file)
     os.remove("bad_worker")
     os.remove("bad_worker.pub")
+
 
     logger.info("\n\n*** All Tests Passed - Testing completed successfully ***")
     logger.info("*** Exit by pressing Ctrl+C ***")

@@ -139,11 +139,59 @@ class DCFServer(object):
         """
         try:
             data_dict = pickle.load(request.files[ID_AND_MODEL_KEY].file)
-            return_value = self.receive_worker_update_callback(
-                data_dict[WORKER_ID_KEY],
-                data_dict[MODEL_UPDATE_KEY]
-            )
-            return return_value
+            if data_dict[WORKER_ID_KEY] in self.worker_list:
+                return_value = self.receive_worker_update_callback(
+                    data_dict[WORKER_ID_KEY],
+                    data_dict[MODEL_UPDATE_KEY]
+                )
+                return return_value
+            else:
+                logger.warning(f"Unregistered worker {data_dict[WORKER_ID_KEY]} tried to send an update.")
+                return UNREGISTERED_WORKER
+        except Exception as e:
+            logger.warning(e)
+            return str(e)
+
+    def query_global_model_status(self):
+        """
+        Returns the status of the global model using the provided callback. If query is not
+        from a valid worker it raises an error.
+
+        Returns
+        -------
+
+        str:
+            If the update was successful then "Worker update received"
+            Otherwise any exception that was raised.
+        """
+        try:
+            query_request = request.json
+            if query_request[WORKER_ID_KEY] in self.worker_list:
+                return self.query_global_model_status_callback()
+            else:
+                return UNREGISTERED_WORKER
+        except Exception as e:
+            logger.warning(e)
+            return str(e)
+
+    def return_global_model(self):
+        """
+        Returns the global model by using the provided callback. If query is not from a valid
+        worker it raises an error.
+
+        Returns
+        -------
+
+        str:
+            If the update was successful then "Worker update received"
+            Otherwise any exception that was raised.
+        """
+        try:
+            query_request = request.json
+            if query_request[WORKER_ID_KEY] in self.worker_list:
+                return self.return_global_model_callback()
+            else:
+                return UNREGISTERED_WORKER
         except Exception as e:
             logger.warning(e)
             return str(e)
@@ -165,8 +213,8 @@ class DCFServer(object):
         """
         application = Bottle()
         application.route(f"/{REGISTER_WORKER_ROUTE}", method='POST', callback=self.register_worker)
-        application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}", method='GET', callback=self.return_global_model_callback)
-        application.route(f"/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}", method='GET', callback=self.query_global_model_status_callback)
+        application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}", method='POST', callback=self.return_global_model)
+        application.route(f"/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}", method='POST', callback=self.query_global_model_status)
         application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}", method='POST', callback=self.receive_worker_update)
         application.add_hook('after_request', self.enable_cors)
 
