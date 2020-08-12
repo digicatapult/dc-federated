@@ -138,8 +138,6 @@ def test_server_functionality():
     # TODO: figure out how to kill the server thread and
     # TODO: eliminate this awfulness!
 
-    # kill the process
-    os.system(f"kill -KILL {os.getpid()}")
     logger.info("\n\n*** Testing completed successfully - exit by pressing Ctrl+C ***")
 
 
