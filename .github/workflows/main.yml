@@ -20,4 +20,7 @@ jobs:
       - name: Pip freeze
         run: pip freeze
       - name: Run tests
-        run: python tests/test_backend.py
+        run: |
+          python tests/test_backend.py
+          python tests/test_backend_model_integration.py
+          python tests/test_fed_avg.py
