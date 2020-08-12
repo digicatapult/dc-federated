@@ -19,5 +19,3 @@ jobs:
         run: python setup.py develop
       - name: pip freeze
         run: pip freeze
-      - name: Run tests
-        run: python tests/test_backend.py
