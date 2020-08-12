@@ -115,9 +115,18 @@ def test_worker_authentication():
                          worker_key_file_prefix + f"_{n}")
                for n in range(num_workers)]
 
+    # test various worker actions
     for worker, key in zip(workers, public_keys):
         worker.register_worker()
+        model_status = worker.get_global_model_status()
+        global_model = worker.get_global_model()
+        worker.send_model_update(b'model_update')
+        assert model_status == status
+        assert global_model == pickle.dumps("Pickle dump of a string")
+        assert worker_updates[worker.worker_id] == b'model_update'
         assert worker.worker_id == key.encode(encoder=HexEncoder).decode('utf-8')
+
+
 
     # try to authenticate a unregistered worker
     gen_pair('bad_worker')
@@ -146,8 +155,15 @@ def test_worker_authentication():
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
         files=id_and_model_dict_good
     ).content
-
     assert response.decode('utf-8') == UNREGISTERED_WORKER
+
+    routes = [RETURN_GLOBAL_MODEL_ROUTE, QUERY_GLOBAL_MODEL_STATUS_ROUTE]
+    for route in routes:
+        response = requests.post(
+            f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{route}",
+            json={WORKER_ID_KEY: bad_worker_key}
+        ).content
+        assert response.decode('utf-8') == UNREGISTERED_WORKER
 
     # delete the files
     for n in range(num_workers):
