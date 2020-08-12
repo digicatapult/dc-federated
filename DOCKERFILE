@@ -1,7 +1,7 @@
 FROM python:3.7.8-slim AS base
 
 WORKDIR /root/
-COPY src/* src/
+COPY src src
 COPY setup.py .
 COPY setup.cfg .
 COPY requirements.txt .
@@ -11,6 +11,6 @@ RUN pip install .
 
 FROM base AS backend
 
-WORKDIR /root/src/examples/mnist
+WORKDIR /root/src/dc_federated/examples/mnist
 # RUN pip freeze
 CMD [ "python", "mnist_fed_avg_server.py"]
