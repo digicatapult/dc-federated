@@ -14,6 +14,12 @@ import torch.nn.functional as F
 
 from dc_federated.algorithms.fed_avg import FedAvgServer, FedAvgModelTrainer
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__file__)
+logger.setLevel(level=logging.INFO)
+
 
 class FedAvgTestModel(nn.Module):
     """
@@ -125,7 +131,7 @@ def test_fed_avg_server():
     test_global_model.load_state_dict(global_update_dict)
 
     assert_models_equal(fed_avg_server.global_model_trainer.model, test_global_model)
-    
+    logger.info("***************** ALL TESTS PASSED *****************")
 
 if __name__ == '__main__':
     test_fed_avg_server()
