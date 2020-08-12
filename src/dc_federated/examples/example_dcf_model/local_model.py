@@ -38,7 +38,8 @@ class ExampleLocalModel(object):
         self.worker = DCFWorker(
             server_host_ip=server_host_ip,
             server_port=server_port,
-            global_model_status_changed_callback=self.global_model_status_changed_callback
+            global_model_status_changed_callback=self.global_model_status_changed_callback,
+            private_key_file=None
         )
 
         self.global_model = None

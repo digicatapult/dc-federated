@@ -33,8 +33,12 @@ class FedAvgServer(object):
     update_lim: int
         Number of unique updates that needs to be received before the last
         global update before we update the global model.
+
+    key_list_file: str
+        The list of public keys of valid workers. No authentication is performed
+        if file not given.
     """
-    def __init__(self, global_model_trainer, update_lim=10):
+    def __init__(self, global_model_trainer, key_list_file, update_lim=10, ):
         logger.info(f"Initializing FedAvg server for model class {global_model_trainer.get_model().__class__.__name__}")
 
         self.worker_updates = {}
@@ -46,7 +50,8 @@ class FedAvgServer(object):
             self.register_worker,
             self.return_global_model,
             self.return_global_model_status,
-            self.receive_worker_update
+            self.receive_worker_update,
+            key_list_file=key_list_file
         )
 
         self.unique_updates_since_last_agg = 0

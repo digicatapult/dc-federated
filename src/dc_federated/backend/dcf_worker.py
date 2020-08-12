@@ -36,8 +36,8 @@ class DCFWorker(object):
 
         private_key_file: str
             Name of the private key to use to authenticate the worker to the server.
-            If given a file with the text _constants.ALL_WORKERS_ALLOWED, then no
-            authentication is performed.
+            No authentication is performed if a None is passed.  Name of the
+            corresponding public key file is assumed to be key_file + '.pub'
 
         polling_wait_period: int
             The number of seconds to wait before polling the server
@@ -48,7 +48,7 @@ class DCFWorker(object):
             server_host_ip,
             server_port,
             global_model_status_changed_callback,
-            private_key_file=None,
+            private_key_file,
             polling_wait_period=1):
         self.server_host_ip = server_host_ip
         self.server_port = server_port
@@ -62,7 +62,7 @@ class DCFWorker(object):
 
     def get_signed_phrase(self):
         """
-        Returns the the authentication string singed using the private key of this
+        Returns the the authentication string signed using the private key of this
         worker.
 
         Returns
@@ -80,8 +80,8 @@ class DCFWorker(object):
 
     def get_public_key_str(self):
         """
-        Returns the the string version of the public key for the given private key.
-        worker.
+        Returns the the string version of the public key for the private key of
+        the worker.
 
         Returns
         -------
@@ -98,7 +98,7 @@ class DCFWorker(object):
     def register_worker(self):
         """
         Returns a registration number for the worker from the server.
-        Each object of this class is registered only once.
+        Each object of this class is registered only once during its lifetime.
 
         Returns
         -------
@@ -112,13 +112,12 @@ class DCFWorker(object):
                 SIGNED_PHRASE: self.get_signed_phrase()
             }
             self.worker_id = requests.post(
-                f"{self.server_loc}/{REGISTER_WORKER_ROUTE}",
-                json=data).content.decode('UTF-8')
+                f"{self.server_loc}/{REGISTER_WORKER_ROUTE}", json=data).content.decode('UTF-8')
 
             if self.worker_id == INVALID_WORKER:
                 raise ValueError(
                     "Server returned {INVALID_WORKER} which means it was unable to authenticate this worker. "
-                    "Please ensure that the private key you started this worker corresponds to the "
+                    "Please verify that the private key you started this worker with corresponds to the "
                     "public key shared with the server.")
         self.current_global_model_status = self.get_global_model_status()
         return self.worker_id

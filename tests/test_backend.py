@@ -52,6 +52,7 @@ def test_server_functionality():
         test_ret_global_model_cb,
         test_query_status_cb,
         test_rec_server_update_cb,
+        None
     )
     server_thread = Thread(target=dcf_server.start_server)
     server_thread.start()
@@ -117,7 +118,7 @@ def test_server_functionality():
 
     # *********** #
     # now test a DCFWorker on the same server.
-    dcf_worker = DCFWorker(dcf_server.server_host_ip, dcf_server.server_port, test_glob_mod_chng_cb)
+    dcf_worker = DCFWorker(dcf_server.server_host_ip, dcf_server.server_port, test_glob_mod_chng_cb, None)
 
     # test worker registration
     dcf_worker.register_worker()

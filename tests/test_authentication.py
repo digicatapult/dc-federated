@@ -5,6 +5,7 @@ Test worker authentication reltated functions
 import os
 import time
 from threading import Thread
+import pickle
 
 from nacl.signing import SigningKey, VerifyKey
 from nacl.encoding import HexEncoder
@@ -20,7 +21,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
-def test_worker_key_pair():
+
+def test_worker_key_pair_tool():
     key_file = "gen_pair_test"
     private_key, public_key = gen_pair(key_file)
 
@@ -98,7 +100,7 @@ def test_worker_authentication():
         test_ret_global_model_cb,
         test_query_status_cb,
         test_rec_server_update_cb,
-        key_file=worker_key_file
+        key_list_file=worker_key_file
     )
     server_thread = Thread(target=dcf_server.start_server)
     server_thread.start()
@@ -133,12 +135,13 @@ def test_worker_authentication():
         os.remove(worker_key_file_prefix + f'_{n}')
         os.remove(worker_key_file_prefix + f'_{n}.pub')
     os.remove(worker_key_file)
+    os.remove("bad_worker")
+    os.remove("bad_worker.pub")
 
     logger.info("\n\n*** All Tests Passed - Testing completed successfully ***")
-    os.system(f"kill -KILL {os.getpid()}")
     logger.info("*** Exit by pressing Ctrl+C ***")
 
 
 if __name__ == '__main__':
-    test_worker_key_pair()
+    test_worker_key_pair_tool()
     test_worker_authentication()
