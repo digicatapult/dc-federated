@@ -9,8 +9,14 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 RUN pip install .
 
-FROM base AS backend
+FROM base AS mnist_backend
 
 WORKDIR /root/src/dc_federated/examples/mnist
+EXPOSE 8080
 # RUN pip freeze
 CMD [ "python", "mnist_fed_avg_server.py"]
+
+FROM base as mnist_worker
+ENV DIGIT_CLASS=$DIGIT_CLASS
+WORKDIR /root/src/dc_federated/examples/mnist
+CMD [ "sh", "-c", "python mnist_fed_avg_worker.py --server-port 8080 --server-host-ip backend --digit-class ${DIGIT_CLASS}" ]

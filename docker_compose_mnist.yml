@@ -1,0 +1,24 @@
+version: "3.4"
+services:
+    backend:
+        build: 
+            context: .
+            target: mnist_backend
+        ports:
+            - "8080:8080"
+    worker_1:
+        build: 
+            context: .
+            target: mnist_worker
+        depends_on:
+            - backend
+        environment:
+            - DIGIT_CLASS=1
+    worker_2:
+        build: 
+            context: .
+            target: mnist_worker
+        depends_on:
+            - backend
+        environment:
+            - DIGIT_CLASS=2
