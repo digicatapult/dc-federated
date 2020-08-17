@@ -106,4 +106,4 @@ class ExampleGlobalModel(object):
 
     def start(self):
         self.server.start_server()
-        self.start_admin_server()
+        self.server.start_admin_server()
