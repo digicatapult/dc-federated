@@ -3,22 +3,19 @@ Defines the core server class for the federated learning.
 Abstracts away the lower level server logic from the federated
 machine learning logic.
 """
+import json
+import logging
 import pickle
 import hashlib
 import time
 
-
-import bottle
-from bottle import request, Bottle, run
-from dc_federated.backend._constants import *
-from dc_federated.utils import get_host_ip
-
 from nacl.signing import VerifyKey
 from nacl.encoding import HexEncoder
 from nacl.exceptions import BadSignatureError
-from bottle import Bottle, run, request, ServerAdapter
+from bottle import Bottle, run, request, response, ServerAdapter
 
-import logging
+from dc_federated.backend._constants import *
+from dc_federated.utils import get_host_ip
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -141,7 +138,8 @@ class DCFServer(object):
         [string]:
             The id of the workers
         """
-        return {'workers': self.worker_list}
+        response.content_type = 'application/json'
+        return json.dumps(self.worker_list)
 
     def admin_register_worker(self):
         """
@@ -232,11 +230,11 @@ class DCFServer(object):
         """
         Enable the cross origin resource for the server.
         """
-        bottle.response.add_header('Access-Control-Allow-Origin', '*')
-        bottle.response.add_header('Access-Control-Allow-Methods',
-                                   'GET, POST, PUT, OPTIONS')
-        bottle.response.add_header('Access-Control-Allow-Headers',
-                                   'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token')
+        response.add_header('Access-Control-Allow-Origin', '*')
+        response.add_header('Access-Control-Allow-Methods',
+                            'GET, POST, PUT, OPTIONS')
+        response.add_header('Access-Control-Allow-Headers',
+                            'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token')
 
     def start_server(self, server_adapter=None):
         """

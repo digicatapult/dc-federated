@@ -87,7 +87,7 @@ def test_server_functionality():
 
     workers_list = json.loads(requests.get(
         f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers").content)
-    assert workers_list['workers'] == worker_ids
+    assert workers_list == worker_ids
 
     # test the model status
     server_status = requests.post(
