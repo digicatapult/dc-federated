@@ -40,7 +40,6 @@ class DCFServer(object):
             This function is expected to return the current global model
             in some application dependent binary serialized form.
 
-
         query_global_model_status_callback:  () -> str
             This function is expected to return a string giving the
             application dependent current status of the global model.
@@ -59,8 +58,8 @@ class DCFServer(object):
             The port at which the serer should listen to. If None, then it
             uses the port 8080.
 
-
     """
+
     def __init__(
         self,
         register_worker_callback,
@@ -69,10 +68,12 @@ class DCFServer(object):
         receive_worker_update_callback,
         server_host_ip=None,
         server_port=8080,
+        admin_server_port=8081,
             debug=False):
 
         self.server_host_ip = get_host_ip() if server_host_ip is None else server_host_ip
         self.server_port = server_port
+        self.admin_server_port = admin_server_port
 
         self.register_worker_callback = register_worker_callback
         self.return_global_model_callback = return_global_model_callback
@@ -144,10 +145,14 @@ class DCFServer(object):
             object.
         """
         application = Bottle()
-        application.route(f"/{REGISTER_WORKER_ROUTE}", method='GET', callback=self.register_worker)
-        application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}", method='GET', callback=self.return_global_model_callback)
-        application.route(f"/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}", method='GET', callback=self.query_global_model_status_callback)
-        application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}", method='POST', callback=self.receive_worker_update)
+        application.route(f"/{REGISTER_WORKER_ROUTE}",
+                          method='GET', callback=self.register_worker)
+        application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}",
+                          method='GET', callback=self.return_global_model_callback)
+        application.route(f"/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
+                          method='GET', callback=self.query_global_model_status_callback)
+        application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}",
+                          method='POST', callback=self.receive_worker_update)
         application.add_hook('after_request', self.enable_cors)
 
         if server_adapter is not None and isinstance(server_adapter, ServerAdapter):
@@ -155,7 +160,18 @@ class DCFServer(object):
             self.server_port = server_adapter.port
             run(application, server=server_adapter, debug=self.debug, quite=True)
         else:
-            run(application, host=self.server_host_ip, port=self.server_port, debug=self.debug, quiet=True)
+            run(application, host=self.server_host_ip,
+                port=self.server_port, debug=self.debug, quiet=True)
+
+    def start_admin_server(self):
+        """
+        Sets all the admin routes and starts the admin server
+        """
+        admin_app = Bottle()
+        admin_app.get("/workers", callback=self.admin_list_workers)
+        admin_app.post("/workers", callback=self.admin_register_worker)
+        admin_app.delete("/workers/<worker_id>",
+                         callback=self.admin_delete_worker)
 
 
 class DCFWorker(object):
@@ -178,6 +194,7 @@ class DCFWorker(object):
             The number of seconds to wait before polling the server
             for status information.
     """
+
     def __init__(
             self,
             server_host_ip,
@@ -205,7 +222,8 @@ class DCFWorker(object):
             The worker id returned by the server.
         """
         if self.worker_id is None:
-            self.worker_id = int(requests.get(f"{self.server_loc}/{REGISTER_WORKER_ROUTE}").content)
+            self.worker_id = int(requests.get(
+                f"{self.server_loc}/{REGISTER_WORKER_ROUTE}").content)
         self.current_global_model_status = self.get_global_model_status()
         return self.worker_id
 
