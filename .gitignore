@@ -150,6 +150,7 @@ __pycache__/*
 .pydevproject
 .settings
 .idea
+.vscode
 tags
 
 # Package files
