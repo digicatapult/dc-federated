@@ -99,7 +99,7 @@ def assert_models_equal(model_1, model_2):
 def test_fed_avg_server():
 
     trainer = FedAvgTestTrainer()
-    fed_avg_server = FedAvgServer(trainer)
+    fed_avg_server = FedAvgServer(trainer, key_list_file=None)
 
     # test model is loaded properly
     model_ret = torch.load(io.BytesIO(fed_avg_server.return_global_model()))

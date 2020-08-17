@@ -57,38 +57,51 @@ def test_server_functionality():
         test_ret_global_model_cb,
         test_query_status_cb,
         test_rec_server_update_cb,
+        None
     )
     server_thread = Thread(target=begin_server)
     server_thread.start()
     time.sleep(2)
 
     # register a set of workers
+    data = {
+        PUBLIC_KEY_STR: "dummy public key",
+        SIGNED_PHRASE: "dummy signed phrase"
+    }
     for i in range(3):
-        requests.get(f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{REGISTER_WORKER_ROUTE}")
+        requests.post(f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{REGISTER_WORKER_ROUTE}", json=data)
 
-    assert worker_ids ==[0, 1, 2]
+    assert len(worker_ids) == 3
+    assert worker_ids[0] != worker_ids[1] and worker_ids[1] != worker_ids[2] and worker_ids[0] != worker_ids[2]
+    assert worker_ids[0].__class__ ==  worker_ids[1].__class__ == worker_ids[2].__class__
 
     # test the model status
-    server_status = requests.get(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}"
+    server_status = requests.post(
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
+        json={WORKER_ID_KEY: worker_ids[0]}
     ).content.decode('UTF-8')
+    print(server_status)
+
     assert server_status == "Status is good!!"
 
     status = 'Status is bad!!'
-    server_status = requests.get(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}"
+    server_status = requests.post(
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
+        json={WORKER_ID_KEY: worker_ids[0]}
     ).content.decode('UTF-8')
     assert server_status == 'Status is bad!!'
 
     # test getting the global model
-    model_binary = requests.get(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}").content
+    model_binary = requests.post(
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
+        json={WORKER_ID_KEY: worker_ids[0]}
+    ).content
     assert pickle.load(io.BytesIO(model_binary)) == "Pickle dump of a string"
 
     # test sending the model update
     id_and_model_dict_good = {
         ID_AND_MODEL_KEY: pickle.dumps({
-            WORKER_ID_KEY: 1,
+            WORKER_ID_KEY: worker_ids[1],
             MODEL_UPDATE_KEY: pickle.dumps("Model update!!")
         })
     }
@@ -96,8 +109,8 @@ def test_server_functionality():
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
         files=id_and_model_dict_good
     ).content
-    assert pickle.load(io.BytesIO(worker_updates[1])) == "Model update!!"
-    assert response.decode("UTF-8") == "Update received for worker 1."
+    assert pickle.load(io.BytesIO(worker_updates[worker_ids[1]])) == "Model update!!"
+    assert response.decode("UTF-8") == f"Update received for worker {worker_ids[1]}."
 
     # test sending a model update for an unregistered worker
     id_and_model_dict_bad = {
@@ -112,16 +125,15 @@ def test_server_functionality():
     ).content
 
     assert 3 not in worker_updates
-    assert response.decode('UTF-8') == "Unregistered worker 3 tried to send an update."
+    assert response.decode('UTF-8') == UNREGISTERED_WORKER
 
     # *********** #
     # now test a DCFWorker on the same server.
-    dcf_worker = DCFWorker(dcf_server.server_host_ip, dcf_server.server_port, test_glob_mod_chng_cb)
+    dcf_worker = DCFWorker(dcf_server.server_host_ip, dcf_server.server_port, test_glob_mod_chng_cb, None)
 
     # test worker registration
     dcf_worker.register_worker()
-    assert dcf_worker.worker_id == 3
-    assert 3 in worker_ids
+    assert dcf_worker.worker_id == worker_ids[3]
 
     # test getting the model status
     status = dcf_worker.get_global_model_status()
@@ -136,8 +148,8 @@ def test_server_functionality():
 
     # test sending the model update
     response = dcf_worker.send_model_update(pickle.dumps("DCFWorker model update"))
-    assert pickle.load(io.BytesIO(worker_updates[3])) == "DCFWorker model update"
-    assert response.decode("UTF-8") == "Update received for worker 3."
+    assert pickle.load(io.BytesIO(worker_updates[worker_ids[3]])) == "DCFWorker model update"
+    assert response.decode("UTF-8") == f"Update received for worker {worker_ids[3]}."
 
     # TODO: figure out how to kill the server thread and
     # TODO: eliminate this awfulness!
