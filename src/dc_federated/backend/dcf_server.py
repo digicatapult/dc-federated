@@ -143,15 +143,44 @@ class DCFServer(object):
 
     def admin_register_worker(self):
         """
-        TODO integrate that with pub key system
+        Allow admin to register a worker given a public key
         """
-        return self.register_worker()
+        worker_data = request.json
+
+        logger.info("Admin is registering a new worker...")
+
+        if not PUBLIC_KEY_STR in worker_data:
+            logger.error(f"Public key was not not passed in {worker_data}")
+            return -1
+
+        worker_id = worker_data[PUBLIC_KEY_STR]
+        logger.info(f"Worker id is {worker_id}")
+
+        if not isinstance(worker_id, str) or not len(worker_id):
+            logger.error(f"Public key should be a string: {worker_id}")
+            return -1
+
+        if worker_id not in self.worker_list:
+            self.worker_list.append(worker_id)
+            self.register_worker_callback(worker_id)
+            logger.info(f"Worker {worker_id} was registered")
+        else:
+            logger.warn(f"Worker {worker_id} is already registered")
+
+        return worker_id
 
     def admin_delete_worker(self, worker_id):
         """
-        TODO integrate that with pub key system
+        Allow admin to unregister a worker given a public key
         """
-        logger.info(f"Not implemented yet: unregister worker {worker_id}")
+        logger.info(f"Admin is unregistering worker {worker_id}...")
+
+        if worker_id in self.worker_list:
+            self.worker_list.remove(worker_id)
+            # self.unregister_worker_callback(worker_id)
+            logger.info(f"Worker {worker_id} was unregistered")
+        else:
+            logger.warn(f"Worker {worker_id} is not registered")
 
     def receive_worker_update(self):
         """

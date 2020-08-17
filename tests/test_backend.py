@@ -77,7 +77,7 @@ def test_server_functionality():
         PUBLIC_KEY_STR: "dummy public key",
         SIGNED_PHRASE: "dummy signed phrase"
     }
-    for i in range(3):
+    for _ in range(3):
         requests.post(
             f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{REGISTER_WORKER_ROUTE}", json=data)
 
@@ -88,6 +88,20 @@ def test_server_functionality():
     workers_list = json.loads(requests.get(
         f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers").content)
     assert workers_list == worker_ids
+
+    requests.post(
+        f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers", json={})
+    assert len(worker_ids) == 3
+
+    admin_registered_worker = {PUBLIC_KEY_STR: "fake_public_key"}
+    requests.post(
+        f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers", json=admin_registered_worker)
+    assert len(worker_ids) == 4
+    assert worker_ids[3] == admin_registered_worker[PUBLIC_KEY_STR]
+
+    requests.delete(
+        f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers/fake_public_key")
+    assert len(worker_ids) == 3
 
     # test the model status
     server_status = requests.post(
