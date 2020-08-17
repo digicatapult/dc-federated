@@ -35,6 +35,7 @@ class ExampleGlobalModel(object):
 
         self.server = DCFServer(
             self.register_worker,
+            self.unregister_worker,
             self.return_global_model,
             self.return_global_model_status,
             self.receive_worker_update,
@@ -53,6 +54,19 @@ class ExampleGlobalModel(object):
         """
         logger.info(f"Example Global Model: Registering worker {worker_id}")
         self.worker_updates[worker_id] = None
+
+    def unregister_worker(self, worker_id):
+        """
+        Unregister the given worker_id by removing it from updates.
+
+        Parameters
+        ----------
+
+        worker_id: int
+            The id of the worker to be removed.
+        """
+        logger.info(f"Example Global Model: Unregistering worker {worker_id}")
+        self.worker_updates.pop(worker_id)
 
     def return_global_model(self):
         """

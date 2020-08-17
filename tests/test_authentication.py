@@ -50,7 +50,8 @@ def test_worker_key_pair_tool():
 
     # test that a bad signature is detected
     with open(key_file, 'w') as f:
-        f.write(SigningKey.generate().encode(encoder=HexEncoder).decode('utf-8'))
+        f.write(SigningKey.generate().encode(
+            encoder=HexEncoder).decode('utf-8'))
     assert not verify_pair(key_file)
 
     # clean up
@@ -76,6 +77,9 @@ def test_worker_authentication():
     def test_register_func_cb(id):
         worker_ids.append(id)
 
+    def test_unregister_func_cb(id):
+        worker_ids.remove(id)
+
     def test_ret_global_model_cb():
         return pickle.dumps("Pickle dump of a string")
 
@@ -95,11 +99,14 @@ def test_worker_authentication():
     worker_key_file = 'worker_public_keys.txt'
     with open(worker_key_file, 'w') as f:
         for public_key in public_keys[:-1]:
-            f.write(public_key.encode(encoder=HexEncoder).decode('utf-8') + os.linesep)
-        f.write(public_keys[-1].encode(encoder=HexEncoder).decode('utf-8') + os.linesep)
+            f.write(public_key.encode(
+                encoder=HexEncoder).decode('utf-8') + os.linesep)
+        f.write(
+            public_keys[-1].encode(encoder=HexEncoder).decode('utf-8') + os.linesep)
 
     dcf_server = DCFServer(
         test_register_func_cb,
+        test_unregister_func_cb,
         test_ret_global_model_cb,
         test_query_status_cb,
         test_rec_server_update_cb,
@@ -107,6 +114,7 @@ def test_worker_authentication():
     )
 
     stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
+
     def begin_server():
         dcf_server.start_server(stoppable_server)
     server_thread = Thread(target=begin_server)
@@ -129,9 +137,8 @@ def test_worker_authentication():
         assert model_status == status
         assert global_model == pickle.dumps("Pickle dump of a string")
         assert worker_updates[worker.worker_id] == b'model_update'
-        assert worker.worker_id == key.encode(encoder=HexEncoder).decode('utf-8')
-
-
+        assert worker.worker_id == key.encode(
+            encoder=HexEncoder).decode('utf-8')
 
     # try to authenticate a unregistered worker
     gen_pair('bad_worker')
@@ -177,7 +184,6 @@ def test_worker_authentication():
     os.remove(worker_key_file)
     os.remove("bad_worker")
     os.remove("bad_worker.pub")
-
 
     logger.info("\n\n*** All Tests Passed - Testing completed successfully ***")
     stoppable_server.shutdown()

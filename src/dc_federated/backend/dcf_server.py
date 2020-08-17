@@ -38,6 +38,11 @@ class DCFServer(object):
             worker and should contain the application specific logic for
             dealing with a new worker joining the federated learning pool.
 
+        unregister_worker_callback:
+            This function is expected to take the id of a newly unregistered
+            worker and should contain the application specific logic for
+            dealing with a worker leaving the federated learning pool.
+
         return_global_model_callback: () -> bit-string
             This function is expected to return the current global model
             in some application dependent binary serialized form.
@@ -72,6 +77,7 @@ class DCFServer(object):
     def __init__(
         self,
         register_worker_callback,
+        unregister_worker_callback,
         return_global_model_callback,
         query_global_model_status_callback,
         receive_worker_update_callback,
@@ -86,6 +92,7 @@ class DCFServer(object):
         self.admin_server_port = admin_server_port
 
         self.register_worker_callback = register_worker_callback
+        self.unregister_worker_callback = unregister_worker_callback
         self.return_global_model_callback = return_global_model_callback
         self.query_global_model_status_callback = query_global_model_status_callback
         self.receive_worker_update_callback = receive_worker_update_callback
@@ -177,7 +184,7 @@ class DCFServer(object):
 
         if worker_id in self.worker_list:
             self.worker_list.remove(worker_id)
-            # self.unregister_worker_callback(worker_id)
+            self.unregister_worker_callback(worker_id)
             logger.info(f"Worker {worker_id} was unregistered")
         else:
             logger.warn(f"Worker {worker_id} is not registered")

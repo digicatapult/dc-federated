@@ -41,6 +41,9 @@ def test_server_functionality():
     def test_register_func_cb(id):
         worker_ids.append(id)
 
+    def test_unregister_func_cb(id):
+        worker_ids.remove(id)
+
     def test_ret_global_model_cb():
         return pickle.dumps("Pickle dump of a string")
 
@@ -59,6 +62,7 @@ def test_server_functionality():
 
     dcf_server = DCFServer(
         test_register_func_cb,
+        test_unregister_func_cb,
         test_ret_global_model_cb,
         test_query_status_cb,
         test_rec_server_update_cb,

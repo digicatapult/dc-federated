@@ -50,6 +50,7 @@ class FedAvgServer(object):
         self.last_global_model_update_timestamp = datetime(1980, 10, 10)
         self.server = DCFServer(
             self.register_worker,
+            self.unregister_worker,
             self.return_global_model,
             self.return_global_model_status,
             self.receive_worker_update,
@@ -71,6 +72,19 @@ class FedAvgServer(object):
         """
         logger.info(f"Registered worker {worker_id}")
         self.worker_updates[worker_id] = None
+
+    def unregister_worker(self, worker_id):
+        """
+        Unregister the given worker_id by removing it from updates.
+
+        Parameters
+        ----------
+
+        worker_id: int
+            The id of the worker to be removed.
+        """
+        logger.info(f"Unregistered worker {worker_id}")
+        self.worker_updates.pop(worker_id)
 
     def return_global_model(self):
         """
