@@ -29,13 +29,18 @@ class FedAvgWorker(object):
     fed_model_trainer: FedAvgModelTrainer
         The trainer for the DNN model for the worker.
 
+    private_key_file: str
+        Name of the private key file to authenticate the worker.
+        Name of the corresponding public key file is assumed to be
+        key_file + '.pub'
+
     server_host_ip: str
         The ip-address of the host of the server.
 
     server_port: int
         The port at which the serer should listen to
     """
-    def __init__(self, fed_model_trainer, server_host_ip=None, server_port=None):
+    def __init__(self, fed_model_trainer, private_key_file, server_host_ip=None, server_port=None):
         self.fed_model = fed_model_trainer
 
         server_host_ip = get_host_ip() if not server_host_ip else server_host_ip
@@ -44,7 +49,8 @@ class FedAvgWorker(object):
         self.worker = DCFWorker(
             server_host_ip=server_host_ip,
             server_port=server_port,
-            global_model_status_changed_callback=self.global_model_status_changed_callback
+            global_model_status_changed_callback=self.global_model_status_changed_callback,
+            private_key_file=private_key_file
         )
 
         self.last_update_time = datetime(2017, 1, 1)

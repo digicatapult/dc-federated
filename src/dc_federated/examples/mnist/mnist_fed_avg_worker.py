@@ -43,6 +43,12 @@ def get_args():
                    default=10,
                    required=False)
 
+    p.add_argument("--private-key-file",
+                   help="The number of rounds per iteration of training of the worker.",
+                   type=str,
+                   default=None,
+                   required=False)
+
     return p.parse_args()
 
 
@@ -79,7 +85,10 @@ def run():
         rounds_per_iter=args.rounds_per_iter
     )
 
-    fed_avg_worker = FedAvgWorker(local_model_trainer, args.server_host_ip, args.server_port)
+    fed_avg_worker = FedAvgWorker(fed_model_trainer=local_model_trainer,
+                                  private_key_file=args.private_key_file,
+                                  server_host_ip=args.server_host_ip,
+                                  server_port=args.server_port)
     fed_avg_worker.start()
 
 

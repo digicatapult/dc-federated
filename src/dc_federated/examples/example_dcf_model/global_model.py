@@ -37,7 +37,8 @@ class ExampleGlobalModel(object):
             self.register_worker,
             self.return_global_model,
             self.return_global_model_status,
-            self.receive_worker_update
+            self.receive_worker_update,
+            key_list_file=None
         )
 
     def register_worker(self, worker_id):
