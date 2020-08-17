@@ -15,7 +15,7 @@ from dc_federated.examples.example_dcf_model import ExampleGlobalModel, ExampleL
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('dc_federated.tests.test_backend_model_integration')
+logger = logging.getLogger(__file__)
 logger.setLevel(level=logging.INFO)
 
 

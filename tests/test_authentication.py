@@ -14,13 +14,14 @@ from nacl.exceptions import BadSignatureError
 from dc_federated.backend import DCFServer, DCFWorker
 from dc_federated.backend._constants import *
 from dc_federated.backend.worker_key_pair_tool import gen_pair, verify_pair
+from dc_federated.utils import StoppableServer, get_host_ip
 
 import requests
 
 import logging
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__file__)
 logger.setLevel(level=logging.INFO)
 
 
@@ -104,7 +105,11 @@ def test_worker_authentication():
         test_rec_server_update_cb,
         key_list_file=worker_key_file
     )
-    server_thread = Thread(target=dcf_server.start_server)
+
+    stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
+    def begin_server():
+        dcf_server.start_server(stoppable_server)
+    server_thread = Thread(target=begin_server)
     server_thread.start()
     time.sleep(2)
 
@@ -175,7 +180,7 @@ def test_worker_authentication():
 
 
     logger.info("\n\n*** All Tests Passed - Testing completed successfully ***")
-    logger.info("*** Exit by pressing Ctrl+C ***")
+    stoppable_server.shutdown()
 
 
 if __name__ == '__main__':

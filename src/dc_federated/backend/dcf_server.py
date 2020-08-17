@@ -16,6 +16,7 @@ from dc_federated.utils import get_host_ip
 from nacl.signing import VerifyKey
 from nacl.encoding import HexEncoder
 from nacl.exceptions import BadSignatureError
+from bottle import Bottle, run, request, ServerAdapter
 
 import logging
 
@@ -207,9 +208,14 @@ class DCFServer(object):
         bottle.response.add_header('Access-Control-Allow-Headers',
                                    'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token')
 
-    def start_server(self):
+    def start_server(self, server_adapter=None):
         """
         Sets up all the routes for the server and starts it.
+
+        server_backend: bottle.ServerAdapter (default None)
+            The server adapter to use. The default bottle.WSGIRefServer is used if none is given.
+            WARNING: If given, this will over-ride the host-ip and port passed as parameters to this
+            object.
         """
         application = Bottle()
         application.route(f"/{REGISTER_WORKER_ROUTE}", method='POST', callback=self.register_worker)
@@ -218,7 +224,13 @@ class DCFServer(object):
         application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}", method='POST', callback=self.receive_worker_update)
         application.add_hook('after_request', self.enable_cors)
 
-        run(application, host=self.server_host_ip, port=self.server_port, debug=self.debug, quiet=True)
+        if server_adapter is not None and isinstance(server_adapter, ServerAdapter):
+            self.server_host_ip = server_adapter.host
+            self.server_port = server_adapter.port
+            run(application, server=server_adapter, debug=self.debug, quite=True)
+        else:
+            run(application, host=self.server_host_ip, port=self.server_port, debug=self.debug, quiet=True)
+
 
 
 class WorkerAuthenticator(object):

@@ -13,10 +13,11 @@ import time
 
 from dc_federated.backend import DCFServer, DCFWorker
 from dc_federated.backend._constants import *
+from dc_federated.utils import StoppableServer, get_host_ip
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('dc_federated.tests.test_backend')
+logger = logging.getLogger(__file__)
 logger.setLevel(level=logging.INFO)
 
 
@@ -27,6 +28,10 @@ def test_server_functionality():
     worker_ids = []
     worker_updates = {}
     status = 'Status is good!!'
+    stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
+
+    def begin_server():
+        dcf_server.start_server(stoppable_server)
 
     def test_register_func_cb(id):
         worker_ids.append(id)
@@ -54,7 +59,7 @@ def test_server_functionality():
         test_rec_server_update_cb,
         None
     )
-    server_thread = Thread(target=dcf_server.start_server)
+    server_thread = Thread(target=begin_server)
     server_thread.start()
     time.sleep(2)
 
@@ -148,8 +153,8 @@ def test_server_functionality():
 
     # TODO: figure out how to kill the server thread and
     # TODO: eliminate this awfulness!
-    logger.info("\n\n*** Testing completed successfully - exit by pressing Ctrl+C ***")
-
+    logger.info("***************** ALL TESTS PASSED *****************")
+    stoppable_server.shutdown()
 
 if __name__ == '__main__':
     test_server_functionality()
