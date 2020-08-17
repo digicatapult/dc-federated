@@ -101,6 +101,30 @@ class DCFServer(object):
         self.register_worker_callback(self.last_worker)
         return str(self.last_worker)
 
+    def admin_list_workers(self):
+        """
+        List all registered workers
+
+        Returns
+        -------
+
+        [string]:
+            The id of the workers
+        """
+        return [str(i) for i in self.worker_list]
+
+    def admin_register_worker(self):
+        """
+        TODO integrate that with pub key system
+        """
+        return self.register_worker()
+
+    def admin_delete_worker(self):
+        """
+        TODO integrate that with pub key system
+        """
+        pass
+
     def receive_worker_update(self):
         """
         This receives the update from a worker and calls the corresponding callback function.
@@ -158,12 +182,12 @@ class DCFServer(object):
         if server_adapter is not None and isinstance(server_adapter, ServerAdapter):
             self.server_host_ip = server_adapter.host
             self.server_port = server_adapter.port
-            run(application, server=server_adapter, debug=self.debug, quite=True)
+            run(application, server=server_adapter, debug=self.debug, quiet=True)
         else:
             run(application, host=self.server_host_ip,
                 port=self.server_port, debug=self.debug, quiet=True)
 
-    def start_admin_server(self):
+    def start_admin_server(self, server_adapter=None):
         """
         Sets all the admin routes and starts the admin server
         """
@@ -172,6 +196,14 @@ class DCFServer(object):
         admin_app.post("/workers", callback=self.admin_register_worker)
         admin_app.delete("/workers/<worker_id>",
                          callback=self.admin_delete_worker)
+
+        if server_adapter is not None and isinstance(server_adapter, ServerAdapter):
+            self.server_host_ip = server_adapter.host
+            self.server_port = server_adapter.port
+            run(admin_app, server=server_adapter, debug=self.debug, quiet=True)
+        else:
+            run(admin_app, host='127.0.0.1',
+                port=self.admin_server_port, debug=self.debug, quiet=True)
 
 
 class DCFWorker(object):
