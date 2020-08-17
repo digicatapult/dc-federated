@@ -10,13 +10,35 @@ RUN pip install -r requirements.txt
 RUN pip install .
 
 FROM base AS mnist_backend
-
 WORKDIR /root/src/dc_federated/examples/mnist
 EXPOSE 8080
-# RUN pip freeze
 CMD [ "python", "mnist_fed_avg_server.py"]
 
 FROM base as mnist_worker
 ENV DIGIT_CLASS=$DIGIT_CLASS
 WORKDIR /root/src/dc_federated/examples/mnist
 CMD [ "sh", "-c", "python mnist_fed_avg_worker.py --server-port 8080 --server-host-ip backend --digit-class ${DIGIT_CLASS}" ]
+
+FROM base as plantvillage_base
+WORKDIR /root/src/
+RUN apt update && apt install -y wget unzip && apt clean
+COPY master.zip .
+RUN unzip master.zip -d PlantVillage-Dataset && rm -rf master.zip
+RUN mkdir /root/src/PlantVillage-Dataset/checkpoints/
+RUN mkdir /root/src/PlantVillage-Dataset/PlantVillage-Dataset-master/processed/
+RUN mkdir -p /root/src/PlantVillage-Dataset/PlantVillage-Dataset-master/processed/train/0
+RUN mkdir /root/src/PlantVillage-Dataset/PlantVillage-Dataset-master/processed/train/1
+RUN mkdir /root/src/PlantVillage-Dataset/PlantVillage-Dataset-master/processed/train/2
+RUN mkdir /root/src/PlantVillage-Dataset/PlantVillage-Dataset-master/processed/train/3
+WORKDIR /root/src/dc_federated/examples/plantvillage/
+RUN python dataset_prep.py
+
+FROM plantvillage_base AS plantvillage_backend
+ENV UPDATE_LIM=$UPDATE_LIM
+WORKDIR /root/src/dc_federated/examples/plantvillage/
+CMD [ "sh", "-c", "python plant_fed_avg_server.py --update-lim ${UPDATE_LIM}" ]
+
+FROM plantvillage_base AS plantvillage_worker
+ENV WORKER_ID=$WORKER_ID
+WORKDIR /root/src/dc_federated/examples/plantvillage/
+CMD [ "sh", "-c", "python plant_fed_avg_worker.py --server-port 8080 --server-host-ip plantvillage_backend --worker-id ${WORKER_ID}" ]

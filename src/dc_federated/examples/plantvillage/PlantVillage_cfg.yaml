@@ -16,12 +16,12 @@
 #     Target path for the validation, test and workers subsets.
 #     "PlantVillageData/dataset/dataset/processed/""
 orig_dataset:
-  path: /home/ubuntu/code/PlantVillage-Dataset/raw/color/
+  path: ~/src/PlantVillage-Dataset/PlantVillage-Dataset-master/raw/color/
 output_dataset:
-  path: /home/ubuntu/code/PlantVillageData/dataset/processed/
-  val_path: /home/ubuntu/code/PlantVillageData/dataset/processed/val/
-  test_path: /home/ubuntu/code/PlantVillageData/dataset/processed/test/
-  train_path: /home/ubuntu/code/PlantVillageData/dataset/processed/train
+  path: ~/src/PlantVillage-Dataset/PlantVillage-Dataset-master/processed/
+  val_path: ~/src/PlantVillage-Dataset/PlantVillage-Dataset-master/processed/val/
+  test_path: ~/src/PlantVillage-Dataset/PlantVillage-Dataset-master/processed/test/
+  train_path: ~/src/PlantVillage-Dataset/PlantVillage-Dataset-master/processed/train/
 
 
 
@@ -78,6 +78,6 @@ log_interval: 10
 save_model: False
 batches_per_iter: 10 # Number of batches per worker training iteration
 num_classes: 9 # Number of classes
-checkpoint_path: /home/ubuntu/code/FederatedLearningDemo/checkpoints/trained_mobilenetv2.pt
-training_stats_path:  /home/ubuntu/code/FederatedLearningDemo/checkpoints/training_stats.csv
+checkpoint_path: ~/src/PlantVillage-Dataset/checkpoints/trained_mobilenetv2.pt
+training_stats_path:  ~/src/PlantVillage-Dataset/checkpoints/training_stats.csv
 update_lim: 4 # Number of workers requested
