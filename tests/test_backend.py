@@ -7,6 +7,7 @@ import io
 from threading import Thread
 import pickle
 import logging
+import json
 
 import requests
 import time
@@ -29,9 +30,13 @@ def test_server_functionality():
     worker_updates = {}
     status = 'Status is good!!'
     stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
+    stoppable_admin_server = StoppableServer(host=get_host_ip(), port=8081)
 
     def begin_server():
         dcf_server.start_server(stoppable_server)
+
+    def begin_admin_server():
+        dcf_server.start_admin_server(stoppable_admin_server)
 
     def test_register_func_cb(id):
         worker_ids.append(id)
@@ -60,13 +65,22 @@ def test_server_functionality():
     )
     server_thread = Thread(target=begin_server)
     server_thread.start()
+
+    admin_server_thread = Thread(target=begin_admin_server)
+    admin_server_thread.start()
+
     time.sleep(2)
 
     # register a set of workers
-    for i in range(3):
-        requests.get(f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{REGISTER_WORKER_ROUTE}")
+    for _ in range(3):
+        requests.get(
+            f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{REGISTER_WORKER_ROUTE}")
 
-    assert worker_ids ==[0, 1, 2]
+    assert worker_ids == [0, 1, 2]
+
+    workers_list = json.loads(requests.get(
+        f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers").content)
+    assert workers_list['workers'] == worker_ids
 
     # test the model status
     server_status = requests.get(
@@ -103,7 +117,8 @@ def test_server_functionality():
     id_and_model_dict_bad = {
         ID_AND_MODEL_KEY: pickle.dumps({
             WORKER_ID_KEY: 3,
-            MODEL_UPDATE_KEY: pickle.dumps("Model update for unregistered worker!!")
+            MODEL_UPDATE_KEY: pickle.dumps(
+                "Model update for unregistered worker!!")
         })
     }
     response = requests.post(
@@ -112,11 +127,13 @@ def test_server_functionality():
     ).content
 
     assert 3 not in worker_updates
-    assert response.decode('UTF-8') == "Unregistered worker 3 tried to send an update."
+    assert response.decode(
+        'UTF-8') == "Unregistered worker 3 tried to send an update."
 
     # *********** #
     # now test a DCFWorker on the same server.
-    dcf_worker = DCFWorker(dcf_server.server_host_ip, dcf_server.server_port, test_glob_mod_chng_cb)
+    dcf_worker = DCFWorker(dcf_server.server_host_ip,
+                           dcf_server.server_port, test_glob_mod_chng_cb)
 
     # test worker registration
     dcf_worker.register_worker()
@@ -135,14 +152,18 @@ def test_server_functionality():
     assert pickle.load(io.BytesIO(global_model)) == "Pickle dump of a string"
 
     # test sending the model update
-    response = dcf_worker.send_model_update(pickle.dumps("DCFWorker model update"))
-    assert pickle.load(io.BytesIO(worker_updates[3])) == "DCFWorker model update"
+    response = dcf_worker.send_model_update(
+        pickle.dumps("DCFWorker model update"))
+    assert pickle.load(io.BytesIO(
+        worker_updates[3])) == "DCFWorker model update"
     assert response.decode("UTF-8") == "Update received for worker 3."
 
     # TODO: figure out how to kill the server thread and
     # TODO: eliminate this awfulness!
     logger.info("***************** ALL TESTS PASSED *****************")
     stoppable_server.shutdown()
+    stoppable_admin_server.shutdown()
+
 
 if __name__ == '__main__':
     test_server_functionality()

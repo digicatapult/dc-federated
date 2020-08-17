@@ -24,6 +24,7 @@ class ExampleGlobalModel(object):
     implement a federated global model. For testing purposes, it writes all the
     models it creates and receives to disk.
     """
+
     def __init__(self):
         self.worker_updates = {}
         self.global_model = ExampleModelClass()
@@ -97,10 +98,12 @@ class ExampleGlobalModel(object):
             logger.info(self.worker_updates[worker_id])
             with open(f"egm_worker_update_{worker_id}.torch", 'wb') as f:
                 torch.save(self.worker_updates[worker_id], f)
-            self.global_model_status = str(datetime.now().isoformat(' ', 'seconds'))
+            self.global_model_status = str(
+                datetime.now().isoformat(' ', 'seconds'))
             return f"Update received for worker {worker_id}"
         else:
             return f"Unregistered worker {worker_id} tried to send an update!!"
 
     def start(self):
         self.server.start_server()
+        self.start_admin_server()

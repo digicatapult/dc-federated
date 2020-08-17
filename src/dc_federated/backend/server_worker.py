@@ -111,7 +111,7 @@ class DCFServer(object):
         [string]:
             The id of the workers
         """
-        return [str(i) for i in self.worker_list]
+        return {'workers': self.worker_list}
 
     def admin_register_worker(self):
         """
@@ -119,11 +119,11 @@ class DCFServer(object):
         """
         return self.register_worker()
 
-    def admin_delete_worker(self):
+    def admin_delete_worker(self, worker_id):
         """
         TODO integrate that with pub key system
         """
-        pass
+        logger.info(f"Not implemented yet: unregister worker {worker_id}")
 
     def receive_worker_update(self):
         """
@@ -198,8 +198,8 @@ class DCFServer(object):
                          callback=self.admin_delete_worker)
 
         if server_adapter is not None and isinstance(server_adapter, ServerAdapter):
-            self.server_host_ip = server_adapter.host
-            self.server_port = server_adapter.port
+            self.admin_server_host_ip = server_adapter.host
+            self.admin_server_port = server_adapter.port
             run(admin_app, server=server_adapter, debug=self.debug, quiet=True)
         else:
             run(admin_app, host='127.0.0.1',
