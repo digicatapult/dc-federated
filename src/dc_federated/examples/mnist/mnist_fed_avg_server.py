@@ -1,10 +1,29 @@
 """
 Simple runner to start FedAvgServer server for the MNIST dataset.
 """
-
+import argparse
 
 from dc_federated.algorithms.fed_avg.fed_avg_server import FedAvgServer
 from dc_federated.examples.mnist.mnist_fed_model import MNISTModelTrainer, MNISTSubSet
+
+
+
+def get_args():
+    """
+    Parse the argument for running the example local model for the distributed
+    federated test.
+    """
+    # Make parser object
+    p = argparse.ArgumentParser(
+        description="Parameters for running the mnist_fed_avg_server\n")
+
+    p.add_argument("--key-list-file",
+                   help="The list of public keys for each worker to be authenticated.",
+                   type=str,
+                   required=False,
+                   default=None)
+
+    return p.parse_args()
 
 
 def run():
@@ -14,11 +33,13 @@ def run():
     runner(s) in local_model.py in other devices. Run `python federated_local_model.py -h' for instructions
     on how to do so.
     """
+    args = get_args()
+
     global_model_trainer = MNISTModelTrainer(
         train_loader=MNISTSubSet.default_dataset(is_train=True).get_data_loader(),
         test_loader = MNISTSubSet.default_dataset(is_train=False).get_data_loader())
     fed_avg_server = FedAvgServer(global_model_trainer=global_model_trainer,
-                                  key_list_file=None,
+                                  key_list_file=args.key_list_file,
                                   update_lim=3)
     print("\n************")
     print("Starting an Federated Average Server at"
