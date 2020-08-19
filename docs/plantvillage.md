@@ -63,3 +63,12 @@ where `v` is between `0` to `3`. Use the configuration file `PlantVillage_cfg.ya
 ```bash
 (venv_dc_federated)> python plant_fed_avg_worker.py --server-host-ip *your_server_ip* --server-port 8080 --worker-id [worker id] --train-data-path [path] --validation-data-path [path]
 ```
+
+### Docker
+#### Running the example using docker
+Download the dataset in the root of the directory
+```wget https://github.com/spMohanty/PlantVillage-Dataset/archive/master.zip -O master.zip```
+
+Run `docker-compose -f docker_compose_plantvillage.yml up`
+
+This will build the relevant images and bring up the example.  If you wish to modify the parameters of the test, please do so in the `PlantVillage_docker_cfg.yml` file.

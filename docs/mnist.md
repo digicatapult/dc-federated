@@ -162,3 +162,10 @@ Note that for the server, the test set is based on the combined data set of all 
 
 
 You can stop by pressing `Ctrl+C` on the server terminal.
+
+### Docker
+#### Running the example using docker
+
+Run `docker-compose -f docker_compose_mnist.yml up`
+
+This will build the relevant images and bring up the example.
