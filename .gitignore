@@ -169,6 +169,7 @@ coverage.xml
 
 # Build and docs folder/files
 build/*
+data
 dist/*
 sdist/*
 docs/api/*
