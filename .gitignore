@@ -150,6 +150,7 @@ __pycache__/*
 .pydevproject
 .settings
 .idea
+.vscode
 tags
 
 # Package files
@@ -176,6 +177,6 @@ docs/_build/*
 cover/*
 MANIFEST
 
-# Certificates
-/localhost.key
-/localhost.crt
+# Local certificates
+localhost.key
+localhost.crt
