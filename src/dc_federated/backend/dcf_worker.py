@@ -12,6 +12,7 @@ import requests
 from dc_federated.backend._constants import *
 
 import logging
+import zlib
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -132,8 +133,7 @@ class DCFWorker(object):
         binary string:
             The current global model returned by the server.
         """
-        return requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
-                             json={WORKER_ID_KEY: self.worker_id}).content
+        return zlib.decompress(requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}", json={WORKER_ID_KEY: self.worker_id}).content)
 
     def get_global_model_status(self):
         """

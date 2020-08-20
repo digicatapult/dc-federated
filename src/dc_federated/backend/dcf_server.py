@@ -19,6 +19,7 @@ from nacl.exceptions import BadSignatureError
 from bottle import Bottle, run, request, ServerAdapter
 
 import logging
+import zlib
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -190,7 +191,7 @@ class DCFServer(object):
         try:
             query_request = request.json
             if query_request[WORKER_ID_KEY] in self.worker_list:
-                return self.return_global_model_callback()
+                return zlib.compress(self.return_global_model_callback())
             else:
                 return UNREGISTERED_WORKER
         except Exception as e:
