@@ -40,13 +40,16 @@ class FedAvgWorker(object):
     server_port: int
         The port at which the serer should listen to
     """
-    def __init__(self, fed_model_trainer, private_key_file, server_host_ip=None, server_port=None):
+
+    def __init__(self, fed_model_trainer, private_key_file, server_protocol=None, server_host_ip=None, server_port=None):
         self.fed_model = fed_model_trainer
 
+        server_protocol = 'http' if server_protocol is None else 'https'
         server_host_ip = get_host_ip() if not server_host_ip else server_host_ip
         server_port = 8080 if not server_port else server_port
 
         self.worker = DCFWorker(
+            server_protocol=server_protocol,
             server_host_ip=server_host_ip,
             server_port=server_port,
             global_model_status_changed_callback=self.global_model_status_changed_callback,
@@ -94,7 +97,8 @@ class FedAvgWorker(object):
         """
         self.fed_model.train()
         self.fed_model.test()
-        logger.info(f"Finished training of local model for worker {self.worker_id}")
+        logger.info(
+            f"Finished training of local model for worker {self.worker_id}")
 
     def send_model_update(self):
         """
@@ -104,7 +108,8 @@ class FedAvgWorker(object):
             pickle.dumps((self.fed_model.get_per_session_train_size(),
                           self.serialize_model()))
         )
-        logger.info(f"Sent model update from worker {self.worker_id} to the server.")
+        logger.info(
+            f"Sent model update from worker {self.worker_id} to the server.")
 
     def initialize(self):
         """
@@ -114,7 +119,8 @@ class FedAvgWorker(object):
         """
         if not self.worker_id:
             self.worker_id = self.worker.register_worker()
-            logger.info(f"Registered with FedAvg Server with worker id {self.worker_id}")
+            logger.info(
+                f"Registered with FedAvg Server with worker id {self.worker_id}")
 
         self.last_update_time = self.get_model_update_time()
         self.train_and_test_model()
@@ -133,7 +139,8 @@ class FedAvgWorker(object):
             model_binary = self.worker.get_global_model()
             if len(model_binary) > 0:
                 new_model = torch.load(io.BytesIO(model_binary))
-                self.fed_model.load_model_from_state_dict(new_model.state_dict())
+                self.fed_model.load_model_from_state_dict(
+                    new_model.state_dict())
             self.train_and_test_model()
             self.send_model_update()
 
