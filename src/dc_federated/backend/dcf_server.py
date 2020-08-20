@@ -229,7 +229,14 @@ class DCFServer(object):
             self.server_port = server_adapter.port
             run(application, server=server_adapter, debug=self.debug, quite=True)
         else:
-            run(application, host=self.server_host_ip, port=self.server_port, debug=self.debug, quiet=True)
+            run(application, 
+            host=self.server_host_ip, 
+            port=self.server_port, 
+            server='gunicorn', 
+            keyfile='./localhost.key',
+            certfile='./localhost.crt',
+            debug=self.debug, 
+            quiet=True)
 
 
 
