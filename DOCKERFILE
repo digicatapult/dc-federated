@@ -1,12 +1,12 @@
 FROM python:3.7.8-slim AS base
 
 WORKDIR /root/
-COPY src src
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
 COPY setup.py .
 COPY setup.cfg .
-COPY requirements.txt .
-
-RUN pip install -r requirements.txt
+COPY src src
 RUN pip install .
 
 FROM base AS mnist_backend
@@ -21,7 +21,7 @@ CMD [ "sh", "-c", "sleep 5 && python mnist_fed_avg_worker.py --server-port 8080 
 
 FROM base as plantvillage_base
 WORKDIR /root/src/
-RUN apt update && apt install -y wget unzip && apt clean
+RUN apt update && apt install -y unzip && apt clean
 COPY master.zip .
 RUN unzip master.zip -d PlantVillage-Dataset && rm -rf master.zip
 RUN mkdir /root/src/PlantVillage-Dataset/checkpoints/
