@@ -38,8 +38,10 @@ class FedAvgServer(object):
         The list of public keys of valid workers. No authentication is performed
         if file not given.
     """
+
     def __init__(self, global_model_trainer, key_list_file, update_lim=10, ):
-        logger.info(f"Initializing FedAvg server for model class {global_model_trainer.get_model().__class__.__name__}")
+        logger.info(
+            f"Initializing FedAvg server for model class {global_model_trainer.get_model().__class__.__name__}")
 
         self.worker_updates = {}
         self.global_model_trainer = global_model_trainer
@@ -51,7 +53,8 @@ class FedAvgServer(object):
             self.return_global_model,
             self.return_global_model_status,
             self.receive_worker_update,
-            key_list_file=key_list_file
+            key_list_file=key_list_file,
+            server_host_ip='localhost'  # FIXME remove that once https testing sorted
         )
 
         self.unique_updates_since_last_agg = 0
@@ -120,7 +123,8 @@ class FedAvgServer(object):
                 self.global_model_trainer.test()
             return f"Update received for worker {worker_id}"
         else:
-            logger.warning(f" Unregistered worker {worker_id} tried to send an update.")
+            logger.warning(
+                f" Unregistered worker {worker_id} tried to send an update.")
             return f"Please register before sending an update."
 
     def agg_model(self):
@@ -136,7 +140,7 @@ class FedAvgServer(object):
 
         def agg_params(key, state_dicts, update_sizes):
             agg_val = state_dicts[0][key] * update_sizes[0]
-            for sd, sz  in zip(state_dicts[1:], update_sizes[1:]):
+            for sd, sz in zip(state_dicts[1:], update_sizes[1:]):
                 agg_val = agg_val + sd[key] * sz
             agg_val = agg_val / sum(update_sizes)
             return torch.tensor(agg_val.cpu().clone().numpy())
@@ -148,13 +152,15 @@ class FedAvgServer(object):
         # (timestamp update, update-size, model)
         for wi in self.worker_updates:
             if self.worker_updates[wi][0] > self.last_global_model_update_timestamp:
-                state_dicts_to_update_with.append(self.worker_updates[wi][2].state_dict())
+                state_dicts_to_update_with.append(
+                    self.worker_updates[wi][2].state_dict())
                 update_sizes.append(self.worker_updates[wi][1])
 
         # now update the global model
         global_model_dict = OrderedDict()
         for key in state_dicts_to_update_with[0].keys():
-            global_model_dict[key] = agg_params(key, state_dicts_to_update_with, update_sizes)
+            global_model_dict[key] = agg_params(
+                key, state_dicts_to_update_with, update_sizes)
 
         self.global_model_trainer.load_model_from_state_dict(global_model_dict)
 

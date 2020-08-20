@@ -72,6 +72,7 @@ class DCFServer(object):
 
 
     """
+
     def __init__(
         self,
         register_worker_callback,
@@ -96,6 +97,7 @@ class DCFServer(object):
 
         self.worker_list = []
         self.last_worker = -1
+        self.ssl_enabled = True  #  FIXME pass that as a param once it works
 
     def register_worker(self):
         """
@@ -112,15 +114,18 @@ class DCFServer(object):
             self.worker_authenticator.authenticate_worker(worker_data[PUBLIC_KEY_STR],
                                                           worker_data[SIGNED_PHRASE])
         if auth_success:
-            logger.info(f"Successfully registered worker with public key: {worker_data[PUBLIC_KEY_STR]}")
+            logger.info(
+                f"Successfully registered worker with public key: {worker_data[PUBLIC_KEY_STR]}")
             if auth_type == NO_AUTHENTICATION:
-                worker_id = hashlib.sha224(str(time.time()).encode('utf-8')).hexdigest() + '_unauthenticated'
+                worker_id = hashlib.sha224(str(time.time()).encode(
+                    'utf-8')).hexdigest() + '_unauthenticated'
             else:
                 worker_id = worker_data[PUBLIC_KEY_STR]
             if worker_id not in self.worker_list:
                 self.worker_list.append(worker_id)
         else:
-            logger.info(f"Failed to register worker with public key: {worker_data[PUBLIC_KEY_STR]}")
+            logger.info(
+                f"Failed to register worker with public key: {worker_data[PUBLIC_KEY_STR]}")
             worker_id = INVALID_WORKER
 
         self.register_worker_callback(worker_id)
@@ -147,7 +152,8 @@ class DCFServer(object):
                 )
                 return return_value
             else:
-                logger.warning(f"Unregistered worker {data_dict[WORKER_ID_KEY]} tried to send an update.")
+                logger.warning(
+                    f"Unregistered worker {data_dict[WORKER_ID_KEY]} tried to send an update.")
                 return UNREGISTERED_WORKER
         except Exception as e:
             logger.warning(e)
@@ -218,26 +224,32 @@ class DCFServer(object):
             object.
         """
         application = Bottle()
-        application.route(f"/{REGISTER_WORKER_ROUTE}", method='POST', callback=self.register_worker)
-        application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}", method='POST', callback=self.return_global_model)
-        application.route(f"/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}", method='POST', callback=self.query_global_model_status)
-        application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}", method='POST', callback=self.receive_worker_update)
+        application.route(f"/{REGISTER_WORKER_ROUTE}",
+                          method='POST', callback=self.register_worker)
+        application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}",
+                          method='POST', callback=self.return_global_model)
+        application.route(f"/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
+                          method='POST', callback=self.query_global_model_status)
+        application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}",
+                          method='POST', callback=self.receive_worker_update)
         application.add_hook('after_request', self.enable_cors)
 
         if server_adapter is not None and isinstance(server_adapter, ServerAdapter):
             self.server_host_ip = server_adapter.host
             self.server_port = server_adapter.port
             run(application, server=server_adapter, debug=self.debug, quite=True)
+        elif self.ssl_enabled:
+            run(application,
+                host=self.server_host_ip,
+                port=self.server_port,
+                server='gunicorn',
+                keyfile='localhost.key',  # FIXME this should not be hardcoded
+                certfile='localhost.crt',  #  FIXME this should not be hardcoded
+                debug=self.debug,
+                quiet=True)
         else:
-            run(application, 
-            host=self.server_host_ip, 
-            port=self.server_port, 
-            server='gunicorn', 
-            keyfile='./localhost.key',
-            certfile='./localhost.crt',
-            debug=self.debug, 
-            quiet=True)
-
+            run(application, host=self.server_host_ip,
+                port=self.server_port, debug=self.debug, quiet=True)
 
 
 class WorkerAuthenticator(object):
@@ -253,6 +265,7 @@ class WorkerAuthenticator(object):
         worker_key_pair_tool tool. All workers are accepted if no workers
         are provided.
     """
+
     def __init__(self, key_list_file):
         if key_list_file is None:
             logger.warning(f"No key list file provided - "
@@ -266,7 +279,8 @@ class WorkerAuthenticator(object):
 
         # dict for efficient fetching of the public key
         self.authenticate = True
-        self.keys = {key: VerifyKey(key.encode(), encoder=HexEncoder) for key in keys}
+        self.keys = {key: VerifyKey(
+            key.encode(), encoder=HexEncoder) for key in keys}
 
     def authenticate_worker(self, public_key_str, signed_message):
         """
@@ -291,15 +305,19 @@ class WorkerAuthenticator(object):
         """
         if not self.authenticate:
             logger.warning("Accepting worker as valid without authentication.")
-            logger.warning("Server was likely started without a list of valid public keys from workers.")
+            logger.warning(
+                "Server was likely started without a list of valid public keys from workers.")
             return True, NO_AUTHENTICATION
         try:
             if public_key_str not in self.keys:
                 return False, AUTHENTICATED
-            self.keys[public_key_str].verify(signed_message.encode(), encoder=HexEncoder)
+            self.keys[public_key_str].verify(
+                signed_message.encode(), encoder=HexEncoder)
         except BadSignatureError:
-            logger.warning(f"Failed to authenticate worker with public key: {public_key_str}.")
+            logger.warning(
+                f"Failed to authenticate worker with public key: {public_key_str}.")
             return False, AUTHENTICATED
         else:
-            logger.info(f"Successfully authenticated worker with public key: {public_key_str}.")
+            logger.info(
+                f"Successfully authenticated worker with public key: {public_key_str}.")
             return True, AUTHENTICATED
