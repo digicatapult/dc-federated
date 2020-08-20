@@ -5,6 +5,7 @@ machine learning logic.
 """
 import pickle
 import time
+from datetime import datetime
 from nacl.signing import SigningKey, VerifyKey
 from nacl.encoding import HexEncoder
 
@@ -31,8 +32,16 @@ class DCFWorker(object):
         server_port: int
             The port at which the serer should listen to
 
-        global_model_satus_changed_callback: function
-            The callback to run if server status has changed.
+        global_model_status_changed_callback: dict -> ()
+            The callback to run if server status has changed. The function
+            is expected to take a dictionary with two entries:
+            GLOBAL_MODEL: serialized version of the global model.
+            GLOBAL_MODEL_VERSION: str giving the version of the current
+            global model.
+
+        get_last_global_model_version: () -> str
+            This function is expected to return the version of the last global
+            model that the worker received.
 
         private_key_file: str
             Name of the private key to use to authenticate the worker to the server.
@@ -48,16 +57,19 @@ class DCFWorker(object):
             server_host_ip,
             server_port,
             global_model_status_changed_callback,
+            get_last_global_model_version,
             private_key_file,
             polling_wait_period=1):
         self.server_host_ip = server_host_ip
         self.server_port = server_port
         self.global_model_status_changed_callback = global_model_status_changed_callback
+        self.get_last_global_model_version = get_last_global_model_version
         self.private_key_file = private_key_file
         self.polling_wait_period = polling_wait_period
 
         self.server_loc = f"http://{self.server_host_ip}:{self.server_port}"
-        self.current_global_model_status = None
+        self.last_global_model_version = -1
+
         self.worker_id = None
 
     def get_signed_phrase(self):
@@ -119,7 +131,6 @@ class DCFWorker(object):
                     "Server returned {INVALID_WORKER} which means it was unable to authenticate this worker. "
                     "Please verify that the private key you started this worker with corresponds to the "
                     "public key shared with the server.")
-        self.current_global_model_status = self.get_global_model_status()
         return self.worker_id
 
     def get_global_model(self):
@@ -132,21 +143,13 @@ class DCFWorker(object):
         binary string:
             The current global model returned by the server.
         """
-        return requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
-                             json={WORKER_ID_KEY: self.worker_id}).content
+        data = {
+            WORKER_ID_KEY: self.worker_id,
+            LAST_WORKER_MODEL_VERSION: self.get_last_global_model_version()
+        }
 
-    def get_global_model_status(self):
-        """
-        Returns the status of the current global model from the server.
-
-        Returns
-        -------
-
-        str:
-            The status of the current global model.
-        """
-        return requests.post(f"{self.server_loc}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
-                             json={WORKER_ID_KEY: self.worker_id}).content.decode('UTF-8')
+        return pickle.loads(requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
+                             json=data).content)
 
     def send_model_update(self, model_update):
         """
@@ -175,11 +178,8 @@ class DCFWorker(object):
         """
         try:
             while True:
-                time.sleep(self.polling_wait_period)
-                status = self.get_global_model_status()
-                if self.current_global_model_status != status:
-                    self.current_global_model_status = status
-                    self.global_model_status_changed_callback()
+                model_dict = self.get_global_model()
+                self.global_model_status_changed_callback(model_dict)
         except Exception as e:
             logger.warning(str(e))
             logger.info(f"Exiting DCFworker {self.worker_id} run loop.")

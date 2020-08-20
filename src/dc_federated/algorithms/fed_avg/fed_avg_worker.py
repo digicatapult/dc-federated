@@ -53,7 +53,6 @@ class FedAvgWorker(object):
             private_key_file=private_key_file
         )
 
-        self.last_update_time = datetime(2017, 1, 1)
         self.global_model = None
         self.worker_id = None
 
@@ -70,7 +69,7 @@ class FedAvgWorker(object):
             The datetime of the last update of the model.
         """
         return datetime.strptime(
-            self.worker.current_global_model_status,
+            self.worker.last_global_model_version,
             "%Y-%m-%d %H:%M:%S")
 
     def serialize_model(self):

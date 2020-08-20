@@ -63,7 +63,7 @@ class ExampleLocalModel(object):
             The datetime of the last update of the model.
         """
         return datetime.strptime(
-            self.worker.current_global_model_status,
+            self.worker.last_global_model_version,
             "%Y-%m-%d %H:%M:%S")
 
     def serialize_model(self):
