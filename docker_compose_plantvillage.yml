@@ -1,4 +1,5 @@
 version: "3.4"
+#Requires Docker Engine version 17.09.0+
 services:
     plantvillage_backend:
         build: 

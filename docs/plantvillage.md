@@ -72,3 +72,5 @@ Download the dataset in the root of the directory
 Run `docker-compose -f docker_compose_plantvillage.yml up`
 
 This will build the relevant images and bring up the example.  If you wish to modify the parameters of the test, please do so in the `PlantVillage_docker_cfg.yml` file.
+
+We use a `batch_size` of 1 as this means the docker containers consume the minimal amount of memory.  On systems with a larger amount of memory you can adjust this figure to speed up training.
