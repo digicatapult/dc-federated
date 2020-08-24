@@ -181,3 +181,6 @@ MANIFEST
 # Local certificates
 localhost.key
 localhost.crt
+
+# Archives
+master.zip
