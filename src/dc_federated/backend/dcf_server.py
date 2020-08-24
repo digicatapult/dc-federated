@@ -71,7 +71,16 @@ class DCFServer(object):
             The port at which the serer should listen to. If None, then it
             uses the port 8080.
 
+        ssl_enabled: bool (default False)
+            Enable SSL/TLS for server/workers communications.
 
+        ssl_keyfile: str
+            Must be a valid path to the key file.
+            This is mandatory if ssl_enabled, ignored otherwise.
+
+        ssl_certfile: str
+            Must be a valid path to the certificate.
+            This is mandatory if ssl_enabled, ignored otherwise.
     """
 
     def __init__(
