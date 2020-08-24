@@ -140,7 +140,10 @@ class DCFServer(object):
             Otherwise any exception that was raised.
         """
         try:
-            data_dict = pickle.load(request.files[ID_AND_MODEL_KEY].file)
+            compressed_model = request.files[ID_AND_MODEL_KEY].file.read()            
+            uncompressed = zlib.decompress(compressed_model)
+            data_dict = pickle.load(uncompressed)
+            
             if data_dict[WORKER_ID_KEY] in self.worker_list:
                 return_value = self.receive_worker_update_callback(
                     data_dict[WORKER_ID_KEY],

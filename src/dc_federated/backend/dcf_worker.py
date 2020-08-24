@@ -165,7 +165,7 @@ class DCFWorker(object):
         }
         return requests.post(
             f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}",
-            files={ID_AND_MODEL_KEY: pickle.dumps(data_dict)}
+            files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps(data_dict))}
         ).content
 
     def run(self):
