@@ -99,7 +99,7 @@ class DCFServer(object):
 
         self.register_worker_callback = register_worker_callback
         self.return_global_model_callback = return_global_model_callback
-        self.is_model_version_most_recent = is_global_model_most_recent
+        self.is_global_model_most_recent = is_global_model_most_recent
         self.receive_worker_update_callback = receive_worker_update_callback
 
         self.worker_authenticator = WorkerAuthenticator(key_list_file)
@@ -179,10 +179,16 @@ class DCFServer(object):
        last_worker_model_version: float
             The version of the last model that the worker was using.
         """
-        while self.is_model_version_most_recent(last_worker_model_version):
+        while self.is_global_model_most_recent(last_worker_model_version):
             gevent.sleep(self.model_check_interval)
 
-        body.put(pickle.dumps(self.return_global_model_callback()))
+        model_update = self.return_global_model_callback()
+        if (not isinstance(model_update, dict) or
+                GLOBAL_MODEL not in model_update or
+                GLOBAL_MODEL_VERSION not in model_update):
+            logger.error(f"Expected dictionary with {GLOBAL_MODEL} and {GLOBAL_MODEL_VERSION} keys - "
+                         "return_global_model_callback() implementation is incorrect")
+        body.put(pickle.dumps(model_update))
         body.put(StopIteration)
 
     def return_global_model(self):
