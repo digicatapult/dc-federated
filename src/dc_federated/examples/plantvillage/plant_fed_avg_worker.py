@@ -81,7 +81,10 @@ def run():
     print(f"\n\tStarting Federated Average Worker: {args.worker_id}")
     print("\n***********************************************\n")
 
-    fed_avg_worker = FedAvgWorker(local_model_trainer, args.server_host_ip, args.server_port)
+    fed_avg_worker = FedAvgWorker(fed_model_trainer=local_model_trainer,
+                                  private_key_file=None,
+                                  server_host_ip=args.server_host_ip,
+                                  server_port=args.server_port)
     fed_avg_worker.start()
 
 

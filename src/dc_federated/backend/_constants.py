@@ -10,3 +10,12 @@ RECEIVE_WORKER_UPDATE_ROUTE = 'receive_worker_update'
 WORKER_ID_KEY = 'worker_id'
 MODEL_UPDATE_KEY = 'model_update'
 ID_AND_MODEL_KEY = 'id_and_model'
+
+WORKER_AUTHENTICATION_PHRASE = b'Please authenticate me'
+NO_AUTHENTICATION = 'No Authentication'
+AUTHENTICATED = 'Authenticated'
+INVALID_WORKER = "Invalid Worker"
+UNREGISTERED_WORKER = 'Unregistered Worker'
+
+PUBLIC_KEY_STR = 'public_key_str'
+SIGNED_PHRASE = 'signed_phrase'

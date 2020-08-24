@@ -15,7 +15,7 @@ from dc_federated.examples.example_dcf_model import ExampleGlobalModel, ExampleL
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('dc_federated.tests.test_backend_model_integration')
+logger = logging.getLogger(__file__)
 logger.setLevel(level=logging.INFO)
 
 
@@ -47,15 +47,17 @@ def test_example():
 
     # check that the global and local model parameters are equal
     logger.info("Checking tensors are equal")
+    egm_worker_update_name = f"egm_worker_update_{elm.worker.worker_id}.torch"
+    elm_worker_update_name = f"elm_worker_update_{elm.worker.worker_id}.torch"
 
     # load the saved models
     with open("egm_global_model.torch", 'rb') as f:
         egm_global_model = torch.load(f)
-    with open("egm_worker_update_0.torch", 'rb') as f:
+    with open(egm_worker_update_name, 'rb') as f:
         egm_local_model = torch.load(f)
     with open("elm_global_model.torch", 'rb') as f:
         elm_global_model = torch.load(f)
-    with open("elm_worker_update_0.torch", 'rb') as f:
+    with open(elm_worker_update_name, 'rb') as f:
         elm_local_model = torch.load(f)
 
     # check for equality and non-equality
@@ -78,9 +80,9 @@ def test_example():
         "******* Ignore WARNINGs related to worker shutting down *******")
     logger.info("Cleaning up.")
     os.remove('egm_global_model.torch')
-    os.remove('egm_worker_update_0.torch')
+    os.remove(egm_worker_update_name)
     os.remove('elm_global_model.torch')
-    os.remove('elm_worker_update_0.torch')
+    os.remove(elm_worker_update_name)
 
 
 if __name__ == '__main__':
