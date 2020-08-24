@@ -161,6 +161,12 @@ Note that for the server, the test set is based on the combined data set of all 
 
 You can stop by pressing `Ctrl+C` on the server terminal.
 
+### Docker
+#### Running the example using docker
+
+Run `docker-compose -f docker_compose_mnist.yml up`
+
+This will build the relevant images and bring up the example.  This example has been tested and works using only 8GB of host memory.
 ### Worker Authentication
 
 We now show how worker authentication may be incoporated into mnist example, so that only valid workers are allowed to join. To get a general introduction to the `dc_federated` authentication scheme please see `docs/worker_authentication.md` and then come back here.
