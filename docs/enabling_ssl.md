@@ -38,13 +38,20 @@ python mnist_fed_avg_server.py \
 
 ## 3. Run the Worker(s)
 
+The easiest way to work with self-signed certificate during development is to
+add the environment variable `REQUESTS_CA_BUNDLE` set to the root CA.
+
 ```sh
-  python mnist_fed_avg_worker.py
+  REQUESTS_CA_BUNDLE=localhost.crt python mnist_fed_avg_worker.py
     --server-protocol https
     --server-host-ip localhost
     --server-port 8080
     -digit-class 0
 ```
 
+# Production setup
+
 This can be achieved in production in a similar way by replacing the server-host-ip
 by the actual server hostname or ip and replacing the certificated and key files by real ones.
+The REQUESTS_CA_BUNDLE should not be set and the program instead rely on the system root certificates
+to verify the validity of incoming requests.

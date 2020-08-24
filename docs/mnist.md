@@ -41,6 +41,19 @@ now start the server:
 (venv_dc_federated)> python mnist_fed_avg_server.py
 ```
 
+By default the server will use http for transport.
+Alternatively the server can be use https:
+
+```sh
+(venv_dc_federated)> python mnist_fed_avg_server.py \
+  --server-host-ip localhost \
+  --ssl-certfile localhost.crt \
+  --ssl-keyfile localhoat.key \
+  --ssl-enabled
+```
+
+Please refer to [the ssl document for more details](./enabling_ssl.md)
+
 You should see an output of the following form:
 
 ```bash
@@ -63,8 +76,23 @@ But with different `server-host-ip` but the same `server-port`. You may see addi
 Now move to a terminal for a worker and `cd` into the location where the library is installed and, then to the mnist folder (same as above), activate the virtual enironment and run:
 
 ```bash
-(venv_dc_federated)> python mnist_fed_avg_worker.py --server-host-ip 192.124.1.177  --server-port 8080 --digit-class 0
+(venv_dc_federated)> python mnist_fed_avg_worker.py \
+	--server-host-ip 192.124.1.177 \
+	--server-port 8080 \
+	--digit-class 0
 ```
+
+Or, if the server use https:
+
+```bash
+(venv_dc_federated)> REQUESTS_CA_BUNDLE=localhost.crt python mnist_fed_avg_worker.py
+    --server-protocol https
+    --server-host-ip localhost
+    --server-port 8080
+    -digit-class 0
+```
+
+Please refer to [the ssl document for more details](./enabling_ssl.md)
 
 The `--digit-class 0` argument means that this worker only only train on digits `0-3`. Using arguments `1` and `2` correspond to training only on digits `4-6` and `7-9` respectively. The `192.124.1.177` and `8080` should be replaced by the values obtained when the server was run.
 
