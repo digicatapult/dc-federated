@@ -7,6 +7,7 @@ import io
 from threading import Thread
 import pickle
 import logging
+import zlib
 
 import requests
 import time
@@ -96,7 +97,7 @@ def test_server_functionality():
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
         json={WORKER_ID_KEY: worker_ids[0]}
     ).content
-    assert pickle.load(io.BytesIO(model_binary)) == "Pickle dump of a string"
+    assert pickle.load(io.BytesIO(zlib.decompress(model_binary))) == "Pickle dump of a string"
 
     # test sending the model update
     id_and_model_dict_good = {
