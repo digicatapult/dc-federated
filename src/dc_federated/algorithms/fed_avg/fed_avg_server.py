@@ -39,7 +39,7 @@ class FedAvgServer(object):
         if file not given.
     """
 
-    def __init__(self, global_model_trainer, key_list_file, update_lim=10, ):
+    def __init__(self, global_model_trainer, key_list_file, update_lim=10, server_host_ip=None, ssl_enabled=False, ssl_keyfile=None, ssl_certfile=None):
         logger.info(
             f"Initializing FedAvg server for model class {global_model_trainer.get_model().__class__.__name__}")
 
@@ -54,7 +54,10 @@ class FedAvgServer(object):
             self.return_global_model_status,
             self.receive_worker_update,
             key_list_file=key_list_file,
-            server_host_ip='localhost'  # FIXME remove that once https testing sorted
+            server_host_ip=server_host_ip,
+            ssl_enabled=ssl_enabled,
+            ssl_keyfile=ssl_keyfile,
+            ssl_certfile=ssl_certfile
         )
 
         self.unique_updates_since_last_agg = 0

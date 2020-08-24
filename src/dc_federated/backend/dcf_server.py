@@ -6,7 +6,7 @@ machine learning logic.
 import pickle
 import hashlib
 import time
-
+import os.path
 
 import bottle
 from bottle import request, Bottle, run
@@ -82,6 +82,9 @@ class DCFServer(object):
         key_list_file,
         server_host_ip=None,
         server_port=8080,
+        ssl_enabled=False,
+        ssl_keyfile=None,
+        ssl_certfile=None,
             debug=False):
 
         self.server_host_ip = get_host_ip() if server_host_ip is None else server_host_ip
@@ -97,7 +100,19 @@ class DCFServer(object):
 
         self.worker_list = []
         self.last_worker = -1
-        self.ssl_enabled = True  #  FIXME pass that as a param once it works
+        self.ssl_enabled = ssl_enabled
+
+        if ssl_enabled:
+            if ssl_certfile is None or ssl_keyfile is None:
+                raise RuntimeError(
+                    "When ssl is enabled, both a certfile and keyfile must be provided")
+            if not os.path.isfile(ssl_certfile):
+                raise IOError(
+                    "The provided SSL certificate file doesn't exist")
+            if not os.path.isfile(ssl_keyfile):
+                raise IOError("The provided SSL key file doesn't exist")
+            self.ssl_keyfile = ssl_keyfile
+            self.ssl_certfile = ssl_certfile
 
     def register_worker(self):
         """
@@ -243,8 +258,8 @@ class DCFServer(object):
                 host=self.server_host_ip,
                 port=self.server_port,
                 server='gunicorn',
-                keyfile='localhost.key',  # FIXME this should not be hardcoded
-                certfile='localhost.crt',  #  FIXME this should not be hardcoded
+                keyfile=self.ssl_keyfile,
+                certfile=self.ssl_certfile,
                 debug=self.debug,
                 quiet=True)
         else:
