@@ -11,6 +11,7 @@ from nacl.encoding import HexEncoder
 
 import requests
 from dc_federated.backend._constants import *
+from dc_federated.backend.backend_utils import is_valid_model_dict
 
 import logging
 
@@ -32,14 +33,14 @@ class DCFWorker(object):
         server_port: int
             The port at which the serer should listen to
 
-        global_model_status_changed_callback: dict -> ()
+        global_model_version_changed_callback: dict -> ()
             The callback to run if server status has changed. The function
             is expected to take a dictionary with two entries:
             GLOBAL_MODEL: serialized version of the global model.
             GLOBAL_MODEL_VERSION: str giving the version of the current
             global model.
 
-        get_last_global_model_version: () -> str
+        worker_version_of_global_model: () -> object
             This function is expected to return the version of the last global
             model that the worker received.
 
@@ -56,20 +57,18 @@ class DCFWorker(object):
             self,
             server_host_ip,
             server_port,
-            global_model_status_changed_callback,
-            get_last_global_model_version,
+            global_model_version_changed_callback,
+            worker_version_of_global_model,
             private_key_file,
             polling_wait_period=1):
         self.server_host_ip = server_host_ip
         self.server_port = server_port
-        self.global_model_status_changed_callback = global_model_status_changed_callback
-        self.get_last_global_model_version = get_last_global_model_version
+        self.global_model_status_changed_callback = global_model_version_changed_callback
+        self.worker_version_global_model = worker_version_of_global_model
         self.private_key_file = private_key_file
         self.polling_wait_period = polling_wait_period
 
         self.server_loc = f"http://{self.server_host_ip}:{self.server_port}"
-        self.last_global_model_version = -1
-
         self.worker_id = None
 
     def get_signed_phrase(self):
@@ -145,11 +144,10 @@ class DCFWorker(object):
         """
         data = {
             WORKER_ID_KEY: self.worker_id,
-            LAST_WORKER_MODEL_VERSION: self.get_last_global_model_version()
+            LAST_WORKER_MODEL_VERSION: self.worker_version_global_model()
         }
-
         return pickle.loads(requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
-                             json=data).content)
+                         json=data).content)
 
     def send_model_update(self, model_update):
         """
@@ -179,7 +177,8 @@ class DCFWorker(object):
         try:
             while True:
                 model_dict = self.get_global_model()
-                self.global_model_status_changed_callback(model_dict)
+                if is_valid_model_dict(model_dict):
+                    self.global_model_status_changed_callback(model_dict)
         except Exception as e:
             logger.warning(str(e))
             logger.info(f"Exiting DCFworker {self.worker_id} run loop.")

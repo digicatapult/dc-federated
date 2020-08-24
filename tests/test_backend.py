@@ -135,8 +135,8 @@ def test_server_functionality():
     dcf_worker = DCFWorker(
         server_host_ip=dcf_server.server_host_ip,
         server_port=dcf_server.server_port,
-        global_model_status_changed_callback=test_glob_mod_chng_cb,
-        get_last_global_model_version=test_get_last_glob_model_ver,
+        global_model_version_changed_callback=test_glob_mod_chng_cb,
+        worker_version_of_global_model=test_get_last_glob_model_ver,
         private_key_file=None)
 
     # test worker registration

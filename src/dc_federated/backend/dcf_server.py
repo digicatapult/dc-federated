@@ -11,17 +11,18 @@ import pickle
 import hashlib
 import time
 
-
-
 import bottle
 from bottle import request, Bottle, run
 from dc_federated.backend._constants import *
+from dc_federated.backend.backend_utils import *
 from dc_federated.utils import get_host_ip
 
 from nacl.signing import VerifyKey
 from nacl.encoding import HexEncoder
 from nacl.exceptions import BadSignatureError
 from bottle import Bottle, run, request, ServerAdapter
+
+from dc_federated.backend.backend_utils import is_valid_model_dict
 
 import logging
 
@@ -183,9 +184,7 @@ class DCFServer(object):
             gevent.sleep(self.model_check_interval)
 
         model_update = self.return_global_model_callback()
-        if (not isinstance(model_update, dict) or
-                GLOBAL_MODEL not in model_update or
-                GLOBAL_MODEL_VERSION not in model_update):
+        if not is_valid_model_dict(model_update):
             logger.error(f"Expected dictionary with {GLOBAL_MODEL} and {GLOBAL_MODEL_VERSION} keys - "
                          "return_global_model_callback() implementation is incorrect")
         body.put(pickle.dumps(model_update))
@@ -274,7 +273,12 @@ class DCFServer(object):
             self.server_port = server_adapter.port
             run(application, server=server_adapter, debug=self.debug, quite=True)
         else:
-            run(application, host=self.server_host_ip, port=self.server_port, debug=self.debug, quiet=True)
+            run(application,
+                host=self.server_host_ip,
+                port=self.server_port,
+                server='gevent',
+                debug=self.debug,
+                quiet=True)
 
 
 class WorkerAuthenticator(object):

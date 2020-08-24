@@ -11,6 +11,7 @@ import pickle
 import torch
 
 from dc_federated.utils import get_host_ip
+from dc_federated.backend import GLOBAL_MODEL, GLOBAL_MODEL_VERSION
 from dc_federated.backend import DCFWorker
 
 
@@ -46,10 +47,13 @@ class FedAvgWorker(object):
         server_host_ip = get_host_ip() if not server_host_ip else server_host_ip
         server_port = 8080 if not server_port else server_port
 
+        self.worker_version_of_global_model = 0
+
         self.worker = DCFWorker(
             server_host_ip=server_host_ip,
             server_port=server_port,
-            global_model_status_changed_callback=self.global_model_status_changed_callback,
+            global_model_version_changed_callback=self.global_model_version_changed_callback,
+            worker_version_of_global_model=lambda : self.worker_version_of_global_model,
             private_key_file=private_key_file
         )
 
@@ -57,20 +61,6 @@ class FedAvgWorker(object):
         self.worker_id = None
 
         self.initialize()
-
-    def get_model_update_time(self):
-        """
-        Queries the global model using the worker to get the last time
-        the model was updated.
-
-        Returns
-        -------
-        datetime:
-            The datetime of the last update of the model.
-        """
-        return datetime.strptime(
-            self.worker.last_global_model_version,
-            "%Y-%m-%d %H:%M:%S")
 
     def serialize_model(self):
         """
@@ -115,26 +105,33 @@ class FedAvgWorker(object):
             self.worker_id = self.worker.register_worker()
             logger.info(f"Registered with FedAvg Server with worker id {self.worker_id}")
 
-        self.last_update_time = self.get_model_update_time()
         self.train_and_test_model()
         self.send_model_update()
 
-    def global_model_status_changed_callback(self):
+    def global_model_version_changed_callback(self, model_dict):
         """
         Callback for when the global model status has changed. This function
         essentially ensures that the global model update time is more recent
         than the time this worker has, and if so updates the local model and
         carries out a local train and test iteration.
+
+        Paramters
+        ---------
+        model_dict: dict
+            A dictionary with the keys
+            GLOBAL_MODEL: serialized global model.
+            GLOBAL_MODEL_VERSION: version of the global model
         """
-        if self.get_model_update_time() <= self.last_update_time:
+        if not isinstance(model_dict, dict) or \
+                GLOBAL_MODEL not in model_dict or \
+                GLOBAL_MODEL_VERSION not in model_dict:
+            logger.error("Invalid model received from the server.")
             return
-        else:
-            model_binary = self.worker.get_global_model()
-            if len(model_binary) > 0:
-                new_model = torch.load(io.BytesIO(model_binary))
-                self.fed_model.load_model_from_state_dict(new_model.state_dict())
-            self.train_and_test_model()
-            self.send_model_update()
+        self.worker_version_of_global_model = model_dict[GLOBAL_MODEL_VERSION]
+        new_model = torch.load(io.BytesIO(model_dict[GLOBAL_MODEL]))
+        self.fed_model.load_model_from_state_dict(new_model.state_dict())
+        self.train_and_test_model()
+        self.send_model_update()
 
     def start(self):
         """

@@ -10,7 +10,10 @@ import logging
 from collections import OrderedDict
 
 import torch
-from dc_federated.backend import DCFServer
+from dc_federated.backend import DCFServer, \
+    GLOBAL_MODEL_VERSION, GLOBAL_MODEL
+
+from dc_federated.backend._constants import *
 from dc_federated.algorithms.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
 
@@ -47,15 +50,16 @@ class FedAvgServer(object):
 
         self.last_global_model_update_timestamp = datetime(1980, 10, 10)
         self.server = DCFServer(
-            self.register_worker,
-            self.return_global_model,
-            self.return_global_model_status,
-            self.receive_worker_update,
-            key_list_file=key_list_file
-        )
+            register_worker_callback=self.register_worker,
+            return_global_model_callback=self.return_global_model,
+            is_global_model_most_recent=self.is_global_model_most_recent,
+            receive_worker_update_callback=self.receive_worker_update,
+            key_list_file=key_list_file,
+            model_check_interval=1)
 
         self.unique_updates_since_last_agg = 0
         self.iteration = 0
+        self.model_version = 0
 
     def register_worker(self, worker_id):
         """
@@ -72,21 +76,35 @@ class FedAvgServer(object):
 
     def return_global_model(self):
         """
-        Serializes the current global torch model and sends it back to the worker.
+        Serializes the current global torch model, puts it in the proper
+        dictionary, and sends it back.
 
         Returns
         ----------
 
-        byte-stream:
-            The current global torch model.
+        dict:
+            A dictionary with keys:
+            GLOBAL_MODEL: serialized global model.
+            GLOBAL_MODEL_VERSION: version of the global model
         """
         model_data = io.BytesIO()
         torch.save(self.global_model_trainer.get_model(), model_data)
-        return model_data.getvalue()
 
-    def return_global_model_status(self):
+        return {
+            GLOBAL_MODEL: model_data.getvalue(),
+            GLOBAL_MODEL_VERSION: self.model_version
+        }
+
+    def is_global_model_most_recent(self, model_version):
         """
         Returns a default model update time of 2018/10/10.
+
+        Parameters
+        ----------
+
+        model_version: int
+            The version of most recent global model that the
+            worker has.
 
         Returns
         ----------
@@ -94,7 +112,7 @@ class FedAvgServer(object):
         str:
             String format of the last model update time.
         """
-        return str(self.last_global_model_update_timestamp.isoformat(' ', 'seconds'))
+        return self.model_version == model_version
 
     def receive_worker_update(self, worker_id, model_update):
         """
@@ -161,6 +179,7 @@ class FedAvgServer(object):
         self.last_global_model_update_timestamp = datetime.now()
         self.unique_updates_since_last_agg = 0
         self.iteration += 1
+        self.model_version += 1
 
         return True
 
