@@ -119,6 +119,7 @@ class DCFServer(object):
         self.debug = debug
 
         self.worker_list = []
+        self.active_workers = set()
         self.last_worker = -1
         self.ssl_enabled = ssl_enabled
 
@@ -145,25 +146,37 @@ class DCFServer(object):
             The id of the new client.
         """
         worker_data = request.json
+
         auth_success, auth_type = \
             self.worker_authenticator.authenticate_worker(worker_data[PUBLIC_KEY_STR],
                                                           worker_data[SIGNED_PHRASE])
-        if auth_success:
-            logger.info(
-                f"Successfully registered worker with public key: {worker_data[PUBLIC_KEY_STR]}")
-            if auth_type == NO_AUTHENTICATION:
-                worker_id = hashlib.sha224(str(time.time()).encode(
-                    'utf-8')).hexdigest() + '_unauthenticated'
-            else:
-                worker_id = worker_data[PUBLIC_KEY_STR]
-            if worker_id not in self.worker_list:
-                self.worker_list.append(worker_id)
-        else:
+        if not auth_success:
             logger.info(
                 f"Failed to register worker with public key: {worker_data[PUBLIC_KEY_STR]}")
-            worker_id = INVALID_WORKER
+            return INVALID_WORKER
 
+        logger.info(
+            f"Successfully authenticated worker with public key: {worker_data[PUBLIC_KEY_STR]}")
+
+        if auth_type == NO_AUTHENTICATION:
+            worker_id = hashlib.sha224(str(time.time()).encode(
+                'utf-8')).hexdigest() + '_unauthenticated'
+            logger.info(
+                f"Successfully registered worker: {worker_id}")
+
+            if worker_id not in self.worker_list:
+                self.worker_list.append(worker_id)
+
+        else:
+            worker_id = worker_data[PUBLIC_KEY_STR]
+            if worker_id not in self.worker_list:
+                logger.info(
+                    f"Unauthorized worker {worker_id} tried to register")
+                return INVALID_WORKER
+
+        self.active_workers.add(worker_id)
         self.register_worker_callback(worker_id)
+
         return worker_id
 
     def admin_list_workers(self):
@@ -177,48 +190,121 @@ class DCFServer(object):
             The id of the workers
         """
         response.content_type = 'application/json'
-        return json.dumps(self.worker_list)
+        return json.dumps([{"worker_id": worker_id, "active": worker_id in self.active_workers} for worker_id in self.worker_list])
 
-    def admin_register_worker(self):
+    def admin_add_worker(self):
         """
-        Allow admin to register a worker given a public key
+        Add a new worker to the list or allowed workers
+
+        JSON Body:
+        public_key_str: string The public key associated with the worker
+
+        Returns
+        -------
+
+        The new worker id
         """
+        response.content_type = 'application/json'
+
         worker_data = request.json
 
-        logger.info("Admin is registering a new worker...")
+        logger.info("Admin is adding a new worker...")
 
         if not PUBLIC_KEY_STR in worker_data:
             logger.error(f"Public key was not not passed in {worker_data}")
-            return -1
+            return json.dumps({
+                "error": "Public key was not not passed in input"
+            })
 
         worker_id = worker_data[PUBLIC_KEY_STR]
         logger.info(f"Worker id is {worker_id}")
 
         if not isinstance(worker_id, str) or not len(worker_id):
             logger.error(f"Public key should be a string: {worker_id}")
-            return -1
+            return json.dumps({
+                "error": "Public key must be a string"
+            })
 
-        if worker_id not in self.worker_list:
-            self.worker_list.append(worker_id)
+        if worker_id in self.worker_list:
+            logger.warn(f"Worker {worker_id} already exists")
+            return json.dumps({
+                "error": f"Worker {worker_id} already exists"
+            })
+
+        self.worker_list.append(worker_id)
+        logger.info(f"Worker {worker_id} was added")
+
+        if "active" in worker_data and worker_data["active"] == True:
+            self.active_workers.add(worker_id)
             self.register_worker_callback(worker_id)
             logger.info(f"Worker {worker_id} was registered")
-        else:
-            logger.warn(f"Worker {worker_id} is already registered")
 
-        return worker_id
+        return json.dumps({
+            "worker_id": worker_id,
+            "active": worker_id in self.active_workers
+        })
 
     def admin_delete_worker(self, worker_id):
         """
-        Allow admin to unregister a worker given a public key
+        Allow admin to delete a worker given its id
         """
-        logger.info(f"Admin is unregistering worker {worker_id}...")
+        logger.info(f"Admin is removing worker {worker_id}...")
 
         if worker_id in self.worker_list:
             self.worker_list.remove(worker_id)
+            # TODO callback for worker removed?
+            logger.info(f"Worker {worker_id} was removed")
+
+        if worker_id in self.active_workers:
+            self.active_workers.remove(worker_id)
             self.unregister_worker_callback(worker_id)
+            logger.info(f"Worker {worker_id} was unregistered (removal)")
+
+    def admin_set_worker_status(self, worker_id):
+        """
+        Allow admin to change status (active = True or False) of a given worker
+        """
+        worker_data = request.json
+
+        logger.info(f"Admin is setting the status of {worker_id}...")
+
+        if not "active" in worker_data:
+            logger.error(f"The status was not not passed in {worker_data}")
+            return json.dumps({
+                "error": f"Key 'active' is missing in payload"
+            })
+
+        active = worker_data["active"]
+        logger.info(f"New {worker_id} status is active: {active}")
+
+        if not isinstance(active, bool):
+            logger.error(f"Key 'active' should be a boolean: {active}")
+            return json.dumps({
+                "error": f"Key 'active' should be a boolean: {active}"
+            })
+
+        if worker_id not in self.worker_list:
+            logger.error(f"Unknown worker: {worker_id}")
+            return json.dumps({
+                "error": f"Unknown worker: {worker_id}"
+            })
+
+        prev_active = worker_id in self.active_workers
+        if active and not prev_active:
+            self.active_workers.add(worker_id)
+            logger.info(f"Worker {worker_id} was registered")
+            self.register_worker_callback(worker_id)
+        elif not active and prev_active:
+            self.active_workers.remove(worker_id)
             logger.info(f"Worker {worker_id} was unregistered")
+            self.unregister_worker_callback(worker_id)
         else:
-            logger.warn(f"Worker {worker_id} is not registered")
+            logger.warn(f"Nothing to change for {worker_id}")
+
+        return json.dumps({
+            "worker_id": worker_id,
+            "active": active
+        })
 
     def receive_worker_update(self):
         """
@@ -233,17 +319,34 @@ class DCFServer(object):
             Otherwise any exception that was raised.
         """
         try:
+            # FIXME replace pickle by JSON here
             data_dict = pickle.load(request.files[ID_AND_MODEL_KEY].file)
-            if data_dict[WORKER_ID_KEY] in self.worker_list:
-                return_value = self.receive_worker_update_callback(
-                    data_dict[WORKER_ID_KEY],
-                    data_dict[MODEL_UPDATE_KEY]
-                )
-                return return_value
-            else:
+
+            if not WORKER_ID_KEY in data_dict:
                 logger.warning(
-                    f"Unregistered worker {data_dict[WORKER_ID_KEY]} tried to send an update.")
+                    f"Key {WORKER_ID_KEY} is missing in payload.")
                 return UNREGISTERED_WORKER
+
+            if not MODEL_UPDATE_KEY in data_dict:
+                logger.warning(
+                    f"Key {MODEL_UPDATE_KEY} is missing in payload.")
+                return UNREGISTERED_WORKER
+
+            worker_id = data_dict[WORKER_ID_KEY]
+            model_update = data_dict[MODEL_UPDATE_KEY]
+
+            if not worker_id in self.worker_list:
+                logger.warning(
+                    f"Unknown worker {worker_id} tried to send an update.")
+                return UNREGISTERED_WORKER
+
+            if not worker_id in self.active_workers:
+                logger.warning(
+                    f"Unregistered worker {worker_id} tried to send an update.")
+                return UNREGISTERED_WORKER
+
+            return self.receive_worker_update_callback(worker_id, model_update)
+
         except Exception as e:
             logger.warning(e)
             return str(e)
@@ -262,10 +365,25 @@ class DCFServer(object):
         """
         try:
             query_request = request.json
-            if query_request[WORKER_ID_KEY] in self.worker_list:
-                return self.query_global_model_status_callback()
-            else:
+
+            if not WORKER_ID_KEY in query_request:
+                logger.warning(
+                    f"Key {WORKER_ID_KEY} is missing in query_request.")
                 return UNREGISTERED_WORKER
+
+            worker_id = query_request[WORKER_ID_KEY]
+
+            if not worker_id in self.worker_list:
+                logger.warning(
+                    f"Unknown worker {worker_id} tried to query model status.")
+                return UNREGISTERED_WORKER
+
+            if not worker_id in self.active_workers:
+                logger.warning(
+                    f"Unregistered worker {worker_id} tried to query model status.")
+                return UNREGISTERED_WORKER
+
+            return self.query_global_model_status_callback()
         except Exception as e:
             logger.warning(e)
             return str(e)
@@ -284,10 +402,26 @@ class DCFServer(object):
         """
         try:
             query_request = request.json
-            if query_request[WORKER_ID_KEY] in self.worker_list:
-                return zlib.compress(self.return_global_model_callback())
-            else:
+
+            if not WORKER_ID_KEY in query_request:
+                logger.warning(
+                    f"Key {WORKER_ID_KEY} is missing in query_request.")
                 return UNREGISTERED_WORKER
+
+            worker_id = query_request[WORKER_ID_KEY]
+
+            if not worker_id in self.worker_list:
+                logger.warning(
+                    f"Unknown worker {worker_id} tried to return global model.")
+                return UNREGISTERED_WORKER
+
+            if not worker_id in self.active_workers:
+                logger.warning(
+                    f"Unregistered worker {worker_id} tried to return global model.")
+                return UNREGISTERED_WORKER
+
+            return zlib.compress(self.return_global_model_callback())
+
         except Exception as e:
             logger.warning(e)
             return str(e)
@@ -346,9 +480,11 @@ class DCFServer(object):
         """
         admin_app = Bottle()
         admin_app.get("/workers", callback=self.admin_list_workers)
-        admin_app.post("/workers", callback=self.admin_register_worker)
+        admin_app.post("/workers", callback=self.admin_add_worker)
         admin_app.delete("/workers/<worker_id>",
                          callback=self.admin_delete_worker)
+        admin_app.put("/workers/<worker_id>",
+                      callback=self.admin_set_worker_status)
 
         if server_adapter is not None and isinstance(server_adapter, ServerAdapter):
             self.admin_server_host_ip = server_adapter.host
