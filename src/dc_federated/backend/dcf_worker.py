@@ -14,6 +14,7 @@ from dc_federated.backend._constants import *
 from dc_federated.backend.backend_utils import is_valid_model_dict
 
 import logging
+import zlib
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,21 +54,28 @@ class DCFWorker(object):
             The number of seconds to wait before polling the server
             for status information.
     """
+
     def __init__(
             self,
+            server_protocol,
             server_host_ip,
             server_port,
             global_model_version_changed_callback,
             get_worker_version_of_global_model,
             private_key_file):
+        self.server_protocol = server_protocol
+
         self.server_host_ip = server_host_ip
         self.server_port = server_port
         self.global_model_version_changed_callback = global_model_version_changed_callback
         self.get_worker_version_global_model = get_worker_version_of_global_model
         self.private_key_file = private_key_file
 
-        self.server_loc = f"http://{self.server_host_ip}:{self.server_port}"
+        self.server_loc = f"{self.server_protocol}://{self.server_host_ip}:{self.server_port}"
         self.worker_id = None
+
+        if server_protocol == 'http' and server_host_ip != 'localhost':
+            logger.warning("Security alert: https is not enabled!")
 
     def get_signed_phrase(self):
         """
@@ -80,7 +88,8 @@ class DCFWorker(object):
             The hex string corresponding to the signed string.
         """
         if self.private_key_file is None:
-            logger.warning("Unable to sign message - no private key file provided.")
+            logger.warning(
+                "Unable to sign message - no private key file provided.")
             return "No private key was provided when worker was started."
         with open(self.private_key_file, 'r') as f:
             hex_read = f.read().encode()
@@ -98,7 +107,8 @@ class DCFWorker(object):
             The hex string corresponding to the public key string.
         """
         if self.private_key_file is None:
-            logger.warning("No public key file provided - server side authentication will not succeed.")
+            logger.warning(
+                "No public key file provided - server side authentication will not succeed.")
             return "No public key was provided when worker was started."
 
         with open(self.private_key_file+'.pub', 'r') as f:
@@ -144,8 +154,8 @@ class DCFWorker(object):
             WORKER_ID_KEY: self.worker_id,
             LAST_WORKER_MODEL_VERSION: self.get_worker_version_global_model()
         }
-        return pickle.loads(requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
-                         json=data).content)
+        return pickle.loads(zlib.decompress(requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
+                         json=data).content))
 
     def send_model_update(self, model_update):
         """
@@ -164,7 +174,7 @@ class DCFWorker(object):
         }
         return requests.post(
             f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}",
-            files={ID_AND_MODEL_KEY: pickle.dumps(data_dict)}
+            files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps(data_dict))}
         ).content
 
     def run(self):

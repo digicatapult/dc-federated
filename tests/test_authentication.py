@@ -4,6 +4,7 @@ Test worker authentication reltated functions
 
 import os
 import pickle
+import zlib
 
 from nacl.signing import SigningKey, VerifyKey
 from nacl.encoding import HexEncoder
@@ -50,7 +51,8 @@ def test_worker_key_pair_tool():
 
     # test that a bad signature is detected
     with open(key_file, 'w') as f:
-        f.write(SigningKey.generate().encode(encoder=HexEncoder).decode('utf-8'))
+        f.write(SigningKey.generate().encode(
+            encoder=HexEncoder).decode('utf-8'))
     assert not verify_pair(key_file)
 
     # clean up
@@ -103,8 +105,10 @@ def test_worker_authentication():
     worker_key_file = 'worker_public_keys.txt'
     with open(worker_key_file, 'w') as f:
         for public_key in public_keys[:-1]:
-            f.write(public_key.encode(encoder=HexEncoder).decode('utf-8') + os.linesep)
-        f.write(public_keys[-1].encode(encoder=HexEncoder).decode('utf-8') + os.linesep)
+            f.write(public_key.encode(
+                encoder=HexEncoder).decode('utf-8') + os.linesep)
+        f.write(
+            public_keys[-1].encode(encoder=HexEncoder).decode('utf-8') + os.linesep)
 
     dcf_server = DCFServer(
         register_worker_callback=test_register_func_cb,
@@ -115,14 +119,17 @@ def test_worker_authentication():
     )
 
     stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
+
     def begin_server():
         dcf_server.start_server(stoppable_server)
+
     server_gl = Greenlet.spawn(begin_server)
     sleep(2)
 
     # create the workers
     workers = [
         DCFWorker(
+            server_protocol='http',
             server_host_ip=dcf_server.server_host_ip,
             server_port=dcf_server.server_port,
             global_model_version_changed_callback=test_glob_mod_chng_cb,
@@ -144,6 +151,7 @@ def test_worker_authentication():
     # try to authenticate a unregistered worker
     gen_pair('bad_worker')
     bad_worker = DCFWorker(
+            server_protocol='http',
             server_host_ip=dcf_server.server_host_ip,
             server_port=dcf_server.server_port,
             global_model_version_changed_callback=test_glob_mod_chng_cb,
@@ -161,10 +169,10 @@ def test_worker_authentication():
         bad_worker_key = f.read()
 
     id_and_model_dict_good = {
-        ID_AND_MODEL_KEY: pickle.dumps({
+        ID_AND_MODEL_KEY: zlib.compress(pickle.dumps({
             WORKER_ID_KEY: bad_worker_key,
             MODEL_UPDATE_KEY: pickle.dumps("Bad Model update!!")
-        })
+        }))
     }
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",

@@ -1,10 +1,11 @@
 ## The MNIST Federated Learning Example
 
 This document will show you how to run the MNIST federated learning example included in the repo in a fully distributed fashion. In particular, it will show you:
+
 - how to start the server
 - how to start three different workers in one or more machines that are connected via the internet
 - run the `FedAvg` algorithm to solve the MNIST problem
-- use the authentication facility in `dc_federated` to authenticate workers. 
+- use the authentication facility in `dc_federated` to authenticate workers.
 
 ### The problem
 
@@ -16,24 +17,43 @@ We assume that you are running on Linux or Mac OS. You will need to translate th
 
 #### Setting up
 
-Clone and install the repo in the machines where you want to deploy the servers and the workers (as described in `docs/getting_started.md`). *You can skip this step if you are running everything on the same machine.* Open a terminal for the server, and one terminal for each of the three workers.
+Clone and install the repo in the machines where you want to deploy the servers and the workers (as described in `docs/getting_started.md`). _You can skip this step if you are running everything on the same machine._ Open a terminal for the server, and one terminal for each of the three workers.
 
-#### Start The Server 
+#### Start The Server
 
-> NOTE: The machine that the server is running on must be enabled to host a webserver accessible to the machines running the workers. 
+> NOTE: The machine that the server is running on must be enabled to host a webserver accessible to the machines running the workers.
 
 First, go to the terminal for the server and activate the environment:
+
 ```bash
 > source /path/to/venv_dc_federated
 ```
+
 Now `cd` into the `dc_federated` package root folder and then to the mnist example folder
+
 ```bash
 (venv_dc_federated)> cd src/dc_federated/examples/mnist
 ```
+
 now start the server:
+
 ```bash
-(venv_dc_federated)> python mnist_fed_avg_server 
+(venv_dc_federated)> python mnist_fed_avg_server.py
 ```
+
+By default the server will use http for transport.
+Alternatively the server can be use https:
+
+```sh
+(venv_dc_federated)> python mnist_fed_avg_server.py \
+  --server-host-ip localhost \
+  --ssl-certfile localhost.crt \
+  --ssl-keyfile localhoat.key \
+  --ssl-enabled
+```
+
+Please refer to [the ssl document for more details](./enabling_ssl.md)
+
 You should see an output of the following form:
 
 ```bash
@@ -43,22 +63,41 @@ WARNING:dc_federated.backend.dcf_server:Server is running in ****UNSAFE MODE.***
 
 ************
 Starting an Federated Average Server at
-	server-host-ip: 192.124.1.177 
+	server-host-ip: 192.124.1.177
 	server-port: 8080
 
 ************
 ```
-But with different `server-host-ip` but the same `server-port`. You may see additional output if you are downloading the mnist dataset. Note the warning that the server is starting in `unsafe mode` - this is because that the worker authentication is not being used. See below for how to run this example with the workers being authenticated.   
+
+But with different `server-host-ip` but the same `server-port`. You may see additional output if you are downloading the mnist dataset. Note the warning that the server is starting in `unsafe mode` - this is because that the worker authentication is not being used. See below for how to run this example with the workers being authenticated.
 
 #### Start the Workers
 
-Now move to a terminal for a worker and `cd` into the location where the library is installed and, then to the mnist folder (same as above), activate the virtual enironment  and run:
+Now move to a terminal for a worker and `cd` into the location where the library is installed and, then to the mnist folder (same as above), activate the virtual enironment and run:
+
 ```bash
-(venv_dc_federated)> python mnist_fed_avg_worker.py --server-host-ip 192.124.1.177  --server-port 8080 --digit-class 0 
+(venv_dc_federated)> python mnist_fed_avg_worker.py \
+	--server-host-ip 192.124.1.177 \
+	--server-port 8080 \
+	--digit-class 0
 ```
-The `--digit-class 0` argument means that this worker only only train on digits `0-3`. Using arguments `1` and `2` correspond to training only on digits `4-6` and `7-9` respectively. The `192.124.1.177` and `8080` should be replaced by the values obtained when the server was run. 
+
+Or, if the server use https:
+
+```bash
+(venv_dc_federated)> REQUESTS_CA_BUNDLE=localhost.crt python mnist_fed_avg_worker.py \
+    --server-protocol https \
+    --server-host-ip localhost \
+    --server-port 8080 \
+    --digit-class 0
+```
+
+Please refer to [the ssl document for more details](./enabling_ssl.md)
+
+The `--digit-class 0` argument means that this worker only only train on digits `0-3`. Using arguments `1` and `2` correspond to training only on digits `4-6` and `7-9` respectively. The `192.124.1.177` and `8080` should be replaced by the values obtained when the server was run.
 
 Once you run the worker, you should see an output of the form
+
 ```bash
 INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Registered with FedAvg Server with worker id 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530
 Train Epoch: 0 [0/24754(0%)]	Loss: 2.341936
@@ -70,7 +109,9 @@ INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Finished training of local m
 INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Sent model update from worker 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530 to the server.
 Train Epoch: 0 [1280/24754(5%)]	Loss: 0.591940
 ```
+
 This means that the first worker has trainer and sent its update to the server and now the server is waiting for the other workers to send their updates to the server. Indeed, in the server terminal you should see additional lines of the following form:
+
 ```bash
 WARNING:dc_federated.backend.dcf_server:Accepting worker as valid without authentication.
 WARNING:dc_federated.backend.dcf_server:Server was likely started without a list of valid public keys from workers.
@@ -78,17 +119,22 @@ INFO:dc_federated.backend.dcf_server:Successfully registered worker with public 
 INFO:dc_federated.algorithms.fed_avg.fed_avg_server:Registered worker f3bdfed678321f9d22aa742b579edda9d6ec84f5cb03fe259a5a70ac_unauthenticated
 INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Model update received from worker f3bdfed678321f9d22aa742b579edda9d6ec84f5cb03fe259a5a70ac_unauthenticated
 ```
+
 ---
 
-Move to the terminal of the next 2 workers and run 
+Move to the terminal of the next 2 workers and run
+
 ```
 (venv_dc_federated)> python mnist_fed_avg_worker.py --server-host-ip 192.124.1.177 --server-port 8080 --digit-class 1
 ```
-and 
+
+and
+
 ```
 (venv_dc_federated)> python mnist_fed_avg_worker.py --server-host-ip 192.124.1.177 --server-port 8080 --digit-class 2
 ```
-Note that only the `--digit-class` argument changes. 
+
+Note that only the `--digit-class` argument changes.
 
 #### Federated Learning In Action
 
@@ -123,7 +169,9 @@ INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Updating the global model..
 .
 .
 ```
+
 You should see similar output in the worker terminals:
+
 ```bash
 .
 .
@@ -156,31 +204,46 @@ Test set: Average loss: 0.1206, Accuracy: 4001/4157(96%)
 .
 ```
 
-Note that for the server, the test set is based on the combined data set of all the digits, whereas for the workers the test set is only its local dataset on the subset of digits. Of course, in a real application, the server-side test results would not be available because the combined data is never available at the server! 
-
+Note that for the server, the test set is based on the combined data set of all the digits, whereas for the workers the test set is only its local dataset on the subset of digits. Of course, in a real application, the server-side test results would not be available because the combined data is never available at the server!
 
 You can stop by pressing `Ctrl+C` on the server terminal.
+
+### Docker
+
+#### Running the example using docker
+
+Run `docker-compose -f docker_compose_mnist.yml up`
+
+This will build the relevant images and bring up the example. This example has been tested and works using only 8GB of host memory.
 
 ### Worker Authentication
 
 We now show how worker authentication may be incoporated into mnist example, so that only valid workers are allowed to join. To get a general introduction to the `dc_federated` authentication scheme please see `docs/worker_authentication.md` and then come back here.
 
-The first task is to generate the key files for the workers and the servers. You can do that by running: 
+The first task is to generate the key files for the workers and the servers. You can do that by running:
+
 ```bash
 (venv_dc_federated)> python mnist_gen_keys.py
 ```
-This script is simply a helper wrapper around the `dc_federated.backend.worker_key_pair` tool. Running this script will generate 9 files - the `mnist_key_list_file.txt` will contain the list of public keys of the three workers, the `mnist_worker_<i>` files will contain the private key and `mnist_worker_<i>.pub` will contain the public key for worker `i`. 
 
-Now follow the exact same steps as above, but start the server with:   
+This script is simply a helper wrapper around the `dc_federated.backend.worker_key_pair` tool. Running this script will generate 9 files - the `mnist_key_list_file.txt` will contain the list of public keys of the three workers, the `mnist_worker_<i>` files will contain the private key and `mnist_worker_<i>.pub` will contain the public key for worker `i`.
+
+Now follow the exact same steps as above, but start the server with:
+
 ```bash
-(venv_dc_federated)> python mnist_fed_avg_server --key-list-file mnist_key_list_file.txt 
+(venv_dc_federated)> python mnist_fed_avg_server --key-list-file mnist_key_list_file.txt
 ```
+
 and start the workers with, for example:
+
 ```bash
 (venv_dc_federated)> python mnist_fed_avg_worker.py --server-host-ip 192.168.1.155 --server-port 8080 --private-key-file mnist_worker_0_key --digit-class 0
 ```
-You should see the output at the both the server and worker side changed such that all the authentication related warnings are gone, and also the worker id is now the public key of the worker, with no `_unauthenticated` postfix. Try running 
+
+You should see the output at the both the server and worker side changed such that all the authentication related warnings are gone, and also the worker id is now the public key of the worker, with no `_unauthenticated` postfix. Try running
+
 ```bash
 (venv_dc_federated)> python mnist_fed_avg_worker.py --server-host-ip 192.168.1.155 --server-port 8080  --digit-class 0
 ```
+
 to confirm that no unauthenticated workers are allowed.

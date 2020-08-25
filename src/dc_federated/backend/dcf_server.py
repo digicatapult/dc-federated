@@ -11,6 +11,8 @@ import pickle
 import hashlib
 import time
 
+import os
+
 import bottle
 from bottle import request, Bottle, run
 from dc_federated.backend._constants import *
@@ -25,6 +27,7 @@ from bottle import Bottle, run, request, ServerAdapter
 from dc_federated.backend.backend_utils import is_valid_model_dict
 
 import logging
+import zlib
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -76,12 +79,20 @@ class DCFServer(object):
             The port at which the serer should listen to. If None, then it
             uses the port 8080.
 
+        ssl_enabled: bool (default False)
+            Enable SSL/TLS for server/workers communications.
+
+        ssl_keyfile: str
+            Must be a valid path to the key file.
+            This is mandatory if ssl_enabled, ignored otherwise.
+
+        ssl_certfile: str
+            Must be a valid path to the certificate.
+            This is mandatory if ssl_enabled, ignored otherwise.
+
         model_check_interval: int
             The interval of time between the server checking for an updated
             model for the long polling.
-
-        debug: bool
-            Whether or not to run the model in debug mode.
     """
     def __init__(
         self,
@@ -92,9 +103,11 @@ class DCFServer(object):
         key_list_file,
         server_host_ip=None,
         server_port=8080,
+        ssl_enabled=False,
+        ssl_keyfile=None,
+        ssl_certfile=None,
         model_check_interval=10,
         debug=False):
-
         self.server_host_ip = get_host_ip() if server_host_ip is None else server_host_ip
         self.server_port = server_port
 
@@ -109,6 +122,19 @@ class DCFServer(object):
 
         self.worker_list = []
         self.last_worker = -1
+        self.ssl_enabled = ssl_enabled
+
+        if ssl_enabled:
+            if ssl_certfile is None or ssl_keyfile is None:
+                raise RuntimeError(
+                    "When ssl is enabled, both a certfile and keyfile must be provided")
+            if not os.path.isfile(ssl_certfile):
+                raise IOError(
+                    "The provided SSL certificate file doesn't exist")
+            if not os.path.isfile(ssl_keyfile):
+                raise IOError("The provided SSL key file doesn't exist")
+            self.ssl_keyfile = ssl_keyfile
+            self.ssl_certfile = ssl_certfile
 
     def register_worker(self):
         """
@@ -125,15 +151,18 @@ class DCFServer(object):
             self.worker_authenticator.authenticate_worker(worker_data[PUBLIC_KEY_STR],
                                                           worker_data[SIGNED_PHRASE])
         if auth_success:
-            logger.info(f"Successfully registered worker with public key: {worker_data[PUBLIC_KEY_STR]}")
+            logger.info(
+                f"Successfully registered worker with public key: {worker_data[PUBLIC_KEY_STR]}")
             if auth_type == NO_AUTHENTICATION:
-                worker_id = hashlib.sha224(str(time.time()).encode('utf-8')).hexdigest() + '_unauthenticated'
+                worker_id = hashlib.sha224(str(time.time()).encode(
+                    'utf-8')).hexdigest() + '_unauthenticated'
             else:
                 worker_id = worker_data[PUBLIC_KEY_STR]
             if worker_id not in self.worker_list:
                 self.worker_list.append(worker_id)
         else:
-            logger.info(f"Failed to register worker with public key: {worker_data[PUBLIC_KEY_STR]}")
+            logger.info(
+                f"Failed to register worker with public key: {worker_data[PUBLIC_KEY_STR]}")
             worker_id = INVALID_WORKER
 
         self.register_worker_callback(worker_id)
@@ -152,7 +181,10 @@ class DCFServer(object):
             Otherwise any exception that was raised.
         """
         try:
-            data_dict = pickle.load(request.files[ID_AND_MODEL_KEY].file)
+            compressed_model = request.files[ID_AND_MODEL_KEY].file.read()
+            uncompressed = zlib.decompress(compressed_model)
+            data_dict = pickle.loads(uncompressed)
+
             if data_dict[WORKER_ID_KEY] in self.worker_list:
                 return_value = self.receive_worker_update_callback(
                     data_dict[WORKER_ID_KEY],
@@ -160,7 +192,8 @@ class DCFServer(object):
                 )
                 return return_value
             else:
-                logger.warning(f"Unregistered worker {data_dict[WORKER_ID_KEY]} tried to send an update.")
+                logger.warning(
+                    f"Unregistered worker {data_dict[WORKER_ID_KEY]} tried to send an update.")
                 return UNREGISTERED_WORKER
         except Exception as e:
             logger.warning(e)
@@ -187,7 +220,7 @@ class DCFServer(object):
         if not is_valid_model_dict(model_update):
             logger.error(f"Expected dictionary with {GLOBAL_MODEL} and {GLOBAL_MODEL_VERSION} keys - "
                          "return_global_model_callback() implementation is incorrect")
-        body.put(pickle.dumps(model_update))
+        body.put(zlib.compress(pickle.dumps(model_update)))
         body.put(StopIteration)
 
     def return_global_model(self):
@@ -216,31 +249,6 @@ class DCFServer(object):
             logger.warning(e)
             return str(e)
 
-    def return_global_model_old(self):
-        """
-        Returns the global model by using the provided callback. If query is not from a valid
-        worker it raises an error.
-
-        Returns
-        -------
-
-        str:
-            If the update was successful then "Worker update received"
-            Otherwise any exception that was raised.
-        """
-        # New logic: spawn a checking worker.
-        # Checking worker: check if a new model is ready - if so send it over
-        # otherwise keep it chill.
-
-        try:
-            query_request = request.json
-            if query_request[WORKER_ID_KEY] in self.worker_list:
-                return self.return_global_model_callback()
-            else:
-                return UNREGISTERED_WORKER
-        except Exception as e:
-            logger.warning(e)
-            return str(e)
 
     @staticmethod
     def enable_cors():
@@ -263,20 +271,35 @@ class DCFServer(object):
             object.
         """
         application = Bottle()
-        application.route(f"/{REGISTER_WORKER_ROUTE}", method='POST', callback=self.register_worker)
-        application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}", method='POST', callback=self.return_global_model)
-        application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}", method='POST', callback=self.receive_worker_update)
+        application.route(f"/{REGISTER_WORKER_ROUTE}",
+                          method='POST', callback=self.register_worker)
+        application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}",
+                          method='POST', callback=self.return_global_model)
+        application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}",
+                          method='POST', callback=self.receive_worker_update)
+
         application.add_hook('after_request', self.enable_cors)
 
         if server_adapter is not None and isinstance(server_adapter, ServerAdapter):
             self.server_host_ip = server_adapter.host
             self.server_port = server_adapter.port
             run(application, server=server_adapter, debug=self.debug, quite=True)
+        elif self.ssl_enabled:
+            run(application,
+                host=self.server_host_ip,
+                port=self.server_port,
+                server='gunicorn',
+                worker_class='gevent',
+                keyfile=self.ssl_keyfile,
+                certfile=self.ssl_certfile,
+                debug=self.debug,
+                quiet=True)
         else:
             run(application,
                 host=self.server_host_ip,
                 port=self.server_port,
-                server='gevent',
+                server='gunicorn',
+                worker_class='gevent',
                 debug=self.debug,
                 quiet=True)
 
@@ -294,6 +317,7 @@ class WorkerAuthenticator(object):
         worker_key_pair_tool tool. All workers are accepted if no workers
         are provided.
     """
+
     def __init__(self, key_list_file):
         if key_list_file is None:
             logger.warning(f"No key list file provided - "
@@ -307,7 +331,8 @@ class WorkerAuthenticator(object):
 
         # dict for efficient fetching of the public key
         self.authenticate = True
-        self.keys = {key: VerifyKey(key.encode(), encoder=HexEncoder) for key in keys}
+        self.keys = {key: VerifyKey(
+            key.encode(), encoder=HexEncoder) for key in keys}
 
     def authenticate_worker(self, public_key_str, signed_message):
         """
@@ -332,15 +357,19 @@ class WorkerAuthenticator(object):
         """
         if not self.authenticate:
             logger.warning("Accepting worker as valid without authentication.")
-            logger.warning("Server was likely started without a list of valid public keys from workers.")
+            logger.warning(
+                "Server was likely started without a list of valid public keys from workers.")
             return True, NO_AUTHENTICATION
         try:
             if public_key_str not in self.keys:
                 return False, AUTHENTICATED
-            self.keys[public_key_str].verify(signed_message.encode(), encoder=HexEncoder)
+            self.keys[public_key_str].verify(
+                signed_message.encode(), encoder=HexEncoder)
         except BadSignatureError:
-            logger.warning(f"Failed to authenticate worker with public key: {public_key_str}.")
+            logger.warning(
+                f"Failed to authenticate worker with public key: {public_key_str}.")
             return False, AUTHENTICATED
         else:
-            logger.info(f"Successfully authenticated worker with public key: {public_key_str}.")
+            logger.info(
+                f"Successfully authenticated worker with public key: {public_key_str}.")
             return True, AUTHENTICATED

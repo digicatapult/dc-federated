@@ -3,11 +3,12 @@ Tests for the DCFWorker and DCFServer class.
 """
 import gevent
 from gevent import Greenlet, sleep
-gevent.monkey.patch_all()
+from gevent import monkey; monkey.patch_all()
 
 import io
 import pickle
 import logging
+import zlib
 
 import requests
 
@@ -76,11 +77,12 @@ def test_server_functionality():
         SIGNED_PHRASE: "dummy signed phrase"
     }
     for i in range(3):
-        requests.post(f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{REGISTER_WORKER_ROUTE}", json=data)
+        requests.post(
+            f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{REGISTER_WORKER_ROUTE}", json=data)
 
     assert len(worker_ids) == 3
     assert worker_ids[0] != worker_ids[1] and worker_ids[1] != worker_ids[2] and worker_ids[0] != worker_ids[2]
-    assert worker_ids[0].__class__ ==  worker_ids[1].__class__ == worker_ids[2].__class__
+    assert worker_ids[0].__class__ == worker_ids[1].__class__ == worker_ids[2].__class__
 
     # test getting the global model
     model_return_binary = requests.post(
@@ -88,33 +90,35 @@ def test_server_functionality():
         json={WORKER_ID_KEY: worker_ids[0],
               LAST_WORKER_MODEL_VERSION: "0"}
     ).content
-    model_return = pickle.loads(model_return_binary)
+
+    model_return = pickle.loads(zlib.decompress(model_return_binary))
     assert isinstance(model_return, dict)
     assert model_return[GLOBAL_MODEL_VERSION] == global_model_version
     assert pickle.loads(model_return[GLOBAL_MODEL]) == "Pickle dump of a string"
 
-    print(model_return)
-
     # test sending the model update
     id_and_model_dict_good = {
-        ID_AND_MODEL_KEY: pickle.dumps({
+        ID_AND_MODEL_KEY: zlib.compress(pickle.dumps({
             WORKER_ID_KEY: worker_ids[1],
             MODEL_UPDATE_KEY: pickle.dumps("Model update!!")
-        })
+        }))
     }
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
         files=id_and_model_dict_good
     ).content
-    assert pickle.load(io.BytesIO(worker_updates[worker_ids[1]])) == "Model update!!"
-    assert response.decode("UTF-8") == f"Update received for worker {worker_ids[1]}."
-    #
-    # # test sending a model update for an unregistered worker
+    assert pickle.load(io.BytesIO(
+        worker_updates[worker_ids[1]])) == "Model update!!"
+    assert response.decode(
+        "UTF-8") == f"Update received for worker {worker_ids[1]}."
+
+    # test sending a model update for an unregistered worker
     id_and_model_dict_bad = {
-        ID_AND_MODEL_KEY: pickle.dumps({
+        ID_AND_MODEL_KEY: zlib.compress(pickle.dumps({
             WORKER_ID_KEY: 3,
-            MODEL_UPDATE_KEY: pickle.dumps("Model update for unregistered worker!!")
-        })
+            MODEL_UPDATE_KEY: pickle.dumps(
+                "Model update for unregistered worker!!")
+        }))
     }
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
@@ -127,6 +131,7 @@ def test_server_functionality():
     # *********** #
     # now test a DCFWorker on the same server.
     dcf_worker = DCFWorker(
+        server_protocol='http',
         server_host_ip=dcf_server.server_host_ip,
         server_port=dcf_server.server_port,
         global_model_version_changed_callback=test_glob_mod_chng_cb,
@@ -144,12 +149,16 @@ def test_server_functionality():
     assert pickle.loads(global_model_dict[GLOBAL_MODEL]) == "Pickle dump of a string"
 
     # test sending the model update
-    response = dcf_worker.send_model_update(pickle.dumps("DCFWorker model update"))
-    assert pickle.load(io.BytesIO(worker_updates[worker_ids[3]])) == "DCFWorker model update"
-    assert response.decode("UTF-8") == f"Update received for worker {worker_ids[3]}."
+    response = dcf_worker.send_model_update(
+        pickle.dumps("DCFWorker model update"))
+    assert pickle.load(io.BytesIO(
+        worker_updates[worker_ids[3]])) == "DCFWorker model update"
+    assert response.decode(
+        "UTF-8") == f"Update received for worker {worker_ids[3]}."
 
     stoppable_server.shutdown()
     logger.info("***************** ALL TESTS PASSED *****************")
+
 
 if __name__ == '__main__':
     test_server_functionality()
