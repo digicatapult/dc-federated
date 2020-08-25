@@ -17,6 +17,11 @@ def get_args():
     p = argparse.ArgumentParser(
         description="Run this with the parameter provided by running the mnist_fed_avg_server\n")
 
+    p.add_argument("--server-protocol",
+                   help="The protocol used by the server (http or https)",
+                   type=str,
+                   default=None,
+                   required=False)
     p.add_argument("--server-host-ip",
                    help="The ip of the host of server",
                    type=str,
@@ -67,8 +72,10 @@ def run():
     args = get_args()
 
     data_transform = MNISTSubSet.default_input_transform()
-    mnist_ds_train = MNISTSubSet.default_mnist_ds(is_train=True, input_transform=data_transform)
-    mnist_ds_test = MNISTSubSet.default_mnist_ds(is_train=False, input_transform=data_transform)
+    mnist_ds_train = MNISTSubSet.default_mnist_ds(
+        is_train=True, input_transform=data_transform)
+    mnist_ds_test = MNISTSubSet.default_mnist_ds(
+        is_train=False, input_transform=data_transform)
 
     local_model_trainer = MNISTModelTrainer(
         train_loader=MNISTSubSet(
@@ -87,6 +94,7 @@ def run():
 
     fed_avg_worker = FedAvgWorker(fed_model_trainer=local_model_trainer,
                                   private_key_file=args.private_key_file,
+                                  server_protocol=args.server_protocol,
                                   server_host_ip=args.server_host_ip,
                                   server_port=args.server_port)
     fed_avg_worker.start()

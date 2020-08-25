@@ -12,12 +12,17 @@ def get_args():
     p = argparse.ArgumentParser(
         description="Run this with the parameter provided by running python federated_global_model.py\n")
 
+    p.add_argument("--server-protocol",
+                   help="The protocol (either http or https)",
+                   type=str,
+                   default=None,
+                   required=False)
     p.add_argument("--server-host-ip",
                    help="The ip of the host of server",
                    type=str,
                    required=True)
     p.add_argument("--server-port",
-                   help="The ip of the host of server",
+                   help="The port used by server",
                    type=str,
                    required=True)
 
@@ -32,7 +37,8 @@ def run():
     other remote machines using the parameters provided by the global model server.
     """
     args = get_args()
-    elm = ExampleLocalModel(args.server_host_ip, args.server_port)
+    elm = ExampleLocalModel(args.server_protocol,
+                            args.server_host_ip, args.server_port)
     elm.start()
 
 
