@@ -1,15 +1,15 @@
 """
-Tests for the DCFWorker and DCFServer class. As of now I am not sure what a good
-way is to programmatically kill a server thread - so you have to kill the program
-by pressing Ctrl+C.
+Tests for the DCFWorker and DCFServer class.
 """
+import gevent
+from gevent import Greenlet, sleep
+gevent.monkey.patch_all()
+
 import io
 import pickle
 import logging
 
 import requests
-
-from gevent import Greenlet, sleep
 
 from dc_federated.backend import DCFServer, DCFWorker, create_model_dict, is_valid_model_dict
 from dc_federated.backend._constants import *
@@ -148,9 +148,8 @@ def test_server_functionality():
     assert pickle.load(io.BytesIO(worker_updates[worker_ids[3]])) == "DCFWorker model update"
     assert response.decode("UTF-8") == f"Update received for worker {worker_ids[3]}."
 
-    logger.info("***************** ALL TESTS PASSED *****************")
     stoppable_server.shutdown()
-
+    logger.info("***************** ALL TESTS PASSED *****************")
 
 if __name__ == '__main__':
     test_server_functionality()

@@ -83,7 +83,7 @@ def test_worker_authentication():
             global_model_version)
 
     def is_global_model_most_recent(version):
-        return int(version) == global_model_version
+        return version == global_model_version
 
     def test_rec_server_update_cb(worker_id, update):
         if worker_id in worker_ids:
@@ -176,7 +176,6 @@ def test_worker_authentication():
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
         json={WORKER_ID_KEY: bad_worker_key}
     ).content
-    print(response)
     assert response.decode('utf-8') == UNREGISTERED_WORKER
 
     # delete the files
@@ -187,9 +186,8 @@ def test_worker_authentication():
     os.remove("bad_worker")
     os.remove("bad_worker.pub")
 
-
-    logger.info("\n\n*** All Tests Passed - Testing completed successfully ***")
     stoppable_server.shutdown()
+    logger.info("***************** ALL TESTS PASSED *****************")
 
 
 if __name__ == '__main__':

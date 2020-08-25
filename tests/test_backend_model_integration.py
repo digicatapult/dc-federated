@@ -75,7 +75,6 @@ def test_example():
 
     logger.info(
         "All tensors are equal and the local and global models are different")
-    logger.info("***************** ALL TESTS PASSED *****************")
     logger.info(
         "******* Ignore WARNINGs related to worker shutting down *******")
     logger.info("Cleaning up.")
@@ -84,6 +83,7 @@ def test_example():
     os.remove('elm_global_model.torch')
     os.remove(elm_worker_update_name)
 
+    logger.info("***************** ALL TESTS PASSED *****************")
 
 if __name__ == '__main__':
     test_example()
