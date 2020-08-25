@@ -1,15 +1,11 @@
-"""
-This will start and run the example local and global model and test that
-they communicate as expected.
-"""
 
 import os
+import time
+import torch
 import logging
 import threading
 
 from multiprocessing import Process
-import time
-import torch
 
 from dc_federated.examples.example_dcf_model import ExampleGlobalModel, ExampleLocalModel
 
@@ -83,7 +79,3 @@ def test_example():
     os.remove(egm_worker_update_name)
     os.remove('elm_global_model.torch')
     os.remove(elm_worker_update_name)
-
-
-if __name__ == '__main__':
-    test_example()

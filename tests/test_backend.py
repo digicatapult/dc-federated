@@ -1,12 +1,6 @@
-"""
-Tests for the DCFWorker and DCFServer class. As of now I am not sure what a good
-way is to programmatically kill a server thread - so you have to kill the program
-by pressing Ctrl+C.
-"""
 import io
 from threading import Thread
 import pickle
-import logging
 import zlib
 
 import requests
@@ -15,11 +9,6 @@ import time
 from dc_federated.backend import DCFServer, DCFWorker
 from dc_federated.backend._constants import *
 from dc_federated.utils import StoppableServer, get_host_ip
-
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__file__)
-logger.setLevel(level=logging.INFO)
 
 
 def test_server_functionality():
@@ -70,11 +59,12 @@ def test_server_functionality():
         SIGNED_PHRASE: "dummy signed phrase"
     }
     for i in range(3):
-        requests.post(f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{REGISTER_WORKER_ROUTE}", json=data)
+        requests.post(
+            f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{REGISTER_WORKER_ROUTE}", json=data)
 
     assert len(worker_ids) == 3
     assert worker_ids[0] != worker_ids[1] and worker_ids[1] != worker_ids[2] and worker_ids[0] != worker_ids[2]
-    assert worker_ids[0].__class__ ==  worker_ids[1].__class__ == worker_ids[2].__class__
+    assert worker_ids[0].__class__ == worker_ids[1].__class__ == worker_ids[2].__class__
 
     # test the model status
     server_status = requests.post(
@@ -97,7 +87,8 @@ def test_server_functionality():
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
         json={WORKER_ID_KEY: worker_ids[0]}
     ).content
-    assert pickle.load(io.BytesIO(zlib.decompress(model_binary))) == "Pickle dump of a string"
+    assert pickle.load(io.BytesIO(zlib.decompress(
+        model_binary))) == "Pickle dump of a string"
 
     # test sending the model update
     id_and_model_dict_good = {
@@ -110,14 +101,17 @@ def test_server_functionality():
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
         files=id_and_model_dict_good
     ).content
-    assert pickle.load(io.BytesIO(worker_updates[worker_ids[1]])) == "Model update!!"
-    assert response.decode("UTF-8") == f"Update received for worker {worker_ids[1]}."
+    assert pickle.load(io.BytesIO(
+        worker_updates[worker_ids[1]])) == "Model update!!"
+    assert response.decode(
+        "UTF-8") == f"Update received for worker {worker_ids[1]}."
 
     # test sending a model update for an unregistered worker
     id_and_model_dict_bad = {
         ID_AND_MODEL_KEY: pickle.dumps({
             WORKER_ID_KEY: 3,
-            MODEL_UPDATE_KEY: pickle.dumps("Model update for unregistered worker!!")
+            MODEL_UPDATE_KEY: pickle.dumps(
+                "Model update for unregistered worker!!")
         })
     }
     response = requests.post(
@@ -130,7 +124,8 @@ def test_server_functionality():
 
     # *********** #
     # now test a DCFWorker on the same server.
-    dcf_worker = DCFWorker(dcf_server.server_host_ip, dcf_server.server_port, test_glob_mod_chng_cb, None)
+    dcf_worker = DCFWorker(dcf_server.server_host_ip,
+                           dcf_server.server_port, test_glob_mod_chng_cb, None)
 
     # test worker registration
     dcf_worker.register_worker()
@@ -148,14 +143,11 @@ def test_server_functionality():
     assert pickle.load(io.BytesIO(global_model)) == "Pickle dump of a string"
 
     # test sending the model update
-    response = dcf_worker.send_model_update(pickle.dumps("DCFWorker model update"))
-    assert pickle.load(io.BytesIO(worker_updates[worker_ids[3]])) == "DCFWorker model update"
-    assert response.decode("UTF-8") == f"Update received for worker {worker_ids[3]}."
+    response = dcf_worker.send_model_update(
+        pickle.dumps("DCFWorker model update"))
+    assert pickle.load(io.BytesIO(
+        worker_updates[worker_ids[3]])) == "DCFWorker model update"
+    assert response.decode(
+        "UTF-8") == f"Update received for worker {worker_ids[3]}."
 
-    # TODO: figure out how to kill the server thread and
-    # TODO: eliminate this awfulness!
-    logger.info("***************** ALL TESTS PASSED *****************")
     stoppable_server.shutdown()
-
-if __name__ == '__main__':
-    test_server_functionality()

@@ -1,28 +1,19 @@
 """
 Test worker authentication reltated functions
 """
-
 import os
 import time
-from threading import Thread
 import pickle
+import requests
 
-from nacl.signing import SigningKey, VerifyKey
-from nacl.encoding import HexEncoder
-from nacl.exceptions import BadSignatureError
-
+from threading import Thread
 from dc_federated.backend import DCFServer, DCFWorker
 from dc_federated.backend._constants import *
 from dc_federated.backend.worker_key_pair_tool import gen_pair, verify_pair
 from dc_federated.utils import StoppableServer, get_host_ip
-
-import requests
-
-import logging
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__file__)
-logger.setLevel(level=logging.INFO)
+from nacl.signing import SigningKey, VerifyKey
+from nacl.encoding import HexEncoder
+from nacl.exceptions import BadSignatureError
 
 
 def test_worker_key_pair_tool():
@@ -50,7 +41,8 @@ def test_worker_key_pair_tool():
 
     # test that a bad signature is detected
     with open(key_file, 'w') as f:
-        f.write(SigningKey.generate().encode(encoder=HexEncoder).decode('utf-8'))
+        f.write(SigningKey.generate().encode(
+            encoder=HexEncoder).decode('utf-8'))
     assert not verify_pair(key_file)
 
     # clean up
@@ -95,8 +87,10 @@ def test_worker_authentication():
     worker_key_file = 'worker_public_keys.txt'
     with open(worker_key_file, 'w') as f:
         for public_key in public_keys[:-1]:
-            f.write(public_key.encode(encoder=HexEncoder).decode('utf-8') + os.linesep)
-        f.write(public_keys[-1].encode(encoder=HexEncoder).decode('utf-8') + os.linesep)
+            f.write(public_key.encode(
+                encoder=HexEncoder).decode('utf-8') + os.linesep)
+        f.write(
+            public_keys[-1].encode(encoder=HexEncoder).decode('utf-8') + os.linesep)
 
     dcf_server = DCFServer(
         test_register_func_cb,
@@ -107,6 +101,7 @@ def test_worker_authentication():
     )
 
     stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
+
     def begin_server():
         dcf_server.start_server(stoppable_server)
     server_thread = Thread(target=begin_server)
@@ -129,9 +124,8 @@ def test_worker_authentication():
         assert model_status == status
         assert global_model == pickle.dumps("Pickle dump of a string")
         assert worker_updates[worker.worker_id] == b'model_update'
-        assert worker.worker_id == key.encode(encoder=HexEncoder).decode('utf-8')
-
-
+        assert worker.worker_id == key.encode(
+            encoder=HexEncoder).decode('utf-8')
 
     # try to authenticate a unregistered worker
     gen_pair('bad_worker')
@@ -178,11 +172,4 @@ def test_worker_authentication():
     os.remove("bad_worker")
     os.remove("bad_worker.pub")
 
-
-    logger.info("\n\n*** All Tests Passed - Testing completed successfully ***")
     stoppable_server.shutdown()
-
-
-if __name__ == '__main__':
-    test_worker_key_pair_tool()
-    test_worker_authentication()
