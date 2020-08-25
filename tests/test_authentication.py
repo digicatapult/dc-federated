@@ -119,7 +119,7 @@ def test_worker_authentication():
     time.sleep(2)
 
     # create the worker
-    workers = [DCFWorker(dcf_server.server_host_ip,
+    workers = [DCFWorker('http', dcf_server.server_host_ip,
                          dcf_server.server_port,
                          test_glob_mod_chng_cb,
                          worker_key_file_prefix + f"_{n}")
