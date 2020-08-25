@@ -40,7 +40,7 @@ class DCFWorker(object):
             GLOBAL_MODEL_VERSION: str giving the version of the current
             global model.
 
-        worker_version_of_global_model: () -> object
+        get_worker_version_of_global_model: () -> object
             This function is expected to return the version of the last global
             model that the worker received.
 
@@ -58,15 +58,13 @@ class DCFWorker(object):
             server_host_ip,
             server_port,
             global_model_version_changed_callback,
-            worker_version_of_global_model,
-            private_key_file,
-            polling_wait_period=1):
+            get_worker_version_of_global_model,
+            private_key_file):
         self.server_host_ip = server_host_ip
         self.server_port = server_port
-        self.global_model_status_changed_callback = global_model_version_changed_callback
-        self.worker_version_global_model = worker_version_of_global_model
+        self.global_model_version_changed_callback = global_model_version_changed_callback
+        self.get_worker_version_global_model = get_worker_version_of_global_model
         self.private_key_file = private_key_file
-        self.polling_wait_period = polling_wait_period
 
         self.server_loc = f"http://{self.server_host_ip}:{self.server_port}"
         self.worker_id = None
@@ -144,7 +142,7 @@ class DCFWorker(object):
         """
         data = {
             WORKER_ID_KEY: self.worker_id,
-            LAST_WORKER_MODEL_VERSION: self.worker_version_global_model()
+            LAST_WORKER_MODEL_VERSION: self.get_worker_version_global_model()
         }
         return pickle.loads(requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
                          json=data).content)
@@ -178,7 +176,7 @@ class DCFWorker(object):
             while True:
                 model_dict = self.get_global_model()
                 if is_valid_model_dict(model_dict):
-                    self.global_model_status_changed_callback(model_dict)
+                    self.global_model_version_changed_callback(model_dict)
         except Exception as e:
             logger.warning(str(e))
             logger.info(f"Exiting DCFworker {self.worker_id} run loop.")

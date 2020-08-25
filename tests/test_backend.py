@@ -4,16 +4,14 @@ way is to programmatically kill a server thread - so you have to kill the progra
 by pressing Ctrl+C.
 """
 import io
-from threading import Thread
 import pickle
 import logging
 
 import requests
-import time
 
 from gevent import Greenlet, sleep
 
-from dc_federated.backend import DCFServer, DCFWorker
+from dc_federated.backend import DCFServer, DCFWorker, create_model_dict, is_valid_model_dict
 from dc_federated.backend._constants import *
 from dc_federated.utils import StoppableServer, get_host_ip
 
@@ -40,11 +38,9 @@ def test_server_functionality():
         worker_ids.append(id)
 
     def test_ret_global_model_cb():
-        data_dict = {
-            GLOBAL_MODEL: pickle.dumps("Pickle dump of a string"),
-            GLOBAL_MODEL_VERSION: global_model_version
-        }
-        return data_dict
+        return create_model_dict(
+            pickle.dumps("Pickle dump of a string"),
+            global_model_version)
 
     def is_global_model_most_recent(version):
         return int(version) == global_model_version
@@ -72,8 +68,6 @@ def test_server_functionality():
         key_list_file=None
     )
     server_gl = Greenlet.spawn(begin_server)
-    # server_thread = Thread(target=begin_server)
-    # server_thread.start()
     sleep(2)
 
     # register a set of workers
@@ -136,7 +130,7 @@ def test_server_functionality():
         server_host_ip=dcf_server.server_host_ip,
         server_port=dcf_server.server_port,
         global_model_version_changed_callback=test_glob_mod_chng_cb,
-        worker_version_of_global_model=test_get_last_glob_model_ver,
+        get_worker_version_of_global_model=test_get_last_glob_model_ver,
         private_key_file=None)
 
     # test worker registration
@@ -144,10 +138,10 @@ def test_server_functionality():
     assert dcf_worker.worker_id == worker_ids[3]
 
     # test getting the global model update
-    global_model = dcf_worker.get_global_model()
-    assert isinstance(global_model, dict)
-    assert global_model[GLOBAL_MODEL_VERSION] == global_model_version
-    assert pickle.loads(global_model[GLOBAL_MODEL]) == "Pickle dump of a string"
+    global_model_dict = dcf_worker.get_global_model()
+    assert is_valid_model_dict(global_model_dict)
+    assert global_model_dict[GLOBAL_MODEL_VERSION] == global_model_version
+    assert pickle.loads(global_model_dict[GLOBAL_MODEL]) == "Pickle dump of a string"
 
     # test sending the model update
     response = dcf_worker.send_model_update(pickle.dumps("DCFWorker model update"))

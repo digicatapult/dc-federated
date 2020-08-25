@@ -53,7 +53,7 @@ class FedAvgWorker(object):
             server_host_ip=server_host_ip,
             server_port=server_port,
             global_model_version_changed_callback=self.global_model_version_changed_callback,
-            worker_version_of_global_model=lambda : self.worker_version_of_global_model,
+            get_worker_version_of_global_model=lambda : self.worker_version_of_global_model,
             private_key_file=private_key_file
         )
 
