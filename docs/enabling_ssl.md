@@ -42,11 +42,11 @@ The easiest way to work with self-signed certificate during development is to
 add the environment variable `REQUESTS_CA_BUNDLE` set to the root CA.
 
 ```sh
-  REQUESTS_CA_BUNDLE=localhost.crt python mnist_fed_avg_worker.py
-    --server-protocol https
-    --server-host-ip localhost
-    --server-port 8080
-    -digit-class 0
+  REQUESTS_CA_BUNDLE=localhost.crt python mnist_fed_avg_worker.py \
+    --server-protocol https \
+    --server-host-ip localhost \
+    --server-port 8080 \
+    --digit-class 0
 ```
 
 # Production setup
