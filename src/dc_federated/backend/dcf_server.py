@@ -169,14 +169,11 @@ class DCFServer(object):
             Otherwise any exception that was raised.
         """
         try:
-            data_dict = zlib.decompress(
-                request.files[ID_AND_MODEL_KEY].file.read())
-
+            data_dict = zlib.decompress(request.files[ID_AND_MODEL_KEY].file.read())
             if worker_id in self.worker_list:
                 return self.receive_worker_update_callback(worker_id, data_dict)
             else:
-                logger.warning(
-                    f"Unregistered worker {data_dict[worker_id]} tried to send an update.")
+                logger.warning(f"Unregistered worker {worker_id} tried to send an update.")
                 return UNREGISTERED_WORKER
         except Exception as e:
             logger.warning(e)
