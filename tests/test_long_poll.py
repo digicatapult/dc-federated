@@ -4,17 +4,14 @@ Test long polling.
 
 import os
 import pickle
+from datetime import datetime
 
-from nacl.signing import SigningKey, VerifyKey
 from nacl.encoding import HexEncoder
-from nacl.exceptions import BadSignatureError
-
-import requests
 from gevent import Greenlet, sleep
 
-from dc_federated.backend import DCFServer, DCFWorker, create_model_dict, is_valid_model_dict
+from dc_federated.backend import DCFServer, DCFWorker, create_model_dict
 from dc_federated.backend._constants import *
-from dc_federated.backend.worker_key_pair_tool import gen_pair, verify_pair
+from dc_federated.backend.worker_key_pair_tool import gen_pair
 from dc_federated.utils import StoppableServer, get_host_ip
 
 
@@ -52,7 +49,7 @@ class SimpleLPWorker(object):
 
 def test_long_polling():
     # Create a set of keys to be supplied to the server
-    num_workers = 5
+    num_workers = 100
     private_keys = []
     public_keys = []
     server_model_check_interval = 1
@@ -112,6 +109,8 @@ def test_long_polling():
     server_gl = Greenlet.spawn(begin_server)
     sleep(2)
 
+
+
     # create the workers
     workers = [SimpleLPWorker(dcf_server.server_host_ip,
                               dcf_server.server_port,
@@ -128,6 +127,7 @@ def test_long_polling():
     for worker in workers:
         assert worker.gm_version == global_model_version
 
+    done_count = 0
 
     # test that a single call to the server exits after 5 seconds.
     def run_wg(gl_worker):
@@ -135,19 +135,26 @@ def test_long_polling():
         gl_worker.global_model_changed_callback(
             gl_worker.worker.get_global_model())
         logger.info(f"Long poll for {gl_worker.worker.worker_id} finished")
+        nonlocal done_count
+        done_count += 1
 
-    for worker in workers:
+    for i, worker in enumerate(workers):
         Greenlet.spawn(run_wg, worker)
+        if (i+1) % 5 == 0:
+            sleep(0.5)
 
     logger.info(f"The test will halt for {halt_time} seconds now...")
 
     sleep(halt_time)
     global_model_version = "2"
-    sleep(2)
+
+    start_time = datetime.now()
+    # if it hasn't stopped after 100 seconds, it has failed.
+    while done_count < num_workers and (datetime.now() - start_time).seconds < 100 :
+        sleep(1)
     # all the calls to get the global model should have succeeded by now
-    for worker in workers:
-        print(worker.gm_version)
-        assert worker.gm_version == global_model_version
+
+    assert done_count == num_workers
 
     stoppable_server.shutdown()
 
