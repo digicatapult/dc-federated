@@ -45,10 +45,8 @@ Alternatively, to install in developer mode (so that any code change you make in
 (venv_dc_federated)> python setup.py develop
 ```
 
-To ensure it has installed properly, `cd` to `./tests` and run the tests and follow the instructions that appear. Both tests should complete successfully.
+### Running the tests
 
 ```bash
-(venv_dc_federated)> cd ./tests
-(venv_dc_federated)> python test_backend.py
-(venv_dc_federated)> python test_backend_model_integration.py
+(venv_dc_federated)> pytest
 ```
