@@ -37,9 +37,24 @@ class FedAvgServer(object):
     key_list_file: str
         The list of public keys of valid workers. No authentication is performed
         if file not given.
+
+    server_host_ip: str
+        The hostname or IP address the server will bind to.
+        If not given, it will default to the machine IP.
+
+    ssl_enabled: bool (default False)
+        Enable SSL/TLS for server/workers communications.
+
+    ssl_keyfile: str
+        Must be a valid path to the key file.
+        This is mandatory if ssl_enabled is True, ignored otherwise.
+
+    ssl_certfile: str
+        Must be a valid path to the certificate.
+        This is mandatory if ssl_enabled is True, ignored otherwise.
     """
 
-    def __init__(self, global_model_trainer, key_list_file, update_lim=10):
+    def __init__(self, global_model_trainer, key_list_file, update_lim=10, server_host_ip=None, ssl_enabled=False, ssl_keyfile=None, ssl_certfile=None):
         logger.info(
             f"Initializing FedAvg server for model class {global_model_trainer.get_model().__class__.__name__}")
 
@@ -54,7 +69,11 @@ class FedAvgServer(object):
             self.return_global_model,
             self.return_global_model_status,
             self.receive_worker_update,
-            key_list_file=key_list_file
+            key_list_file=key_list_file,
+            server_host_ip=server_host_ip,
+            ssl_enabled=ssl_enabled,
+            ssl_keyfile=ssl_keyfile,
+            ssl_certfile=ssl_certfile
         )
 
         self.unique_updates_since_last_agg = 0

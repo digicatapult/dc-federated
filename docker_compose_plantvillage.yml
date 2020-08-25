@@ -1,0 +1,43 @@
+version: "3.4"
+#Requires Docker Engine version 17.09.0+
+services:
+    plantvillage_backend:
+        build: 
+            context: .
+            target: plantvillage_backend
+        ports:
+            - "8080:8080"
+        environment:
+            - UPDATE_LIM=3
+    plantvillage_worker_1:
+        build: 
+            context: .
+            target: plantvillage_worker
+        depends_on:
+            - plantvillage_backend
+        environment:
+            - WORKER_ID=0
+    plantvillage_worker_2:
+        build: 
+            context: .
+            target: plantvillage_worker
+        depends_on:
+            - plantvillage_backend
+        environment:
+            - WORKER_ID=1
+    plantvillage_worker_3:
+        build: 
+            context: .
+            target: plantvillage_worker
+        depends_on:
+            - plantvillage_backend
+        environment:
+            - WORKER_ID=2
+    plantvillage_worker_4:
+        build: 
+            context: .
+            target: plantvillage_worker
+        depends_on:
+            - plantvillage_backend
+        environment:
+            - WORKER_ID=3

@@ -142,7 +142,7 @@ def test_worker_authentication():
 
     # try to authenticate a unregistered worker
     gen_pair('bad_worker')
-    bad_worker = DCFWorker(dcf_server.server_host_ip,
+    bad_worker = DCFWorker('http', dcf_server.server_host_ip,
                            dcf_server.server_port,
                            test_glob_mod_chng_cb,
                            'bad_worker')

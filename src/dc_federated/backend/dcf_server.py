@@ -8,14 +8,19 @@ import logging
 import pickle
 import hashlib
 import time
+import os.path
+import zlib
+
+import bottle
+from bottle import request, Bottle, run
+from dc_federated.backend._constants import *
+from dc_federated.utils import get_host_ip
 
 from nacl.signing import VerifyKey
 from nacl.encoding import HexEncoder
 from nacl.exceptions import BadSignatureError
 from bottle import Bottle, run, request, response, ServerAdapter
 
-from dc_federated.backend._constants import *
-from dc_federated.utils import get_host_ip
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -72,6 +77,16 @@ class DCFServer(object):
             The port at which the serer should listen to. If None, then it
             uses the port 8080.
 
+        ssl_enabled: bool (default False)
+            Enable SSL/TLS for server/workers communications.
+
+        ssl_keyfile: str
+            Must be a valid path to the key file.
+            This is mandatory if ssl_enabled, ignored otherwise.
+
+        ssl_certfile: str
+            Must be a valid path to the certificate.
+            This is mandatory if ssl_enabled, ignored otherwise.
     """
 
     def __init__(
@@ -84,6 +99,9 @@ class DCFServer(object):
         key_list_file,
         server_host_ip=None,
         server_port=8080,
+        ssl_enabled=False,
+        ssl_keyfile=None,
+        ssl_certfile=None,
         admin_server_port=8081,
             debug=False):
 
@@ -102,6 +120,19 @@ class DCFServer(object):
 
         self.worker_list = []
         self.last_worker = -1
+        self.ssl_enabled = ssl_enabled
+
+        if ssl_enabled:
+            if ssl_certfile is None or ssl_keyfile is None:
+                raise RuntimeError(
+                    "When ssl is enabled, both a certfile and keyfile must be provided")
+            if not os.path.isfile(ssl_certfile):
+                raise IOError(
+                    "The provided SSL certificate file doesn't exist")
+            if not os.path.isfile(ssl_keyfile):
+                raise IOError("The provided SSL key file doesn't exist")
+            self.ssl_keyfile = ssl_keyfile
+            self.ssl_certfile = ssl_certfile
 
     def register_worker(self):
         """
@@ -254,7 +285,7 @@ class DCFServer(object):
         try:
             query_request = request.json
             if query_request[WORKER_ID_KEY] in self.worker_list:
-                return self.return_global_model_callback()
+                return zlib.compress(self.return_global_model_callback())
             else:
                 return UNREGISTERED_WORKER
         except Exception as e:
@@ -296,6 +327,15 @@ class DCFServer(object):
             self.server_host_ip = server_adapter.host
             self.server_port = server_adapter.port
             run(application, server=server_adapter, debug=self.debug, quiet=True)
+        elif self.ssl_enabled:
+            run(application,
+                host=self.server_host_ip,
+                port=self.server_port,
+                server='gunicorn',
+                keyfile=self.ssl_keyfile,
+                certfile=self.ssl_certfile,
+                debug=self.debug,
+                quiet=True)
         else:
             run(application, host=self.server_host_ip,
                 port=self.server_port, debug=self.debug, quiet=True)

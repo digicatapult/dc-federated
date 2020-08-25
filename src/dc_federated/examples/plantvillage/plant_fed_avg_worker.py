@@ -18,12 +18,17 @@ def get_args():
         description="Start a FedAvg worker for the PlangVillage dataset.\n"
                     "Run this with the parameter provided by running the plant_fed_avg_server.py\n")
 
+    p.add_argument("--server-protocol",
+                   help="The protocol used by the server (http or https)",
+                   type=str,
+                   default=None,
+                   required=False)
     p.add_argument("--server-host-ip",
                    help="The ip of the host of server",
                    type=str,
                    required=True)
     p.add_argument("--server-port",
-                   help="The ip of the host of server",
+                   help="The port used by the server",
                    type=str,
                    required=True)
 
@@ -53,12 +58,15 @@ def run():
     cfg = open("PlantVillage_cfg.yaml", 'r')
     cfg_dict = yaml.load(cfg)
     if args.train_data_path is None:
-        args.train_data_path = cfg_dict['output_dataset']['train_path']+str(args.worker_id)
+        args.train_data_path = cfg_dict['output_dataset']['train_path']+str(
+            args.worker_id)
     if args.validation_data_path is None:
         args.validation_data_path = cfg_dict['output_dataset']['val_path']
 
-    train_data_transform = PlantVillageSubSet.default_input_transform(True, (224,224))
-    test_data_transform = PlantVillageSubSet.default_input_transform(False, (224,224))
+    train_data_transform = PlantVillageSubSet.default_input_transform(
+        True, (224, 224))
+    test_data_transform = PlantVillageSubSet.default_input_transform(
+        False, (224, 224))
     plant_ds_train = PlantVillageSubSet.default_plant_ds(
         root=args.train_data_path, transform=train_data_transform)
     plant_ds_test = PlantVillageSubSet.default_plant_ds(
@@ -73,8 +81,8 @@ def run():
             plant_ds_test,
             transform=test_data_transform
         ).get_data_loader(),
-        batches_per_iter = cfg_dict['batches_per_iter'],
-        num_classes = cfg_dict['num_classes']
+        batches_per_iter=cfg_dict['batches_per_iter'],
+        num_classes=cfg_dict['num_classes']
     )
 
     print("\n******** FEDERATED LEARNING EXPERIMENT ********")
@@ -83,6 +91,7 @@ def run():
 
     fed_avg_worker = FedAvgWorker(fed_model_trainer=local_model_trainer,
                                   private_key_file=None,
+                                  server_protocol=args.server_protocol,
                                   server_host_ip=args.server_host_ip,
                                   server_port=args.server_port)
     fed_avg_worker.start()

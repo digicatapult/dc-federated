@@ -169,6 +169,7 @@ coverage.xml
 
 # Build and docs folder/files
 build/*
+data
 dist/*
 sdist/*
 docs/api/*
@@ -176,3 +177,10 @@ docs/_rst/*
 docs/_build/*
 cover/*
 MANIFEST
+
+# Local certificates
+localhost.key
+localhost.crt
+
+# Archives
+master.zip
