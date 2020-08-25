@@ -1,20 +1,22 @@
 """
 Test worker authentication reltated functions
 """
+from nacl.exceptions import BadSignatureError
+from nacl.encoding import HexEncoder
+from nacl.signing import SigningKey, VerifyKey
+from dc_federated.utils import StoppableServer, get_host_ip
+from dc_federated.backend.worker_key_pair_tool import gen_pair, verify_pair
+from dc_federated.backend._constants import *
+from dc_federated.backend import DCFServer, DCFWorker
+from threading import Thread
+import zlib
+import requests
 import os
 import time
 import pickle
-import requests
-import zlib
-
-from threading import Thread
-from dc_federated.backend import DCFServer, DCFWorker
-from dc_federated.backend._constants import *
-from dc_federated.backend.worker_key_pair_tool import gen_pair, verify_pair
-from dc_federated.utils import StoppableServer, get_host_ip
-from nacl.signing import SigningKey, VerifyKey
-from nacl.encoding import HexEncoder
-from nacl.exceptions import BadSignatureError
+<< << << < HEAD
+== == == =
+>>>>>> > a8d472ba76fe74374fb1caeaf715e394b76260e3
 
 
 def test_worker_key_pair_tool():
