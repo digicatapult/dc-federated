@@ -14,9 +14,6 @@ import requests
 import os
 import time
 import pickle
-<< << << < HEAD
-== == == =
->>>>>> > a8d472ba76fe74374fb1caeaf715e394b76260e3
 
 
 def test_worker_key_pair_tool():
