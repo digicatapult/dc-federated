@@ -6,6 +6,7 @@ import os
 import time
 from threading import Thread
 import pickle
+import zlib
 
 from nacl.signing import SigningKey, VerifyKey
 from nacl.encoding import HexEncoder
