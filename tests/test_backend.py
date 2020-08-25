@@ -87,25 +87,28 @@ def test_server_functionality():
             f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{REGISTER_WORKER_ROUTE}", json=data)
 
     assert len(worker_ids) == 3
-    assert worker_ids[0] != worker_ids[1] and worker_ids[1] != worker_ids[2] and worker_ids[0] != worker_ids[2]
+    assert len(set(worker_ids)) == 3
     assert worker_ids[0].__class__ == worker_ids[1].__class__ == worker_ids[2].__class__
 
     workers_list = json.loads(requests.get(
         f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers").content)
-    assert workers_list == worker_ids
+    assert all([worker["worker_id"] in worker_ids for worker in workers_list])
 
     requests.post(
         f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers", json={})
     assert len(worker_ids) == 3
 
-    admin_registered_worker = {PUBLIC_KEY_STR: "fake_public_key"}
+    admin_registered_worker = {
+        PUBLIC_KEY_STR: "new_public_key",
+        "active": True
+    }
     requests.post(
         f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers", json=admin_registered_worker)
     assert len(worker_ids) == 4
     assert worker_ids[3] == admin_registered_worker[PUBLIC_KEY_STR]
 
     requests.delete(
-        f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers/fake_public_key")
+        f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers/new_public_key")
     assert len(worker_ids) == 3
 
     # test the model status
