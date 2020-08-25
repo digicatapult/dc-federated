@@ -210,7 +210,7 @@ class DCFServer(object):
             The Queue used to return the data to the calling worker and
             fulfill the WSGI promise/map.
 
-       last_worker_model_version: float
+       last_worker_model_version: object
             The version of the last model that the worker was using.
         """
         while self.is_global_model_most_recent(last_worker_model_version):

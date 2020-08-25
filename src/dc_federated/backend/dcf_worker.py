@@ -49,12 +49,7 @@ class DCFWorker(object):
             Name of the private key to use to authenticate the worker to the server.
             No authentication is performed if a None is passed.  Name of the
             corresponding public key file is assumed to be key_file + '.pub'
-
-        polling_wait_period: int
-            The number of seconds to wait before polling the server
-            for status information.
     """
-
     def __init__(
             self,
             server_protocol,

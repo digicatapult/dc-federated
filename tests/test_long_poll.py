@@ -32,6 +32,7 @@ class SimpleLPWorker(object):
         self.gm_version = "0"
         self.update = None
         self.worker = DCFWorker(
+            server_protocol='http',
             server_host_ip=s_host,
             server_port=s_port,
             global_model_version_changed_callback=self.global_model_changed_callback,
@@ -108,8 +109,6 @@ def test_long_polling():
         dcf_server.start_server(stoppable_server)
     server_gl = Greenlet.spawn(begin_server)
     sleep(2)
-
-
 
     # create the workers
     workers = [SimpleLPWorker(dcf_server.server_host_ip,
