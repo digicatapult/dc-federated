@@ -320,7 +320,9 @@ class DCFServer(object):
         """
         try:
             # FIXME replace pickle by JSON here
-            data_dict = pickle.load(request.files[ID_AND_MODEL_KEY].file)
+            compressed_model = request.files[ID_AND_MODEL_KEY].file.read()
+            uncompressed = zlib.decompress(compressed_model)
+            data_dict = pickle.loads(uncompressed)
 
             if not WORKER_ID_KEY in data_dict:
                 logger.warning(

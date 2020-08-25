@@ -137,10 +137,10 @@ def test_server_functionality():
 
     # test sending the model update
     id_and_model_dict_good = {
-        ID_AND_MODEL_KEY: pickle.dumps({
+        ID_AND_MODEL_KEY: zlib.compress(pickle.dumps({
             WORKER_ID_KEY: worker_ids[1],
             MODEL_UPDATE_KEY: pickle.dumps("Model update!!")
-        })
+        }))
     }
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
@@ -153,11 +153,11 @@ def test_server_functionality():
 
     # test sending a model update for an unregistered worker
     id_and_model_dict_bad = {
-        ID_AND_MODEL_KEY: pickle.dumps({
+        ID_AND_MODEL_KEY: zlib.compress(pickle.dumps({
             WORKER_ID_KEY: 3,
             MODEL_UPDATE_KEY: pickle.dumps(
                 "Model update for unregistered worker!!")
-        })
+        }))
     }
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
