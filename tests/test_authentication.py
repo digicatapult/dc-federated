@@ -5,6 +5,7 @@ import os
 import time
 import pickle
 import requests
+import zlib
 
 from threading import Thread
 from dc_federated.backend import DCFServer, DCFWorker
@@ -109,7 +110,7 @@ def test_worker_authentication():
     time.sleep(2)
 
     # create the worker
-    workers = [DCFWorker(dcf_server.server_host_ip,
+    workers = [DCFWorker('http', dcf_server.server_host_ip,
                          dcf_server.server_port,
                          test_glob_mod_chng_cb,
                          worker_key_file_prefix + f"_{n}")
@@ -129,7 +130,7 @@ def test_worker_authentication():
 
     # try to authenticate a unregistered worker
     gen_pair('bad_worker')
-    bad_worker = DCFWorker(dcf_server.server_host_ip,
+    bad_worker = DCFWorker('http', dcf_server.server_host_ip,
                            dcf_server.server_port,
                            test_glob_mod_chng_cb,
                            'bad_worker')
@@ -145,10 +146,10 @@ def test_worker_authentication():
         bad_worker_key = f.read()
 
     id_and_model_dict_good = {
-        ID_AND_MODEL_KEY: pickle.dumps({
+        ID_AND_MODEL_KEY: zlib.compress(pickle.dumps({
             WORKER_ID_KEY: bad_worker_key,
             MODEL_UPDATE_KEY: pickle.dumps("Bad Model update!!")
-        })
+        }))
     }
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
