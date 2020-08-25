@@ -151,10 +151,10 @@ def test_worker_authentication():
         bad_worker_key = f.read()
 
     id_and_model_dict_good = {
-        ID_AND_MODEL_KEY: pickle.dumps({
+        ID_AND_MODEL_KEY: zlib.compress(pickle.dumps({
             WORKER_ID_KEY: bad_worker_key,
             MODEL_UPDATE_KEY: pickle.dumps("Bad Model update!!")
-        })
+        }))
     }
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
