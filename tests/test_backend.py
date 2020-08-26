@@ -136,32 +136,17 @@ def test_server_functionality():
         model_binary))) == "Pickle dump of a string"
 
     # test sending the model update
-    id_and_model_dict_good = {
-        ID_AND_MODEL_KEY: zlib.compress(pickle.dumps({
-            WORKER_ID_KEY: worker_ids[1],
-            MODEL_UPDATE_KEY: pickle.dumps("Model update!!")
-        }))
-    }
     response = requests.post(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
-        files=id_and_model_dict_good
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/{worker_ids[1]}",
+        files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps("Model update!!"))}
     ).content
-    assert pickle.load(io.BytesIO(
-        worker_updates[worker_ids[1]])) == "Model update!!"
-    assert response.decode(
-        "UTF-8") == f"Update received for worker {worker_ids[1]}."
 
-    # test sending a model update for an unregistered worker
-    id_and_model_dict_bad = {
-        ID_AND_MODEL_KEY: zlib.compress(pickle.dumps({
-            WORKER_ID_KEY: 3,
-            MODEL_UPDATE_KEY: pickle.dumps(
-                "Model update for unregistered worker!!")
-        }))
-    }
+    assert pickle.load(io.BytesIO(worker_updates[worker_ids[1]])) == "Model update!!"
+    assert response.decode("UTF-8") == f"Update received for worker {worker_ids[1]}."
+
     response = requests.post(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
-        files=id_and_model_dict_bad
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/3",
+        files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps("Model update for unregistered worker!!"))}
     ).content
 
     assert 3 not in worker_updates

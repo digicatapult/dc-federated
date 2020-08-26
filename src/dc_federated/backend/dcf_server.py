@@ -306,7 +306,7 @@ class DCFServer(object):
             "active": active
         })
 
-    def receive_worker_update(self):
+    def receive_worker_update(self, worker_id):
         """
         This receives the update from a worker and calls the corresponding callback function.
         Expects that the worker_id and model-update were sent using the DCFWorker.send_model_update()
@@ -319,23 +319,8 @@ class DCFServer(object):
             Otherwise any exception that was raised.
         """
         try:
-            # FIXME replace pickle by JSON here
-            compressed_model = request.files[ID_AND_MODEL_KEY].file.read()
-            uncompressed = zlib.decompress(compressed_model)
-            data_dict = pickle.loads(uncompressed)
-
-            if not WORKER_ID_KEY in data_dict:
-                logger.warning(
-                    f"Key {WORKER_ID_KEY} is missing in payload.")
-                return UNREGISTERED_WORKER
-
-            if not MODEL_UPDATE_KEY in data_dict:
-                logger.warning(
-                    f"Key {MODEL_UPDATE_KEY} is missing in payload.")
-                return UNREGISTERED_WORKER
-
-            worker_id = data_dict[WORKER_ID_KEY]
-            model_update = data_dict[MODEL_UPDATE_KEY]
+            model_update = zlib.decompress(
+                request.files[ID_AND_MODEL_KEY].file.read())
 
             if not worker_id in self.worker_list:
                 logger.warning(
@@ -455,7 +440,7 @@ class DCFServer(object):
                           method='POST', callback=self.return_global_model)
         application.route(f"/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
                           method='POST', callback=self.query_global_model_status)
-        application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}",
+        application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}/<worker_id>",
                           method='POST', callback=self.receive_worker_update)
         application.add_hook('after_request', self.enable_cors)
 
