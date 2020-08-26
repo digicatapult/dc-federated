@@ -1,4 +1,11 @@
 
+"""
+Tests for the FedAvgServer logic. The FedAvgWorker is not tested here because
+it is implicitly tested by the implementation of MNIST version of FedAvg.
+Additionally, the logic in all the functions in FedAvgWorker is straightforward
+enough that the amount of requried testing infrastructure is not justified.
+"""
+
 import io
 import pickle
 import logging

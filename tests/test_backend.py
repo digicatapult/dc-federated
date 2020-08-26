@@ -1,10 +1,10 @@
 import io
-from threading import Thread
-import pickle
 import zlib
-
-import requests
 import time
+import pickle
+import requests
+
+from threading import Thread
 
 from dc_federated.backend import DCFServer, DCFWorker
 from dc_federated.backend._constants import *

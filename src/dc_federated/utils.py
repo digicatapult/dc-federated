@@ -4,10 +4,11 @@ Contains utility functions to be used within the demo.
 
 
 import socket
+import logging
 
 from bottle import Bottle, ServerAdapter
+from wsgiref.simple_server import make_server, WSGIRequestHandler
 
-import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,7 +38,6 @@ class StoppableServer(ServerAdapter):
     server = None
 
     def run(self, handler):
-        from wsgiref.simple_server import make_server, WSGIRequestHandler
         if self.quiet:
             class QuietHandler(WSGIRequestHandler):
                 def log_request(*args, **kw): pass
