@@ -156,7 +156,7 @@ class DCFServer(object):
         self.register_worker_callback(worker_id)
         return worker_id
 
-    def receive_worker_update(self):
+    def receive_worker_update(self, worker_id):
         """
         This receives the update from a worker and calls the corresponding callback function.
         Expects that the worker_id and model-update were sent using the DCFWorker.send_model_update()
@@ -169,19 +169,11 @@ class DCFServer(object):
             Otherwise any exception that was raised.
         """
         try:
-            compressed_model = request.files[ID_AND_MODEL_KEY].file.read()
-            uncompressed = zlib.decompress(compressed_model)
-            data_dict = pickle.loads(uncompressed)
-
-            if data_dict[WORKER_ID_KEY] in self.worker_list:
-                return_value = self.receive_worker_update_callback(
-                    data_dict[WORKER_ID_KEY],
-                    data_dict[MODEL_UPDATE_KEY]
-                )
-                return return_value
+            data_dict = zlib.decompress(request.files[ID_AND_MODEL_KEY].file.read())
+            if worker_id in self.worker_list:
+                return self.receive_worker_update_callback(worker_id, data_dict)
             else:
-                logger.warning(
-                    f"Unregistered worker {data_dict[WORKER_ID_KEY]} tried to send an update.")
+                logger.warning(f"Unregistered worker {worker_id} tried to send an update.")
                 return UNREGISTERED_WORKER
         except Exception as e:
             logger.warning(e)
@@ -258,7 +250,7 @@ class DCFServer(object):
                           method='POST', callback=self.return_global_model)
         application.route(f"/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
                           method='POST', callback=self.query_global_model_status)
-        application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}",
+        application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}/<worker_id>",
                           method='POST', callback=self.receive_worker_update)
         application.add_hook('after_request', self.enable_cors)
 
