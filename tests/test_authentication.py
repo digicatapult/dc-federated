@@ -3,27 +3,21 @@ Test worker authentication reltated functions
 """
 
 import os
-import time
-from threading import Thread
-import pickle
 import zlib
-
-from nacl.signing import SigningKey, VerifyKey
-from nacl.encoding import HexEncoder
-from nacl.exceptions import BadSignatureError
-
-from dc_federated.backend import DCFServer, DCFWorker
-from dc_federated.backend._constants import *
-from dc_federated.backend.worker_key_pair_tool import gen_pair, verify_pair
-from dc_federated.utils import StoppableServer, get_host_ip
-
+import time
+import pickle
 import requests
 
-import logging
+from threading import Thread
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__file__)
-logger.setLevel(level=logging.INFO)
+from nacl.exceptions import BadSignatureError
+from nacl.encoding import HexEncoder
+from nacl.signing import SigningKey, VerifyKey
+
+from dc_federated.utils import StoppableServer, get_host_ip
+from dc_federated.backend.worker_key_pair_tool import gen_pair, verify_pair
+from dc_federated.backend._constants import *
+from dc_federated.backend import DCFServer, DCFWorker
 
 
 def test_worker_key_pair_tool():
@@ -182,10 +176,4 @@ def test_worker_authentication():
     os.remove("bad_worker")
     os.remove("bad_worker.pub")
 
-    logger.info("\n\n*** All Tests Passed - Testing completed successfully ***")
     stoppable_server.shutdown()
-
-
-if __name__ == '__main__':
-    test_worker_key_pair_tool()
-    test_worker_authentication()
