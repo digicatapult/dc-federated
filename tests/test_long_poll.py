@@ -151,9 +151,11 @@ def test_long_polling():
     # if it hasn't stopped after 100 seconds, it has failed.
     while done_count < num_workers and (datetime.now() - start_time).seconds < 100 :
         sleep(1)
+        logger.info(f"{done_count} workers have received the global model update - need to get to {num_workers}...")
     # all the calls to get the global model should have succeeded by now
 
     assert done_count == num_workers
+    logger.info(f"All workers have received the global model update.")
 
     stoppable_server.shutdown()
 

@@ -175,9 +175,10 @@ def test_worker_authentication():
         }))
     }
     response = requests.post(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/{bad_worker_key}",
         files=id_and_model_dict_good
     ).content
+    print(response)
     assert response.decode('utf-8') == UNREGISTERED_WORKER
 
     response = requests.post(

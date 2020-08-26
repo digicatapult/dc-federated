@@ -163,13 +163,9 @@ class DCFWorker(object):
         model_update: binary string
             The model update to send to the server.
         """
-        data_dict = {
-            WORKER_ID_KEY: self.worker_id,
-            MODEL_UPDATE_KEY: model_update
-        }
         return requests.post(
-            f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}",
-            files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps(data_dict))}
+            f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}/{self.worker_id}",
+            files={ID_AND_MODEL_KEY: zlib.compress(model_update)},
         ).content
 
     def run(self):
