@@ -1,6 +1,7 @@
 """
 Tests for the DCFWorker and DCFServer class.
 """
+
 import gevent
 from gevent import Greenlet, sleep
 from gevent import monkey; monkey.patch_all()
@@ -17,11 +18,6 @@ from dc_federated.backend._constants import *
 from dc_federated.utils import StoppableServer, get_host_ip
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__file__)
-logger.setLevel(level=logging.INFO)
-
-
 def test_server_functionality():
     """
     Unit tests for the DCFServer and DCFWorker classes.
@@ -30,7 +26,7 @@ def test_server_functionality():
     worker_updates = {}
     global_model_version = "1"
     worker_global_model_version = "0"
-    stoppable_server = StoppableServer(host=get_host_ip(), port=8080, server='gevent')
+    stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
 
     def begin_server():
         dcf_server.start_server(stoppable_server)
@@ -141,8 +137,3 @@ def test_server_functionality():
         "UTF-8") == f"Update received for worker {worker_ids[3]}."
 
     stoppable_server.shutdown()
-    logger.info("***************** ALL TESTS PASSED *****************")
-
-
-if __name__ == '__main__':
-    test_server_functionality()

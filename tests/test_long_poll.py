@@ -161,9 +161,3 @@ def test_long_polling():
 
     for f in os.listdir(keys_folder):
         os.remove(os.path.join(keys_folder, f))
-
-    logger.info("***************** ALL TESTS PASSED *****************")
-
-
-if __name__ == '__main__':
-    test_long_polling()

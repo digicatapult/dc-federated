@@ -1,14 +1,16 @@
 """
-Test worker authentication reltated functions
+Test worker authentication related functions.
 """
 
 import os
-import pickle
 import zlib
+import time
+import pickle
+import requests
 
-from nacl.signing import SigningKey, VerifyKey
-from nacl.encoding import HexEncoder
 from nacl.exceptions import BadSignatureError
+from nacl.encoding import HexEncoder
+from nacl.signing import SigningKey, VerifyKey
 
 import requests
 from gevent import Greenlet, sleep
@@ -17,7 +19,6 @@ from dc_federated.backend import DCFServer, DCFWorker, create_model_dict, is_val
 from dc_federated.backend._constants import *
 from dc_federated.backend.worker_key_pair_tool import gen_pair, verify_pair
 from dc_federated.utils import StoppableServer, get_host_ip
-
 
 import logging
 
@@ -196,9 +197,3 @@ def test_worker_authentication():
     os.remove("bad_worker.pub")
 
     stoppable_server.shutdown()
-    logger.info("***************** ALL TESTS PASSED *****************")
-
-
-if __name__ == '__main__':
-    test_worker_key_pair_tool()
-    test_worker_authentication()
