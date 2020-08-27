@@ -157,33 +157,24 @@ class DCFServer(object):
         auth_success, auth_type = \
             self.worker_authenticator.authenticate_worker(worker_data[PUBLIC_KEY_STR],
                                                           worker_data[SIGNED_PHRASE])
-        if not auth_success:
+        if auth_success:
             logger.info(
-                f"Failed to register worker with public key: {worker_data[PUBLIC_KEY_STR]}")
-            return INVALID_WORKER
-
-        logger.info(
-            f"Successfully authenticated worker with public key: {worker_data[PUBLIC_KEY_STR]}")
-
-        if auth_type == NO_AUTHENTICATION:
-            worker_id = hashlib.sha224(str(time.time()).encode(
-                'utf-8')).hexdigest() + '_unauthenticated'
-            logger.info(
-                f"Successfully registered worker: {worker_id}")
-
+                f"Successfully registered worker with public key: {worker_data[PUBLIC_KEY_STR]}")
+            if auth_type == NO_AUTHENTICATION:
+                worker_id = hashlib.sha224(str(time.time()).encode(
+                    'utf-8')).hexdigest() + '_unauthenticated'
+            else:
+                worker_id = worker_data[PUBLIC_KEY_STR]
             if worker_id not in self.worker_list:
                 self.worker_list.append(worker_id)
+                self.active_workers.add(worker_id)
 
         else:
-            worker_id = worker_data[PUBLIC_KEY_STR]
-            if worker_id not in self.worker_list:
-                logger.info(
-                    f"Unauthorized worker {worker_id} tried to register")
-                return INVALID_WORKER
+            logger.info(
+                f"Failed to register worker with public key: {worker_data[PUBLIC_KEY_STR]}")
+            worker_id = INVALID_WORKER
 
-        self.active_workers.add(worker_id)
         self.register_worker_callback(worker_id)
-
         return worker_id
 
     def admin_list_workers(self):

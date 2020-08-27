@@ -4,6 +4,7 @@ import zlib
 import time
 import pickle
 import requests
+import json
 
 from threading import Thread
 
@@ -105,8 +106,6 @@ def test_server_functionality():
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
         json={WORKER_ID_KEY: worker_ids[0]}
     ).content.decode('UTF-8')
-    print(server_status)
-
     assert server_status == "Status is good!!"
 
     status = 'Status is bad!!'
@@ -173,3 +172,5 @@ def test_server_functionality():
         "UTF-8") == f"Update received for worker {worker_ids[3]}."
 
     stoppable_server.shutdown()
+
+test_server_functionality()
