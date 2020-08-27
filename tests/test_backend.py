@@ -12,7 +12,6 @@ import json
 import zlib
 
 import requests
-from requests.auth import HTTPBasicAuth
 import time
 
 from dc_federated.backend import DCFServer, DCFWorker
@@ -88,7 +87,7 @@ def test_server_functionality():
     assert len(set(worker_ids)) == 3
     assert worker_ids[0].__class__ == worker_ids[1].__class__ == worker_ids[2].__class__
 
-    adminAuth = HTTPBasicAuth('admin', 'str0ng_s3cr3t')
+    adminAuth = ('admin', 'str0ng_s3cr3t')
 
     response = requests.get(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/workers", auth=adminAuth).content
