@@ -12,7 +12,7 @@ import os.path
 import zlib
 
 import bottle
-from bottle import request, Bottle, run
+from bottle import request, Bottle, run, auth_basic
 from dc_federated.backend._constants import *
 from dc_federated.utils import get_host_ip
 
@@ -102,12 +102,10 @@ class DCFServer(object):
         ssl_enabled=False,
         ssl_keyfile=None,
         ssl_certfile=None,
-        admin_server_port=8081,
             debug=False):
 
         self.server_host_ip = get_host_ip() if server_host_ip is None else server_host_ip
         self.server_port = server_port
-        self.admin_server_port = admin_server_port
 
         self.register_worker_callback = register_worker_callback
         self.unregister_worker_callback = unregister_worker_callback
@@ -134,6 +132,15 @@ class DCFServer(object):
                 raise IOError("The provided SSL key file doesn't exist")
             self.ssl_keyfile = ssl_keyfile
             self.ssl_certfile = ssl_certfile
+
+    def is_admin(self, username, password):
+        adm_username = os.environ.get('ADMIN_USERNAME')
+        adm_password = os.environ.get('ADMIN_PASSWORD')
+
+        if adm_username is None or adm_password is None:
+            return False
+
+        return username == adm_username and password == adm_password
 
     def register_worker(self):
         """
@@ -444,6 +451,16 @@ class DCFServer(object):
                           method='POST', callback=self.receive_worker_update)
         application.add_hook('after_request', self.enable_cors)
 
+        # Admin routes
+        application.get(
+            "/workers", callback=auth_basic(self.is_admin)(self.admin_list_workers))
+        application.post(
+            "/workers", callback=auth_basic(self.is_admin)(self.admin_add_worker))
+        application.delete("/workers/<worker_id>",
+                           callback=auth_basic(self.is_admin)(self.admin_delete_worker))
+        application.put("/workers/<worker_id>",
+                        callback=auth_basic(self.is_admin)(self.admin_set_worker_status))
+
         if server_adapter is not None and isinstance(server_adapter, ServerAdapter):
             self.server_host_ip = server_adapter.host
             self.server_port = server_adapter.port
@@ -460,26 +477,6 @@ class DCFServer(object):
         else:
             run(application, host=self.server_host_ip,
                 port=self.server_port, debug=self.debug, quiet=True)
-
-    def start_admin_server(self, server_adapter=None):
-        """
-        Sets all the admin routes and starts the admin server
-        """
-        admin_app = Bottle()
-        admin_app.get("/workers", callback=self.admin_list_workers)
-        admin_app.post("/workers", callback=self.admin_add_worker)
-        admin_app.delete("/workers/<worker_id>",
-                         callback=self.admin_delete_worker)
-        admin_app.put("/workers/<worker_id>",
-                      callback=self.admin_set_worker_status)
-
-        if server_adapter is not None and isinstance(server_adapter, ServerAdapter):
-            self.admin_server_host_ip = server_adapter.host
-            self.admin_server_port = server_adapter.port
-            run(admin_app, server=server_adapter, debug=self.debug, quiet=True)
-        else:
-            run(admin_app, host='127.0.0.1',
-                port=self.admin_server_port, debug=self.debug, quiet=True)
 
 
 class WorkerAuthenticator(object):

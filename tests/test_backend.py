@@ -3,6 +3,7 @@ Tests for the DCFWorker and DCFServer class. As of now I am not sure what a good
 way is to programmatically kill a server thread - so you have to kill the program
 by pressing Ctrl+C.
 """
+import os
 import io
 from threading import Thread
 import pickle
@@ -11,6 +12,7 @@ import json
 import zlib
 
 import requests
+from requests.auth import HTTPBasicAuth
 import time
 
 from dc_federated.backend import DCFServer, DCFWorker
@@ -30,14 +32,13 @@ def test_server_functionality():
     worker_ids = []
     worker_updates = {}
     status = 'Status is good!!'
+    os.environ['ADMIN_USERNAME'] = 'admin'
+    os.environ['ADMIN_PASSWORD'] = 'str0ng_s3cr3t'
+
     stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
-    stoppable_admin_server = StoppableServer(host=get_host_ip(), port=8081)
 
     def begin_server():
         dcf_server.start_server(stoppable_server)
-
-    def begin_admin_server():
-        dcf_server.start_admin_server(stoppable_admin_server)
 
     def test_register_func_cb(id):
         worker_ids.append(id)
@@ -72,9 +73,6 @@ def test_server_functionality():
     server_thread = Thread(target=begin_server)
     server_thread.start()
 
-    admin_server_thread = Thread(target=begin_admin_server)
-    admin_server_thread.start()
-
     time.sleep(2)
 
     # register a set of workers
@@ -90,12 +88,16 @@ def test_server_functionality():
     assert len(set(worker_ids)) == 3
     assert worker_ids[0].__class__ == worker_ids[1].__class__ == worker_ids[2].__class__
 
-    workers_list = json.loads(requests.get(
-        f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers").content)
+    adminAuth = HTTPBasicAuth('admin', 'str0ng_s3cr3t')
+
+    response = requests.get(
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/workers", auth=adminAuth).content
+    workers_list = json.loads(response)
+
     assert all([worker["worker_id"] in worker_ids for worker in workers_list])
 
     requests.post(
-        f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers", json={})
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/workers", json={}, auth=adminAuth)
     assert len(worker_ids) == 3
 
     admin_registered_worker = {
@@ -103,12 +105,12 @@ def test_server_functionality():
         "active": True
     }
     requests.post(
-        f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers", json=admin_registered_worker)
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/workers", json=admin_registered_worker, auth=adminAuth)
     assert len(worker_ids) == 4
     assert worker_ids[3] == admin_registered_worker[PUBLIC_KEY_STR]
 
     requests.delete(
-        f"http://{dcf_server.admin_server_host_ip}:{dcf_server.admin_server_port}/workers/new_public_key")
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/workers/new_public_key", auth=adminAuth)
     assert len(worker_ids) == 3
 
     # test the model status
@@ -141,12 +143,15 @@ def test_server_functionality():
         files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps("Model update!!"))}
     ).content
 
-    assert pickle.load(io.BytesIO(worker_updates[worker_ids[1]])) == "Model update!!"
-    assert response.decode("UTF-8") == f"Update received for worker {worker_ids[1]}."
+    assert pickle.load(io.BytesIO(
+        worker_updates[worker_ids[1]])) == "Model update!!"
+    assert response.decode(
+        "UTF-8") == f"Update received for worker {worker_ids[1]}."
 
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/3",
-        files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps("Model update for unregistered worker!!"))}
+        files={ID_AND_MODEL_KEY: zlib.compress(
+            pickle.dumps("Model update for unregistered worker!!"))}
     ).content
 
     assert 3 not in worker_updates
@@ -184,7 +189,6 @@ def test_server_functionality():
     # TODO: eliminate this awfulness!
     logger.info("***************** ALL TESTS PASSED *****************")
     stoppable_server.shutdown()
-    stoppable_admin_server.shutdown()
 
 
 if __name__ == '__main__':
