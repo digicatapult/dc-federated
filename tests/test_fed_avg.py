@@ -1,3 +1,4 @@
+
 """
 Tests for the FedAvgServer logic. The FedAvgWorker is not tested here because
 it is implicitly tested by the implementation of MNIST version of FedAvg.
@@ -5,26 +6,22 @@ Additionally, the logic in all the functions in FedAvgWorker is straightforward
 enough that the amount of requried testing infrastructure is not justified.
 """
 
-import pickle
 import io
-
+import pickle
+import logging
 import torch
+
 from torch import nn
 import torch.nn.functional as F
 
 from dc_federated.algorithms.fed_avg import FedAvgServer, FedAvgModelTrainer
-
-import logging
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__file__)
-logger.setLevel(level=logging.INFO)
 
 
 class FedAvgTestModel(nn.Module):
     """
     Simple network for testing the dataset.
     """
+
     def __init__(self):
         super(FedAvgTestModel, self).__init__()
         self.lin = nn.Linear(10, 2)
@@ -41,6 +38,7 @@ class FedAvgTestTrainer(FedAvgModelTrainer):
     Dummy trainer class for the test.
 
     """
+
     def __init__(self):
 
         self.model = FedAvgTestModel()
@@ -92,7 +90,7 @@ class FedAvgTestTrainer(FedAvgModelTrainer):
 
 def assert_models_equal(model_1, model_2):
     for param_1, param_2 in zip(model_1.parameters(),
-                                    model_2.parameters()):
+                                model_2.parameters()):
         assert torch.all(torch.eq(param_1.data, param_2.data))
 
 
@@ -110,7 +108,8 @@ def test_fed_avg_server():
     fed_avg_server.worker_updates[10] = None
     model_update = io.BytesIO()
     torch.save(worker_model_1, model_update)
-    fed_avg_server.receive_worker_update(10, pickle.dumps((15, model_update.getvalue())))
+    fed_avg_server.receive_worker_update(
+        10, pickle.dumps((15, model_update.getvalue())))
     assert_models_equal(worker_model_1, fed_avg_server.worker_updates[10][2])
 
     # check that the global updates happen as expected
@@ -119,7 +118,8 @@ def test_fed_avg_server():
     fed_avg_server.worker_updates[11] = None
     model_update = io.BytesIO()
     torch.save(worker_model_2, model_update)
-    fed_avg_server.receive_worker_update(11, pickle.dumps((20, model_update.getvalue())))
+    fed_avg_server.receive_worker_update(
+        11, pickle.dumps((20, model_update.getvalue())))
 
     global_update_dict = {}
     sd_1 = worker_model_1.state_dict()
@@ -130,8 +130,5 @@ def test_fed_avg_server():
     test_global_model = FedAvgTestModel()
     test_global_model.load_state_dict(global_update_dict)
 
-    assert_models_equal(fed_avg_server.global_model_trainer.model, test_global_model)
-    logger.info("***************** ALL TESTS PASSED *****************")
-
-if __name__ == '__main__':
-    test_fed_avg_server()
+    assert_models_equal(
+        fed_avg_server.global_model_trainer.model, test_global_model)

@@ -1,27 +1,15 @@
-"""
-Tests for the DCFWorker and DCFServer class. As of now I am not sure what a good
-way is to programmatically kill a server thread - so you have to kill the program
-by pressing Ctrl+C.
-"""
 import os
 import io
-from threading import Thread
-import pickle
-import logging
-import json
 import zlib
-
-import requests
 import time
+import pickle
+import requests
+
+from threading import Thread
 
 from dc_federated.backend import DCFServer, DCFWorker
 from dc_federated.backend._constants import *
 from dc_federated.utils import StoppableServer, get_host_ip
-
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__file__)
-logger.setLevel(level=logging.INFO)
 
 
 def test_server_functionality():
@@ -184,11 +172,4 @@ def test_server_functionality():
     assert response.decode(
         "UTF-8") == f"Update received for worker {worker_ids[3]}."
 
-    # TODO: figure out how to kill the server thread and
-    # TODO: eliminate this awfulness!
-    logger.info("***************** ALL TESTS PASSED *****************")
     stoppable_server.shutdown()
-
-
-if __name__ == '__main__':
-    test_server_functionality()
