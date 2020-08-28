@@ -79,5 +79,3 @@ def test_example():
     os.remove(egm_worker_update_name)
     os.remove('elm_global_model.torch')
     os.remove(elm_worker_update_name)
-
-test_example()
