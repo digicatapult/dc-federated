@@ -6,12 +6,13 @@ import gevent
 from gevent import Greenlet, sleep
 from gevent import monkey; monkey.patch_all()
 
+import os
 import io
 import pickle
 import logging
 import zlib
-
 import requests
+import json
 
 from dc_federated.backend import DCFServer, DCFWorker, create_model_dict, is_valid_model_dict
 from dc_federated.backend._constants import *
@@ -26,6 +27,9 @@ def test_server_functionality():
     worker_updates = {}
     global_model_version = "1"
     worker_global_model_version = "0"
+    os.environ[ADMIN_USERNAME] = 'admin'
+    os.environ[ADMIN_PASSWORD] = 'str0ng_s3cr3t'
+
     stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
 
     def begin_server():
@@ -33,6 +37,9 @@ def test_server_functionality():
 
     def test_register_func_cb(id):
         worker_ids.append(id)
+
+    def test_unregister_func_cb(id):
+        worker_ids.remove(id)
 
     def test_ret_global_model_cb():
         return create_model_dict(
@@ -59,6 +66,7 @@ def test_server_functionality():
 
     dcf_server = DCFServer(
         register_worker_callback=test_register_func_cb,
+        unregister_worker_callback=test_unregister_func_cb,
         return_global_model_callback=test_ret_global_model_cb,
         is_global_model_most_recent=is_global_model_most_recent,
         receive_worker_update_callback=test_rec_server_update_cb,
@@ -72,13 +80,43 @@ def test_server_functionality():
         PUBLIC_KEY_STR: "dummy public key",
         SIGNED_PHRASE: "dummy signed phrase"
     }
-    for i in range(3):
+    for _ in range(3):
         requests.post(
             f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{REGISTER_WORKER_ROUTE}", json=data)
 
     assert len(worker_ids) == 3
-    assert worker_ids[0] != worker_ids[1] and worker_ids[1] != worker_ids[2] and worker_ids[0] != worker_ids[2]
+    assert len(set(worker_ids)) == 3
     assert worker_ids[0].__class__ == worker_ids[1].__class__ == worker_ids[2].__class__
+
+    admin_auth = ('admin', 'str0ng_s3cr3t')
+
+    response = requests.get(
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}",
+        auth=admin_auth).content
+
+    print(response)
+    workers_list = json.loads(response)
+
+    assert all([worker[WORKER_ID_KEY] in worker_ids for worker in workers_list])
+
+    requests.post(
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}",
+        json={}, auth=admin_auth)
+    assert len(worker_ids) == 3
+
+    admin_registered_worker = {
+        PUBLIC_KEY_STR: "new_public_key",
+        ACTIVE_WORKER_KEY: True
+    }
+    requests.post(
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}",
+        json=admin_registered_worker, auth=admin_auth)
+    assert len(worker_ids) == 4
+    assert worker_ids[3] == admin_registered_worker[PUBLIC_KEY_STR]
+
+    requests.delete(
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}/new_public_key", auth=admin_auth)
+    assert len(worker_ids) == 3
 
     # test getting the global model
     model_return_binary = requests.post(
@@ -97,12 +135,15 @@ def test_server_functionality():
         files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps("Model update!!"))}
     ).content
 
-    assert pickle.load(io.BytesIO(worker_updates[worker_ids[1]])) == "Model update!!"
-    assert response.decode("UTF-8") == f"Update received for worker {worker_ids[1]}."
+    assert pickle.load(io.BytesIO(
+        worker_updates[worker_ids[1]])) == "Model update!!"
+    assert response.decode(
+        "UTF-8") == f"Update received for worker {worker_ids[1]}."
 
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/3",
-        files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps("Model update for unregistered worker!!"))}
+        files={ID_AND_MODEL_KEY: zlib.compress(
+            pickle.dumps("Model update for unregistered worker!!"))}
     ).content
 
     assert 3 not in worker_updates

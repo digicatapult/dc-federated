@@ -24,6 +24,7 @@ class ExampleGlobalModel(object):
     implement a federated global model. For testing purposes, it writes all the
     models it creates and receives to disk.
     """
+
     def __init__(self):
         self.worker_updates = {}
         self.global_model = ExampleModelClass()
@@ -34,6 +35,7 @@ class ExampleGlobalModel(object):
 
         self.server = DCFServer(
             register_worker_callback=self.register_worker,
+            unregister_worker_callback=self.unregister_worker,
             return_global_model_callback=self.return_global_model,
             is_global_model_most_recent=self.is_global_model_most_recent,
             receive_worker_update_callback=self.receive_worker_update,
@@ -52,6 +54,19 @@ class ExampleGlobalModel(object):
         """
         logger.info(f"Example Global Model: Registering worker {worker_id}")
         self.worker_updates[worker_id] = None
+
+    def unregister_worker(self, worker_id):
+        """
+        Unregister the given worker_id by removing it from updates.
+
+        Parameters
+        ----------
+
+        worker_id: int
+            The id of the worker to be removed.
+        """
+        logger.info(f"Example Global Model: Unregistering worker {worker_id}")
+        self.worker_updates.pop(worker_id)
 
     def return_global_model(self):
         """
