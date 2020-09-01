@@ -20,8 +20,8 @@ def test_server_functionality():
     worker_ids = []
     worker_updates = {}
     status = 'Status is good!!'
-    os.environ['ADMIN_USERNAME'] = 'admin'
-    os.environ['ADMIN_PASSWORD'] = 'str0ng_s3cr3t'
+    os.environ[ADMIN_USERNAME] = 'admin'
+    os.environ[ADMIN_PASSWORD] = 'str0ng_s3cr3t'
 
     stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
 
@@ -76,29 +76,34 @@ def test_server_functionality():
     assert len(set(worker_ids)) == 3
     assert worker_ids[0].__class__ == worker_ids[1].__class__ == worker_ids[2].__class__
 
-    adminAuth = ('admin', 'str0ng_s3cr3t')
+    admin_auth = ('admin', 'str0ng_s3cr3t')
 
     response = requests.get(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/workers", auth=adminAuth).content
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}",
+        auth=admin_auth).content
+
+    print(response)
     workers_list = json.loads(response)
 
-    assert all([worker["worker_id"] in worker_ids for worker in workers_list])
+    assert all([worker[WORKER_ID_KEY] in worker_ids for worker in workers_list])
 
     requests.post(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/workers", json={}, auth=adminAuth)
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}",
+        json={}, auth=admin_auth)
     assert len(worker_ids) == 3
 
     admin_registered_worker = {
         PUBLIC_KEY_STR: "new_public_key",
-        "active": True
+        ACTIVE_WORKER_KEY: True
     }
     requests.post(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/workers", json=admin_registered_worker, auth=adminAuth)
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}",
+        json=admin_registered_worker, auth=admin_auth)
     assert len(worker_ids) == 4
     assert worker_ids[3] == admin_registered_worker[PUBLIC_KEY_STR]
 
     requests.delete(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/workers/new_public_key", auth=adminAuth)
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}/new_public_key", auth=admin_auth)
     assert len(worker_ids) == 3
 
     # test the model status
@@ -172,5 +177,3 @@ def test_server_functionality():
         "UTF-8") == f"Update received for worker {worker_ids[3]}."
 
     stoppable_server.shutdown()
-
-test_server_functionality()

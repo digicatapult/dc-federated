@@ -134,8 +134,26 @@ class DCFServer(object):
             self.ssl_certfile = ssl_certfile
 
     def is_admin(self, username, password):
-        adm_username = os.environ.get('ADMIN_USERNAME')
-        adm_password = os.environ.get('ADMIN_PASSWORD')
+        """
+        Callback for bottle to check that the requester is authorized to
+        act as an admin for the server.
+
+        Parameters
+        ----------
+        username: str
+            The admin username.
+
+        password: str
+            The admin password.
+
+        Returns
+        -------
+
+        bool:
+            True if the user/password us valid, false otherwise.
+        """
+        adm_username = os.environ.get(ADMIN_USERNAME)
+        adm_password = os.environ.get(ADMIN_PASSWORD)
 
         if adm_username is None or adm_password is None:
             return False
@@ -168,7 +186,6 @@ class DCFServer(object):
             if worker_id not in self.worker_list:
                 self.worker_list.append(worker_id)
                 self.active_workers.add(worker_id)
-
         else:
             logger.info(
                 f"Failed to register worker with public key: {worker_data[PUBLIC_KEY_STR]}")
@@ -188,19 +205,21 @@ class DCFServer(object):
             The id of the workers
         """
         response.content_type = 'application/json'
-        return json.dumps([{"worker_id": worker_id, "active": worker_id in self.active_workers} for worker_id in self.worker_list])
+        return json.dumps([{WORKER_ID_KEY: worker_id, ACTIVE_WORKER_KEY: worker_id in self.active_workers}
+                           for worker_id in self.worker_list])
 
     def admin_add_worker(self):
         """
         Add a new worker to the list or allowed workers
 
         JSON Body:
-        public_key_str: string The public key associated with the worker
+            public_key_str: string The public key associated with the worker
 
         Returns
         -------
 
-        The new worker id
+        str:
+            The new worker id
         """
         response.content_type = 'application/json'
 
@@ -208,10 +227,12 @@ class DCFServer(object):
 
         logger.info("Admin is adding a new worker...")
 
-        if not PUBLIC_KEY_STR in worker_data:
-            logger.error(f"Public key was not not passed in {worker_data}")
+        if PUBLIC_KEY_STR not in worker_data:
+            logger.error(f"Public key was not not passed in {worker_data} "
+                         f"using the key '{PUBLIC_KEY_STR}'.")
             return json.dumps({
-                "error": "Public key was not not passed in input"
+                ERROR_MESSAGE_KEY: "Public key was not not passed in input "
+                         f"using the key '{PUBLIC_KEY_STR}'."
             })
 
         worker_id = worker_data[PUBLIC_KEY_STR]
@@ -220,71 +241,107 @@ class DCFServer(object):
         if not isinstance(worker_id, str) or not len(worker_id):
             logger.error(f"Public key should be a string: {worker_id}")
             return json.dumps({
-                "error": "Public key must be a string"
+                ERROR_MESSAGE_KEY: "Public key must be a string"
             })
 
         if worker_id in self.worker_list:
-            logger.warn(f"Worker {worker_id} already exists")
+            logger.warning(f"Worker {worker_id} already exists")
             return json.dumps({
-                "error": f"Worker {worker_id} already exists"
+                ERROR_MESSAGE_KEY: f"Worker {worker_id} already exists"
             })
 
         self.worker_list.append(worker_id)
         logger.info(f"Worker {worker_id} was added")
 
-        if "active" in worker_data and worker_data["active"] == True:
+        if ACTIVE_WORKER_KEY in worker_data and worker_data[ACTIVE_WORKER_KEY]:
             self.active_workers.add(worker_id)
             self.register_worker_callback(worker_id)
             logger.info(f"Worker {worker_id} was registered")
 
         return json.dumps({
-            "worker_id": worker_id,
-            "active": worker_id in self.active_workers
+            WORKER_ID_KEY: worker_id,
+            ACTIVE_WORKER_KEY: worker_id in self.active_workers
         })
 
     def admin_delete_worker(self, worker_id):
         """
         Allow admin to delete a worker given its id
+
+        Parameters
+        ----------
+
+        worker_id: str
+            The id of the worker to delete
+
+        Returns
+        -------
+
+        str:
+            Id of worker removed or error message if worker was removed
+            or an error message.
+
         """
         logger.info(f"Admin is removing worker {worker_id}...")
-
-        if worker_id in self.worker_list:
-            self.worker_list.remove(worker_id)
-            # TODO callback for worker removed?
-            logger.info(f"Worker {worker_id} was removed")
 
         if worker_id in self.active_workers:
             self.active_workers.remove(worker_id)
             self.unregister_worker_callback(worker_id)
             logger.info(f"Worker {worker_id} was unregistered (removal)")
 
+        if worker_id in self.worker_list:
+            self.worker_list.remove(worker_id)
+            # TODO callback for worker removed?
+            logger.info(f"Worker {worker_id} was removed")
+        else:
+            logger.warning(f"Attempt to remove unknown worker {worker_id}.")
+            return json.dumps({
+                ERROR_MESSAGE_KEY: f"Attempt to remove unknown worker {worker_id}."
+            })
+
+        return json.dumps({
+                SUCCESS_MESSAGE_KEY: f"Successfully removed worker {worker_id}."
+            })
+
     def admin_set_worker_status(self, worker_id):
         """
-        Allow admin to change status (active = True or False) of a given worker
+        Allow admin to change status (active = True or False) of a given worker.
+
+        Parameters
+        ----------
+
+        worker_id: str
+            The id of the worker to set the status for.
+
+        Returns
+        -------
+
+        str:
+            JSON string of error Or success message
+
         """
         worker_data = request.json
 
         logger.info(f"Admin is setting the status of {worker_id}...")
 
-        if not "active" in worker_data:
+        if ACTIVE_WORKER_KEY not in worker_data:
             logger.error(f"The status was not not passed in {worker_data}")
             return json.dumps({
-                "error": f"Key 'active' is missing in payload"
+                ERROR_MESSAGE_KEY: f"Key '{ACTIVE_WORKER_KEY}' is missing in payload"
             })
 
-        active = worker_data["active"]
+        active = worker_data[ACTIVE_WORKER_KEY]
         logger.info(f"New {worker_id} status is active: {active}")
 
         if not isinstance(active, bool):
-            logger.error(f"Key 'active' should be a boolean: {active}")
+            logger.error(f"Key '{ACTIVE_WORKER_KEY}' should be a boolean: {active}")
             return json.dumps({
-                "error": f"Key 'active' should be a boolean: {active}"
+                ERROR_MESSAGE_KEY: f"Key '{ACTIVE_WORKER_KEY}' should be a boolean: {active}"
             })
 
         if worker_id not in self.worker_list:
             logger.error(f"Unknown worker: {worker_id}")
             return json.dumps({
-                "error": f"Unknown worker: {worker_id}"
+                ERROR_MESSAGE_KEY: f"Unknown worker: {worker_id}"
             })
 
         prev_active = worker_id in self.active_workers
@@ -297,11 +354,12 @@ class DCFServer(object):
             logger.info(f"Worker {worker_id} was unregistered")
             self.unregister_worker_callback(worker_id)
         else:
-            logger.warn(f"Nothing to change for {worker_id}")
+            logger.warning(f"Nothing to change for {worker_id}")
 
         return json.dumps({
-            "worker_id": worker_id,
-            "active": active
+            SUCCESS_MESSAGE_KEY:f"Successfully changed status for worker {worker_id}.",
+            WORKER_ID_KEY: worker_id,
+            ACTIVE_WORKER_KEY: active
         })
 
     def receive_worker_update(self, worker_id):
@@ -351,19 +409,19 @@ class DCFServer(object):
         try:
             query_request = request.json
 
-            if not WORKER_ID_KEY in query_request:
+            if WORKER_ID_KEY not in query_request:
                 logger.warning(
                     f"Key {WORKER_ID_KEY} is missing in query_request.")
                 return UNREGISTERED_WORKER
 
             worker_id = query_request[WORKER_ID_KEY]
 
-            if not worker_id in self.worker_list:
+            if worker_id not in self.worker_list:
                 logger.warning(
                     f"Unknown worker {worker_id} tried to query model status.")
                 return UNREGISTERED_WORKER
 
-            if not worker_id in self.active_workers:
+            if worker_id not in self.active_workers:
                 logger.warning(
                     f"Unregistered worker {worker_id} tried to query model status.")
                 return UNREGISTERED_WORKER
@@ -388,14 +446,14 @@ class DCFServer(object):
         try:
             query_request = request.json
 
-            if not WORKER_ID_KEY in query_request:
+            if WORKER_ID_KEY not in query_request:
                 logger.warning(
                     f"Key {WORKER_ID_KEY} is missing in query_request.")
                 return UNREGISTERED_WORKER
 
             worker_id = query_request[WORKER_ID_KEY]
 
-            if not worker_id in self.worker_list:
+            if worker_id not in self.worker_list:
                 logger.warning(
                     f"Unknown worker {worker_id} tried to return global model.")
                 return UNREGISTERED_WORKER
@@ -444,12 +502,12 @@ class DCFServer(object):
 
         # Admin routes
         application.get(
-            "/workers", callback=auth_basic(self.is_admin)(self.admin_list_workers))
+            f"/{WORKERS_ROUTE}", callback=auth_basic(self.is_admin)(self.admin_list_workers))
         application.post(
-            "/workers", callback=auth_basic(self.is_admin)(self.admin_add_worker))
-        application.delete("/workers/<worker_id>",
+            f"/{WORKERS_ROUTE}", callback=auth_basic(self.is_admin)(self.admin_add_worker))
+        application.delete(f"/{WORKERS_ROUTE}/<worker_id>",
                            callback=auth_basic(self.is_admin)(self.admin_delete_worker))
-        application.put("/workers/<worker_id>",
+        application.put(f"/{WORKERS_ROUTE}/<worker_id>",
                         callback=auth_basic(self.is_admin)(self.admin_set_worker_status))
 
         if server_adapter is not None and isinstance(server_adapter, ServerAdapter):
