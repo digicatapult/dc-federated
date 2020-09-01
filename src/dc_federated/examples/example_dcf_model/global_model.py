@@ -24,6 +24,7 @@ class ExampleGlobalModel(object):
     implement a federated global model. For testing purposes, it writes all the
     models it creates and receives to disk.
     """
+
     def __init__(self):
         self.worker_updates = {}
         self.global_model = ExampleModelClass()
@@ -34,6 +35,7 @@ class ExampleGlobalModel(object):
 
         self.server = DCFServer(
             self.register_worker,
+            self.unregister_worker,
             self.return_global_model,
             self.return_global_model_status,
             self.receive_worker_update,
@@ -52,6 +54,19 @@ class ExampleGlobalModel(object):
         """
         logger.info(f"Example Global Model: Registering worker {worker_id}")
         self.worker_updates[worker_id] = None
+
+    def unregister_worker(self, worker_id):
+        """
+        Unregister the given worker_id by removing it from updates.
+
+        Parameters
+        ----------
+
+        worker_id: int
+            The id of the worker to be removed.
+        """
+        logger.info(f"Example Global Model: Unregistering worker {worker_id}")
+        self.worker_updates.pop(worker_id)
 
     def return_global_model(self):
         """
@@ -98,7 +113,8 @@ class ExampleGlobalModel(object):
             logger.info(self.worker_updates[worker_id])
             with open(f"egm_worker_update_{worker_id}.torch", 'wb') as f:
                 torch.save(self.worker_updates[worker_id], f)
-            self.global_model_status = str(datetime.now().isoformat(' ', 'seconds'))
+            self.global_model_status = str(
+                datetime.now().isoformat(' ', 'seconds'))
             return f"Update received for worker {worker_id}"
         else:
             return f"Unregistered worker {worker_id} tried to send an update!!"

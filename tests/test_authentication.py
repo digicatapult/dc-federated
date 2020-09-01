@@ -72,6 +72,9 @@ def test_worker_authentication():
     def test_register_func_cb(id):
         worker_ids.append(id)
 
+    def test_unregister_func_cb(id):
+        worker_ids.remove(id)
+
     def test_ret_global_model_cb():
         return pickle.dumps("Pickle dump of a string")
 
@@ -98,12 +101,12 @@ def test_worker_authentication():
 
     dcf_server = DCFServer(
         test_register_func_cb,
+        test_unregister_func_cb,
         test_ret_global_model_cb,
         test_query_status_cb,
         test_rec_server_update_cb,
         key_list_file=worker_key_file
     )
-
     stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
 
     def begin_server():
@@ -155,7 +158,7 @@ def test_worker_authentication():
         }))
     }
     response = requests.post(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}",
+        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/{bad_worker_key}",
         files=id_and_model_dict_good
     ).content
     assert response.decode('utf-8') == UNREGISTERED_WORKER
