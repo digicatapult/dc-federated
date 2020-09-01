@@ -11,7 +11,7 @@ import torch
 
 from dc_federated.utils import get_host_ip
 from dc_federated.examples.example_dcf_model.torch_nn_class import ExampleModelClass
-from dc_federated.backend import DCFWorker
+from dc_federated.backend import DCFWorker, GLOBAL_MODEL_VERSION, GLOBAL_MODEL
 
 
 logging.basicConfig(level=logging.INFO)
@@ -41,11 +41,13 @@ class ExampleLocalModel(object):
             server_protocol=server_protocol,
             server_host_ip=server_host_ip,
             server_port=server_port,
-            global_model_status_changed_callback=self.global_model_status_changed_callback,
+            global_model_version_changed_callback=self.global_model_status_changed_callback,
+            get_worker_version_of_global_model=lambda : self.worker_version_of_global_model,
             private_key_file=None
         )
 
         self.global_model = None
+        self.worker_version_of_global_model = -1
 
         # register the worker
         self.worker_id = self.worker.register_worker()
@@ -54,20 +56,6 @@ class ExampleLocalModel(object):
 
         # send the model update
         self.worker.send_model_update(self.serialize_model())
-
-    def get_model_update_time(self):
-        """
-        Queries the global model using the worker to get the last time
-        the model was updated.
-
-        Returns
-        -------
-        datetime:
-            The datetime of the last update of the model.
-        """
-        return datetime.strptime(
-            self.worker.current_global_model_status,
-            "%Y-%m-%d %H:%M:%S")
 
     def serialize_model(self):
         """
@@ -84,19 +72,16 @@ class ExampleLocalModel(object):
         torch.save(self.local_model, model_data)
         return model_data.getvalue()
 
-    def global_model_status_changed_callback(self):
+    def global_model_status_changed_callback(self, model_dict):
         """
         Example showing a callback for change to the global model status.
         """
-        if self.get_model_update_time() > self.last_update_time:
-            model_binary = self.worker.get_global_model()
-
-            if len(model_binary) > 0:
-                logger.info("I got the global model!! -- transforming...")
-                self.global_model = torch.load(io.BytesIO(model_binary))
-                with open("elm_global_model.torch", 'wb') as f:
-                    torch.save(self.global_model, f)
-                logger.info(self.global_model)
+        logger.info(f"I got the global model version {model_dict[GLOBAL_MODEL_VERSION]}"
+                    f"!! -- transforming...")
+        self.global_model = torch.load(io.BytesIO(model_dict[GLOBAL_MODEL]))
+        with open("elm_global_model.torch", 'wb') as f:
+            torch.save(self.global_model, f)
+        logger.info(self.global_model)
 
     def start(self):
         """

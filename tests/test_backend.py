@@ -1,14 +1,20 @@
+"""
+Tests for the DCFWorker and DCFServer class.
+"""
+
+import gevent
+from gevent import Greenlet, sleep
+from gevent import monkey; monkey.patch_all()
+
 import os
 import io
-import zlib
-import time
 import pickle
+import logging
+import zlib
 import requests
 import json
 
-from threading import Thread
-
-from dc_federated.backend import DCFServer, DCFWorker
+from dc_federated.backend import DCFServer, DCFWorker, create_model_dict, is_valid_model_dict
 from dc_federated.backend._constants import *
 from dc_federated.utils import StoppableServer, get_host_ip
 
@@ -19,7 +25,8 @@ def test_server_functionality():
     """
     worker_ids = []
     worker_updates = {}
-    status = 'Status is good!!'
+    global_model_version = "1"
+    worker_global_model_version = "0"
     os.environ[ADMIN_USERNAME] = 'admin'
     os.environ[ADMIN_PASSWORD] = 'str0ng_s3cr3t'
 
@@ -35,10 +42,12 @@ def test_server_functionality():
         worker_ids.remove(id)
 
     def test_ret_global_model_cb():
-        return pickle.dumps("Pickle dump of a string")
+        return create_model_dict(
+            pickle.dumps("Pickle dump of a string"),
+            global_model_version)
 
-    def test_query_status_cb():
-        return status
+    def is_global_model_most_recent(version):
+        return int(version) == global_model_version
 
     def test_rec_server_update_cb(worker_id, update):
         if worker_id in worker_ids:
@@ -47,21 +56,24 @@ def test_server_functionality():
         else:
             return f"Unregistered worker {worker_id} tried to send an update."
 
-    def test_glob_mod_chng_cb():
-        pass
+    def test_glob_mod_chng_cb(model_dict):
+        nonlocal worker_global_model_version
+        worker_global_model_version = model_dict[GLOBAL_MODEL_VERSION]
+
+    def test_get_last_glob_model_ver():
+        nonlocal worker_global_model_version
+        return worker_global_model_version
 
     dcf_server = DCFServer(
-        test_register_func_cb,
-        test_unregister_func_cb,
-        test_ret_global_model_cb,
-        test_query_status_cb,
-        test_rec_server_update_cb,
-        None
+        register_worker_callback=test_register_func_cb,
+        unregister_worker_callback=test_unregister_func_cb,
+        return_global_model_callback=test_ret_global_model_cb,
+        is_global_model_most_recent=is_global_model_most_recent,
+        receive_worker_update_callback=test_rec_server_update_cb,
+        key_list_file=None
     )
-    server_thread = Thread(target=begin_server)
-    server_thread.start()
-
-    time.sleep(2)
+    server_gl = Greenlet.spawn(begin_server)
+    sleep(2)
 
     # register a set of workers
     data = {
@@ -106,27 +118,16 @@ def test_server_functionality():
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}/new_public_key", auth=admin_auth)
     assert len(worker_ids) == 3
 
-    # test the model status
-    server_status = requests.post(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
-        json={WORKER_ID_KEY: worker_ids[0]}
-    ).content.decode('UTF-8')
-    assert server_status == "Status is good!!"
-
-    status = 'Status is bad!!'
-    server_status = requests.post(
-        f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
-        json={WORKER_ID_KEY: worker_ids[0]}
-    ).content.decode('UTF-8')
-    assert server_status == 'Status is bad!!'
-
     # test getting the global model
-    model_binary = requests.post(
+    model_return_binary = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
-        json={WORKER_ID_KEY: worker_ids[0]}
+        json={WORKER_ID_KEY: worker_ids[0],
+              LAST_WORKER_MODEL_VERSION: "0"}
     ).content
-    assert pickle.load(io.BytesIO(zlib.decompress(
-        model_binary))) == "Pickle dump of a string"
+    model_return = pickle.loads(zlib.decompress(model_return_binary))
+    assert isinstance(model_return, dict)
+    assert model_return[GLOBAL_MODEL_VERSION] == global_model_version
+    assert pickle.loads(model_return[GLOBAL_MODEL]) == "Pickle dump of a string"
 
     # test sending the model update
     response = requests.post(
@@ -150,23 +151,23 @@ def test_server_functionality():
 
     # *********** #
     # now test a DCFWorker on the same server.
-    dcf_worker = DCFWorker('http', dcf_server.server_host_ip,
-                           dcf_server.server_port, test_glob_mod_chng_cb, None)
+    dcf_worker = DCFWorker(
+        server_protocol='http',
+        server_host_ip=dcf_server.server_host_ip,
+        server_port=dcf_server.server_port,
+        global_model_version_changed_callback=test_glob_mod_chng_cb,
+        get_worker_version_of_global_model=test_get_last_glob_model_ver,
+        private_key_file=None)
 
     # test worker registration
     dcf_worker.register_worker()
     assert dcf_worker.worker_id == worker_ids[3]
 
-    # test getting the model status
-    status = dcf_worker.get_global_model_status()
-    assert status == "Status is bad!!"
-    status = "Status is good!!"
-    status = dcf_worker.get_global_model_status()
-    assert status == "Status is good!!"
-
     # test getting the global model update
-    global_model = dcf_worker.get_global_model()
-    assert pickle.load(io.BytesIO(global_model)) == "Pickle dump of a string"
+    global_model_dict = dcf_worker.get_global_model()
+    assert is_valid_model_dict(global_model_dict)
+    assert global_model_dict[GLOBAL_MODEL_VERSION] == global_model_version
+    assert pickle.loads(global_model_dict[GLOBAL_MODEL]) == "Pickle dump of a string"
 
     # test sending the model update
     response = dcf_worker.send_model_update(

@@ -3,24 +3,32 @@ Defines the core server class for the federated learning.
 Abstracts away the lower level server logic from the federated
 machine learning logic.
 """
+import gevent
+from gevent import monkey; monkey.patch_all()
+from gevent import Greenlet, queue
+
+import os
 import json
-import logging
 import pickle
 import hashlib
 import time
 import os.path
 import zlib
 
-import bottle
-from bottle import request, Bottle, run, auth_basic
-from dc_federated.backend._constants import *
-from dc_federated.utils import get_host_ip
-
 from nacl.signing import VerifyKey
 from nacl.encoding import HexEncoder
 from nacl.exceptions import BadSignatureError
-from bottle import Bottle, run, request, response, ServerAdapter
 
+import bottle
+from bottle import Bottle, run, request, response, auth_basic, ServerAdapter
+
+from dc_federated.backend._constants import *
+from dc_federated.backend.backend_utils import *
+from dc_federated.utils import get_host_ip
+from dc_federated.backend.backend_utils import is_valid_model_dict
+
+
+import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -48,14 +56,14 @@ class DCFServer(object):
             worker and should contain the application specific logic for
             dealing with a worker leaving the federated learning pool.
 
-        return_global_model_callback: () -> bit-string
-            This function is expected to return the current global model
-            in some application dependent binary serialized form.
+        return_global_model_callback: () -> dict
+            This function is expected to return a dictionary with the
+            GLOBAL_MODEL: containing the serialization of the global model
+            GLOBAL_MODEL_VERSION: containing the global model itself.
 
-
-        query_global_model_status_callback:  () -> str
-            This function is expected to return a string giving the
-            application dependent current status of the global model.
+        is_global_model_most_recent:  str -> bool
+            Returns the True if the model version given in the string is the
+            most recent one - otherwise returns False.
 
         receive_worker_update_callback: dict -> bool
             This function should receive a worker-id and an application
@@ -87,14 +95,17 @@ class DCFServer(object):
         ssl_certfile: str
             Must be a valid path to the certificate.
             This is mandatory if ssl_enabled, ignored otherwise.
-    """
 
+        model_check_interval: int
+            The interval of time between the server checking for an updated
+            model for the long polling.
+    """
     def __init__(
         self,
         register_worker_callback,
         unregister_worker_callback,
         return_global_model_callback,
-        query_global_model_status_callback,
+        is_global_model_most_recent,
         receive_worker_update_callback,
         key_list_file,
         server_host_ip=None,
@@ -102,18 +113,19 @@ class DCFServer(object):
         ssl_enabled=False,
         ssl_keyfile=None,
         ssl_certfile=None,
-            debug=False):
-
+        model_check_interval=10,
+        debug=False):
         self.server_host_ip = get_host_ip() if server_host_ip is None else server_host_ip
         self.server_port = server_port
 
         self.register_worker_callback = register_worker_callback
         self.unregister_worker_callback = unregister_worker_callback
         self.return_global_model_callback = return_global_model_callback
-        self.query_global_model_status_callback = query_global_model_status_callback
+        self.is_global_model_most_recent = is_global_model_most_recent
         self.receive_worker_update_callback = receive_worker_update_callback
-        self.worker_authenticator = WorkerAuthenticator(key_list_file)
 
+        self.worker_authenticator = WorkerAuthenticator(key_list_file)
+        self.model_check_interval = model_check_interval
         self.debug = debug
 
         self.worker_list = []
@@ -394,58 +406,46 @@ class DCFServer(object):
             logger.warning(e)
             return str(e)
 
-    def query_global_model_status(self):
+    def check_model_ready(self, body, last_worker_model_version):
         """
-        Returns the status of the global model using the provided callback. If query is not
-        from a valid worker it raises an error.
+        Threaded function run to check with the server if the model is ready.
 
-        Returns
-        -------
+        Parameters
+        ---------
 
-        str:
-            If the update was successful then "Worker update received"
-            Otherwise any exception that was raised.
+        body: gevent.queue.Queue
+            The Queue used to return the data to the calling worker and
+            fulfill the WSGI promise/map.
+
+       last_worker_model_version: object
+            The version of the last model that the worker was using.
         """
-        try:
-            query_request = request.json
+        while self.is_global_model_most_recent(last_worker_model_version):
+            gevent.sleep(self.model_check_interval)
 
-            if WORKER_ID_KEY not in query_request:
-                logger.warning(
-                    f"Key {WORKER_ID_KEY} is missing in query_request.")
-                return UNREGISTERED_WORKER
-
-            worker_id = query_request[WORKER_ID_KEY]
-
-            if worker_id not in self.worker_list:
-                logger.warning(
-                    f"Unknown worker {worker_id} tried to query model status.")
-                return UNREGISTERED_WORKER
-
-            if worker_id not in self.active_workers:
-                logger.warning(
-                    f"Unregistered worker {worker_id} tried to query model status.")
-                return UNREGISTERED_WORKER
-
-            return self.query_global_model_status_callback()
-        except Exception as e:
-            logger.warning(e)
-            return str(e)
+        model_update = self.return_global_model_callback()
+        if not is_valid_model_dict(model_update):
+            logger.error(f"Expected dictionary with {GLOBAL_MODEL} and {GLOBAL_MODEL_VERSION} keys - "
+                         "return_global_model_callback() implementation is incorrect")
+        body.put(zlib.compress(pickle.dumps(model_update)))
+        body.put(StopIteration)
 
     def return_global_model(self):
         """
-        Returns the global model by using the provided callback. If query is not from a valid
-        worker it raises an error.
+        Returns the global model by using the provided callback using gevent
+        based long polling. It spawns a gevent Greenlet (a pseudo-thread) for
+        check_model_ready, which returns a model when ready, but otherwise
+        waits.
 
         Returns
         -------
 
-        str:
-            If the update was successful then "Worker update received"
-            Otherwise any exception that was raised.
+        gevent.queuue.Queue or str:
+            The Queue object that returns the model in a long polling or
+            a string indicating an error has occured.
         """
         try:
             query_request = request.json
-
             if WORKER_ID_KEY not in query_request:
                 logger.warning(
                     f"Key {WORKER_ID_KEY} is missing in query_request.")
@@ -458,12 +458,14 @@ class DCFServer(object):
                     f"Unknown worker {worker_id} tried to return global model.")
                 return UNREGISTERED_WORKER
 
-            if not worker_id in self.active_workers:
+            if worker_id not in self.active_workers:
                 logger.warning(
                     f"Unregistered worker {worker_id} tried to return global model.")
                 return UNREGISTERED_WORKER
 
-            return zlib.compress(self.return_global_model_callback())
+            body = gevent.queue.Queue()
+            g = Greenlet.spawn(self.check_model_ready, body, query_request[LAST_WORKER_MODEL_VERSION])
+            return body
 
         except Exception as e:
             logger.warning(e)
@@ -494,10 +496,9 @@ class DCFServer(object):
                           method='POST', callback=self.register_worker)
         application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}",
                           method='POST', callback=self.return_global_model)
-        application.route(f"/{QUERY_GLOBAL_MODEL_STATUS_ROUTE}",
-                          method='POST', callback=self.query_global_model_status)
         application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}/<worker_id>",
                           method='POST', callback=self.receive_worker_update)
+
         application.add_hook('after_request', self.enable_cors)
 
         # Admin routes
@@ -519,13 +520,19 @@ class DCFServer(object):
                 host=self.server_host_ip,
                 port=self.server_port,
                 server='gunicorn',
+                worker_class='gevent',
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
                 debug=self.debug,
                 quiet=True)
         else:
-            run(application, host=self.server_host_ip,
-                port=self.server_port, debug=self.debug, quiet=True)
+            run(application,
+                host=self.server_host_ip,
+                port=self.server_port,
+                server='gunicorn',
+                worker_class='gevent',
+                debug=self.debug,
+                quiet=True)
 
 
 class WorkerAuthenticator(object):

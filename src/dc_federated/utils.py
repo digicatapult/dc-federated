@@ -6,7 +6,7 @@ Contains utility functions to be used within the demo.
 import socket
 import logging
 
-from bottle import Bottle, ServerAdapter
+from bottle import Bottle, ServerAdapter, WSGIRefServer
 from wsgiref.simple_server import make_server, WSGIRequestHandler
 
 

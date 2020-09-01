@@ -10,7 +10,7 @@ import logging
 import torch
 
 from dc_federated.examples.example_dcf_model.torch_nn_class import ExampleModelClass
-from dc_federated.backend import DCFServer
+from dc_federated.backend import DCFServer, create_model_dict
 
 
 logging.basicConfig(level=logging.INFO)
@@ -31,14 +31,14 @@ class ExampleGlobalModel(object):
         with open("egm_global_model.torch", 'wb') as f:
             torch.save(self.global_model, f)
 
-        self.global_model_status = str(datetime(2018, 10, 10))
+        self.global_model_version = 0
 
         self.server = DCFServer(
-            self.register_worker,
-            self.unregister_worker,
-            self.return_global_model,
-            self.return_global_model_status,
-            self.receive_worker_update,
+            register_worker_callback=self.register_worker,
+            unregister_worker_callback=self.unregister_worker,
+            return_global_model_callback=self.return_global_model,
+            is_global_model_most_recent=self.is_global_model_most_recent,
+            receive_worker_update_callback=self.receive_worker_update,
             key_list_file=None
         )
 
@@ -75,17 +75,22 @@ class ExampleGlobalModel(object):
         Returns
         ----------
 
-        byte-stream:
-            The current global torch model.
+        dict:
+            The model dictionary as per the specification in DCFSever
         """
         logger.info(f"Example Global Model: returning global model")
         model_data = io.BytesIO()
         torch.save(self.global_model, model_data)
-        return model_data.getvalue()
+        return create_model_dict(model_data.getvalue(), self.global_model_version)
 
-    def return_global_model_status(self):
+    def is_global_model_most_recent(self, model_version):
         """
         Returns a default model update time of 2018/10/10.
+
+        Parameter
+        ---------
+
+        model_version: int
 
         Returns
         ----------
@@ -93,8 +98,8 @@ class ExampleGlobalModel(object):
         str:
             String format of the last model update time.
         """
-        logger.info(f"Example Global Model: returning global model status")
-        return self.global_model_status
+        logger.info(f"Example Global Model: checking if model version is most recent.")
+        return self.global_model_version == model_version
 
     def receive_worker_update(self, worker_id, model_update):
         """
@@ -113,8 +118,7 @@ class ExampleGlobalModel(object):
             logger.info(self.worker_updates[worker_id])
             with open(f"egm_worker_update_{worker_id}.torch", 'wb') as f:
                 torch.save(self.worker_updates[worker_id], f)
-            self.global_model_status = str(
-                datetime.now().isoformat(' ', 'seconds'))
+            self.global_model_version += 1
             return f"Update received for worker {worker_id}"
         else:
             return f"Unregistered worker {worker_id} tried to send an update!!"

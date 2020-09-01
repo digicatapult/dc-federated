@@ -15,6 +15,8 @@ from torch import nn
 import torch.nn.functional as F
 
 from dc_federated.algorithms.fed_avg import FedAvgServer, FedAvgModelTrainer
+from dc_federated.backend import GLOBAL_MODEL, GLOBAL_MODEL_VERSION
+
 
 
 class FedAvgTestModel(nn.Module):
@@ -100,7 +102,8 @@ def test_fed_avg_server():
     fed_avg_server = FedAvgServer(trainer, key_list_file=None)
 
     # test model is loaded properly
-    model_ret = torch.load(io.BytesIO(fed_avg_server.return_global_model()))
+    model_dict = fed_avg_server.return_global_model()
+    model_ret = torch.load(io.BytesIO(model_dict[GLOBAL_MODEL]))
     assert_models_equal(model_ret, trainer.model)
 
     # test that worker updates are received properly.

@@ -1,4 +1,7 @@
-
+"""
+Test the integration of the backend+algorithm and applications using the
+example_dcf_model.
+"""
 import os
 import time
 import torch
@@ -71,7 +74,6 @@ def test_example():
 
     logger.info(
         "All tensors are equal and the local and global models are different")
-    logger.info("***************** ALL TESTS PASSED *****************")
     logger.info(
         "******* Ignore WARNINGs related to worker shutting down *******")
     logger.info("Cleaning up.")
