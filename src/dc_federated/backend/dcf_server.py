@@ -269,8 +269,13 @@ class DCFServer(object):
                 ERROR_MESSAGE_KEY: f"Worker {worker_id} already exists"
             })
 
+        if not self.worker_authenticator.add_worker(worker_id):
+            error_msg = f"Unable to create valid public key with {worker_id} -- worker not added."
+            logger.error(error_msg)
+            return json.dumps({ ERROR_MESSAGE_KEY: error_msg })
+
         self.allowed_workers.append(worker_id)
-        self.worker_authenticator.add_worker(worker_id)
+
         logger.info(f"Worker {worker_id} was added")
 
         if REGISTRATION_STATUS_KEY in worker_data and worker_data[REGISTRATION_STATUS_KEY]:
@@ -614,7 +619,8 @@ class WorkerAuthenticator(object):
 
         Returns
         -------
-        bool: True if operation was successful false otherwise
+        bool:
+            True if operation was successful false otherwise
         """
         if not self.authenticate:
             return True
