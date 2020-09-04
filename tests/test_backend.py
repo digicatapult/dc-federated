@@ -106,7 +106,7 @@ def test_server_functionality():
 
     admin_registered_worker = {
         PUBLIC_KEY_STR: "new_public_key",
-        ACTIVE_WORKER_KEY: True
+        REGISTRATION_STATUS_KEY: True
     }
     requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}",
