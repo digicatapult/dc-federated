@@ -98,7 +98,7 @@ def test_server_functionality():
             return SigningKey(private_keys[i], encoder=HexEncoder).sign(b'test phrase').hex()
         else: return 'dummy_signed_phrase'
 
-    for server, mode in zip([dcf_server_safe, dcf_server_unsafe], ['safe', 'un_afe']):
+    for server, mode in zip([dcf_server_unsafe, dcf_server_safe], ['unsafe', 'safe']):
         worker_ids = []
         added_workers = []
         worker_updates = {}
