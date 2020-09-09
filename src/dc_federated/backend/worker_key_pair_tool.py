@@ -53,6 +53,12 @@ def gen_pair(filename):
 
     filename: str
         Name of the files to write the public and private key to.
+
+    Returns
+    -------
+
+    SigningKey, VerifyKey:
+        The public, private key generated.
     """
     with open(filename, 'w') as f:
         sk = SigningKey.generate()
