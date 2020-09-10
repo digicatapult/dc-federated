@@ -204,11 +204,19 @@ class DCFServer(object):
             worker_id = self.worker_authenticator.generate_id_for_worker(worker_data[PUBLIC_KEY_STR])
             if worker_id not in self.allowed_workers:
                 self.allowed_workers.append(worker_id)
+                logger.info(
+                    f"Successfully added worker with public key {worker_data[PUBLIC_KEY_STR]}")
+            else:
+                logger.info(f"Worker with public key {worker_data[PUBLIC_KEY_STR]} was added previously "
+                            "- no additional actions taken.")
             if worker_id not in self.registered_workers:
                 self.registered_workers.add(worker_id)
                 self.register_worker_callback(worker_id)
-            logger.info(
-                f"Successfully registered worker with public key: {worker_data[PUBLIC_KEY_STR]}")
+                logger.info(
+                    f"Successfully registered worker with public key {worker_data[PUBLIC_KEY_STR]}")
+            else:
+                logger.info(f"Worker with public key {worker_data[PUBLIC_KEY_STR]} is already registered "
+                            "- no additional actions taken.")
         else:
             logger.info(
                 f"Failed to register worker with public key: {worker_data[PUBLIC_KEY_STR]}")
