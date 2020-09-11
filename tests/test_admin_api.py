@@ -11,7 +11,7 @@ from nacl.encoding import HexEncoder
 
 import os
 import io
-import pickle
+import msgpack
 import logging
 import zlib
 import requests
@@ -56,7 +56,7 @@ def test_server_functionality():
 
     def test_ret_global_model_cb():
         return create_model_dict(
-            pickle.dumps("Pickle dump of a string"),
+            msgpack.packb("Pickle dump of a string"),
             global_model_version)
 
     def is_global_model_most_recent(version):
@@ -132,10 +132,9 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps("Model update!!"))}
+                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
             ).content
-            assert pickle.load(io.BytesIO(
-                worker_updates[worker_ids[i]])) == "Model update!!"
+            assert msgpack.unpackb(worker_updates[worker_ids[i]]) == "Model update!!"
             assert response.decode(
                 "UTF-8") == f"Update received for worker {added_workers[i]}."
 
@@ -145,10 +144,10 @@ def test_server_functionality():
                 json={WORKER_ID_KEY: added_workers[i],
                       LAST_WORKER_MODEL_VERSION: "0"}
             ).content
-            model_return = pickle.loads(zlib.decompress(model_return_binary))
+            model_return = msgpack.unpackb(zlib.decompress(model_return_binary))
             assert isinstance(model_return, dict)
             assert model_return[GLOBAL_MODEL_VERSION] == global_model_version
-            assert pickle.loads(model_return[GLOBAL_MODEL]) == "Pickle dump of a string"
+            assert msgpack.unpackb(model_return[GLOBAL_MODEL]) == "Pickle dump of a string"
 
         # Phase 3: Unregister workers.
         for i in range(num_workers):
@@ -171,7 +170,7 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps("Model update!!"))}
+                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
             ).content
             assert added_workers[i] not in worker_updates
             assert response.decode('UTF-8') == UNREGISTERED_WORKER
@@ -205,10 +204,9 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps("Model update!!"))}
+                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
             ).content
-            assert pickle.load(io.BytesIO(
-                worker_updates[worker_ids[i]])) == "Model update!!"
+            assert msgpack.unpackb(worker_updates[worker_ids[i]]) == "Model update!!"
             assert response.decode(
                 "UTF-8") == f"Update received for worker {added_workers[i]}."
 
@@ -218,10 +216,10 @@ def test_server_functionality():
                 json={WORKER_ID_KEY: added_workers[i],
                       LAST_WORKER_MODEL_VERSION: "0"}
             ).content
-            model_return = pickle.loads(zlib.decompress(model_return_binary))
+            model_return = msgpack.unpackb(zlib.decompress(model_return_binary))
             assert isinstance(model_return, dict)
             assert model_return[GLOBAL_MODEL_VERSION] == global_model_version
-            assert pickle.loads(model_return[GLOBAL_MODEL]) == "Pickle dump of a string"
+            assert msgpack.unpackb(model_return[GLOBAL_MODEL]) == "Pickle dump of a string"
 
         # Phase 7: Delete existing workers.
         for i in range(num_workers):
@@ -239,7 +237,7 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps("Model update!!"))}
+                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
             ).content
             assert added_workers[i] not in worker_updates
             assert response.decode('UTF-8') == UNREGISTERED_WORKER

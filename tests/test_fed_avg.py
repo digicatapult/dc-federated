@@ -7,8 +7,7 @@ enough that the amount of requried testing infrastructure is not justified.
 """
 
 import io
-import pickle
-import logging
+import msgpack
 import torch
 
 from torch import nn
@@ -112,7 +111,7 @@ def test_fed_avg_server():
     model_update = io.BytesIO()
     torch.save(worker_model_1, model_update)
     fed_avg_server.receive_worker_update(
-        10, pickle.dumps((15, model_update.getvalue())))
+        10, msgpack.packb((15, model_update.getvalue())))
     assert_models_equal(worker_model_1, fed_avg_server.worker_updates[10][2])
 
     # check that the global updates happen as expected
@@ -122,7 +121,7 @@ def test_fed_avg_server():
     model_update = io.BytesIO()
     torch.save(worker_model_2, model_update)
     fed_avg_server.receive_worker_update(
-        11, pickle.dumps((20, model_update.getvalue())))
+        11, msgpack.packb((20, model_update.getvalue())))
 
     global_update_dict = {}
     sd_1 = worker_model_1.state_dict()

@@ -3,9 +3,8 @@ Defines the core worker class for the federated learning.
 Abstracts away the lower level worker logic from the federated
 machine learning logic.
 """
-import pickle
-import time
-from datetime import datetime
+import zlib
+import msgpack
 from nacl.signing import SigningKey, VerifyKey
 from nacl.encoding import HexEncoder
 
@@ -14,7 +13,6 @@ from dc_federated.backend._constants import *
 from dc_federated.backend.backend_utils import is_valid_model_dict
 
 import logging
-import zlib
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -149,7 +147,7 @@ class DCFWorker(object):
             WORKER_ID_KEY: self.worker_id,
             LAST_WORKER_MODEL_VERSION: self.get_worker_version_global_model()
         }
-        return pickle.loads(zlib.decompress(requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
+        return msgpack.unpackb(zlib.decompress(requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
                          json=data).content))
 
     def send_model_update(self, model_update):

@@ -4,9 +4,7 @@ Test worker authentication related functions.
 
 import os
 import zlib
-import time
-import pickle
-import requests
+import msgpack
 
 from nacl.exceptions import BadSignatureError
 from nacl.encoding import HexEncoder
@@ -85,7 +83,7 @@ def test_worker_authentication():
 
     def test_ret_global_model_cb():
         return create_model_dict(
-            pickle.dumps("Pickle dump of a string"),
+            msgpack.packb("Serialized dump of a string"),
             global_model_version)
 
     def is_global_model_most_recent(version):
@@ -148,7 +146,7 @@ def test_worker_authentication():
         global_model_dict = worker.get_global_model()
         worker.send_model_update(b'model_update')
         assert is_valid_model_dict(global_model_dict)
-        assert global_model_dict[GLOBAL_MODEL] == pickle.dumps("Pickle dump of a string")
+        assert global_model_dict[GLOBAL_MODEL] == msgpack.packb("Serialized dump of a string")
         assert global_model_dict[GLOBAL_MODEL_VERSION] == global_model_version
         assert worker_updates[worker.worker_id] == b'model_update'
         assert worker.worker_id == key.encode(encoder=HexEncoder).decode('utf-8')
@@ -174,9 +172,9 @@ def test_worker_authentication():
         bad_worker_key = f.read()
 
     id_and_model_dict_good = {
-        ID_AND_MODEL_KEY: zlib.compress(pickle.dumps({
+        ID_AND_MODEL_KEY: zlib.compress(msgpack.packb({
             WORKER_ID_KEY: bad_worker_key,
-            MODEL_UPDATE_KEY: pickle.dumps("Bad Model update!!")
+            MODEL_UPDATE_KEY: msgpack.packb("Bad Model update!!")
         }))
     }
     response = requests.post(

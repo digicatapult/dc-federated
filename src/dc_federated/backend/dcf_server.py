@@ -9,11 +9,11 @@ from gevent import Greenlet, queue
 
 import os
 import json
-import pickle
 import hashlib
 import time
 import os.path
 import zlib
+import msgpack
 
 from nacl.signing import VerifyKey
 from nacl.encoding import HexEncoder
@@ -460,7 +460,7 @@ class DCFServer(object):
         if not is_valid_model_dict(model_update):
             logger.error(f"Expected dictionary with {GLOBAL_MODEL} and {GLOBAL_MODEL_VERSION} keys - "
                          "return_global_model_callback() implementation is incorrect")
-        body.put(zlib.compress(pickle.dumps(model_update)))
+        body.put(zlib.compress(msgpack.packb(model_update)))
         body.put(StopIteration)
 
     def return_global_model(self):
@@ -473,7 +473,7 @@ class DCFServer(object):
         Returns
         -------
 
-        gevent.queuue.Queue or str:
+        gevent.queue.Queue or str:
             The Queue object that returns the model in a long polling or
             a string indicating an error has occured.
         """

@@ -3,7 +3,7 @@ Test long polling.
 """
 
 import os
-import pickle
+import msgpack
 from datetime import datetime
 
 from nacl.encoding import HexEncoder
@@ -78,7 +78,7 @@ def test_long_polling():
 
     def test_ret_global_model_cb():
         return create_model_dict(
-            pickle.dumps("Pickle dump of a string"),
+            msgpack.packb("Pickle dump of a string"),
             global_model_version)
 
     def is_global_model_most_recent(version):

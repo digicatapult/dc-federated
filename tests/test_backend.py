@@ -7,9 +7,7 @@ from gevent import Greenlet, sleep
 from gevent import monkey; monkey.patch_all()
 
 import os
-import io
-import pickle
-import logging
+import msgpack
 import zlib
 import requests
 import json
@@ -44,7 +42,7 @@ def test_server_functionality():
 
     def test_ret_global_model_cb():
         return create_model_dict(
-            pickle.dumps("Pickle dump of a string"),
+            msgpack.packb("Pickle dump of a string"),
             global_model_version)
 
     def is_global_model_most_recent(version):
@@ -148,26 +146,25 @@ def test_server_functionality():
         json={WORKER_ID_KEY: worker_ids[0],
               LAST_WORKER_MODEL_VERSION: "0"}
     ).content
-    model_return = pickle.loads(zlib.decompress(model_return_binary))
+    model_return = msgpack.unpackb(zlib.decompress(model_return_binary))
     assert isinstance(model_return, dict)
     assert model_return[GLOBAL_MODEL_VERSION] == global_model_version
-    assert pickle.loads(model_return[GLOBAL_MODEL]) == "Pickle dump of a string"
+    assert msgpack.unpackb(model_return[GLOBAL_MODEL]) == "Pickle dump of a string"
 
     # test sending the model update
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/{worker_ids[1]}",
-        files={ID_AND_MODEL_KEY: zlib.compress(pickle.dumps("Model update!!"))}
+        files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
     ).content
 
-    assert pickle.load(io.BytesIO(
-        worker_updates[worker_ids[1]])) == "Model update!!"
+    assert msgpack.unpackb(worker_updates[worker_ids[1]]) == "Model update!!"
     assert response.decode(
         "UTF-8") == f"Update received for worker {worker_ids[1]}."
 
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/3",
         files={ID_AND_MODEL_KEY: zlib.compress(
-            pickle.dumps("Model update for unregistered worker!!"))}
+            msgpack.packb("Model update for unregistered worker!!"))}
     ).content
 
     assert 3 not in worker_updates
@@ -191,13 +188,12 @@ def test_server_functionality():
     global_model_dict = dcf_worker.get_global_model()
     assert is_valid_model_dict(global_model_dict)
     assert global_model_dict[GLOBAL_MODEL_VERSION] == global_model_version
-    assert pickle.loads(global_model_dict[GLOBAL_MODEL]) == "Pickle dump of a string"
+    assert msgpack.unpackb(global_model_dict[GLOBAL_MODEL]) == "Pickle dump of a string"
 
     # test sending the model update
     response = dcf_worker.send_model_update(
-        pickle.dumps("DCFWorker model update"))
-    assert pickle.load(io.BytesIO(
-        worker_updates[worker_ids[3]])) == "DCFWorker model update"
+        msgpack.packb("DCFWorker model update"))
+    assert msgpack.unpackb(worker_updates[worker_ids[3]]) == "DCFWorker model update"
     assert response.decode(
         "UTF-8") == f"Update received for worker {worker_ids[3]}."
 

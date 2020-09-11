@@ -6,7 +6,7 @@ import io
 import time
 from datetime import datetime
 import logging
-import pickle
+import msgpack
 
 import torch
 
@@ -94,7 +94,7 @@ class FedAvgWorker(object):
         Sends the current model to the server.
         """
         self.worker.send_model_update(
-            pickle.dumps((self.fed_model.get_per_session_train_size(),
+            msgpack.packb((self.fed_model.get_per_session_train_size(),
                           self.serialize_model()))
         )
         logger.info(
