@@ -51,3 +51,42 @@ def is_valid_model_dict(data):
     return (isinstance(data, dict) and
         GLOBAL_MODEL in data and
         GLOBAL_MODEL_VERSION in data)
+
+
+def message_seriously_wrong(msg):
+    return f"Something went seriously wrong - {msg}. Contact the application engineer immeidiately."
+
+
+def verify_dict(dct, keys, data_types):
+    """
+    Verify that the dictionary has the necessary structure.
+
+    Parameters
+    ----------
+
+    dct: object
+        Object to verify as a dictionary
+
+    keys: list
+        The list of keys to verify
+
+    data_types: list
+        The list of values to verify as being of a specific type
+
+    Returns
+    -------
+    list:
+        list of keys where the validation failed.
+    """
+    if not isinstance(dct, dict):
+        return keys
+    return [key for key, vt in zip(keys, data_types)
+            if key not in dct or not isinstance(dct[key], vt) ]
+
+
+
+
+
+
+
+

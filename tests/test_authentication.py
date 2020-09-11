@@ -182,13 +182,13 @@ def test_worker_authentication():
         files=id_and_model_dict_good
     ).content
     print(response)
-    assert response.decode('utf-8') == UNREGISTERED_WORKER
+    assert response.decode('utf-8') == INVALID_WORKER
 
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
         json={WORKER_ID_KEY: bad_worker_key}
     ).content
-    assert response.decode('utf-8') == UNREGISTERED_WORKER
+    assert response.decode('utf-8') == INVALID_WORKER
 
     # delete the files
     for n in range(num_workers):

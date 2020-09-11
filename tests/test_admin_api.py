@@ -240,7 +240,7 @@ def test_server_functionality():
                 files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
             ).content
             assert added_workers[i] not in worker_updates
-            assert response.decode('UTF-8') == UNREGISTERED_WORKER
+            assert response.decode('UTF-8') == INVALID_WORKER
 
             # receive updates
             model_return_binary = requests.post(
@@ -248,7 +248,7 @@ def test_server_functionality():
                 json={WORKER_ID_KEY: added_workers[i],
                       LAST_WORKER_MODEL_VERSION: "0"}
             ).content
-            assert response.decode('UTF-8') == UNREGISTERED_WORKER
+            assert response.decode('UTF-8') == INVALID_WORKER
 
         # Phase 9: Try to register non-existent workers using the public API
         # - this should fail in the safe mode and succeed in the unsafe mode.
@@ -297,7 +297,7 @@ def test_server_functionality():
                 message = json.loads(response.content.decode('utf-8'))
                 assert ERROR_MESSAGE_KEY in message
                 assert message[ERROR_MESSAGE_KEY] == \
-                       "Unable to create valid public key with dummy public key " \
-                       "-- worker not added."
+                       "Unable to validate public key for dummy public key " \
+                       "- worker not added."
 
         stoppable_server.shutdown()
