@@ -230,7 +230,8 @@ class DCFServer(object):
         if worker_id == INVALID_WORKER:
             return worker_id
 
-        if success:
+        if not self.worker_manager.is_worker_registered(worker_id):
+            self.worker_manager.set_registration_status(worker_id, True)
             self.register_worker_callback(worker_id)
 
         return worker_id

@@ -66,9 +66,8 @@ class WorkerManager(object):
             with open(key_list_file, 'r') as f:
                 keys = f.read().splitlines()
             for key in keys:
-                if self.add_public_key(key):
-                    self.add_worker(key)
-                else:
+                _, success = self.add_worker(key)
+                if not success:
                     logger.warning(f"Invalid public key {key} - worker not added.")
 
     def authenticate_and_add_worker(self, public_key_str, signed_phrase):
@@ -89,11 +88,8 @@ class WorkerManager(object):
         str, bool:
             The worker id and whether or not the operation was successful.
         """
-        auth_success, _ = \
-            self.authenticate_worker(public_key_str, signed_phrase)
-        if auth_success :
-            worker_id, _ = self._add_worker(public_key_str)
-            return self.set_registration_status(worker_id, True)
+        if self.authenticate_worker(public_key_str, signed_phrase) :
+            return self._add_worker(public_key_str)
         else:
             return INVALID_WORKER, False
 
@@ -173,7 +169,7 @@ class WorkerManager(object):
         if worker_id in self.allowed_workers:
             old_status = self.registered_workers[worker_id]
             self.registered_workers[worker_id] = should_register
-            logger.info(f"Set registration status of worker {worker_id}  from {old_status} to {should_register}.")
+            logger.info(f"Set registration status of worker {worker_id} from {old_status} to {should_register}.")
             return worker_id, True
         else:
             logger.warning(
@@ -324,20 +320,20 @@ class WorkerManager(object):
             logger.warning("Accepting worker as valid without authentication.")
             logger.warning(
                 "Server was likely started without a list of valid public keys from workers.")
-            return True, NO_AUTHENTICATION
+            return True
         try:
             if public_key_str not in self.public_keys:
-                return False, AUTHENTICATED
+                return False
             self.public_keys[public_key_str].verify(
                 signed_message.encode(), encoder=HexEncoder)
         except BadSignatureError:
             logger.warning(
                 f"Failed to authenticate worker with public key: {public_key_str}.")
-            return False, AUTHENTICATED
+            return False
         else:
             logger.info(
                 f"Successfully authenticated worker with public key: {public_key_str}.")
-            return True, AUTHENTICATED
+            return True
 
     def get_worker_list(self):
         """
