@@ -286,7 +286,7 @@ class DCFServer(object):
         if not success:
             return json.dumps({ERROR_MESSAGE_KEY: f"Worker {worker_id} already exists."})
 
-        worker_id, success = self.worker_manager.set_registration_status(
+        worker_id = self.worker_manager.set_registration_status(
             worker_id, worker_data[REGISTRATION_STATUS_KEY])
 
         if worker_id == INVALID_WORKER:
@@ -294,7 +294,7 @@ class DCFServer(object):
             logger.error(error_str)
             return json.dumps({ERROR_MESSAGE_KEY: error_str})
 
-        if success and worker_data[REGISTRATION_STATUS_KEY]:
+        if worker_data[REGISTRATION_STATUS_KEY]:
             self.register_worker_callback(worker_id)
 
         return json.dumps({
@@ -320,8 +320,8 @@ class DCFServer(object):
             or an error message.
         """
         logger.info(f"Admin is removing worker {worker_id}...")
-        worker_id, success = self.worker_manager.set_registration_status(worker_id, False)
-        if success:
+        worker_id = self.worker_manager.set_registration_status(worker_id, False)
+        if worker_id != INVALID_WORKER:
             self.unregister_worker_callback(worker_id)
             logger.info(f"Worker {worker_id} was unregistered (removal)")
 
@@ -356,10 +356,10 @@ class DCFServer(object):
             return json.dumps(valid_failed)
 
         was_registered = self.worker_manager.is_worker_registered(worker_id)
-        worker_id, success = self.worker_manager.set_registration_status(
+        worker_id = self.worker_manager.set_registration_status(
             worker_id, worker_data[REGISTRATION_STATUS_KEY])
 
-        if not success:
+        if worker_id == INVALID_WORKER:
             return json.dumps({
                 ERROR_MESSAGE_KEY: f"Attempt at changing worker status failed - "
                                    f"please ensure this worker was added: {worker_id}."

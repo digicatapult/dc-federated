@@ -170,11 +170,11 @@ class WorkerManager(object):
             old_status = self.registered_workers[worker_id]
             self.registered_workers[worker_id] = should_register
             logger.info(f"Set registration status of worker {worker_id} from {old_status} to {should_register}.")
-            return worker_id, True
+            return worker_id
         else:
             logger.warning(
                 f"Please add worker with public key {worker_id} before trying to change registration status.")
-            return INVALID_WORKER, False
+            return INVALID_WORKER
 
     def remove_worker(self, worker_id):
         """
