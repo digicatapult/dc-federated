@@ -30,10 +30,10 @@ class WorkerManager(object):
 
     server_mode_safe: bool
         Whether or not the server should be in safe of unsafe mode. Safe
-        does not allow unauthenticated workers with the optional initial
-        set of public keys passed via the key_list_parameters. Raises
-        an exception if server started in unsafe mode and key_list_file
-        is not None.
+        mode does not allow unauthenticated workers, with an optional initial
+        set of public keys passed via the key_list_parameters. Raises an
+        exception if server started in unsafe mode and key_list_file is not
+        None.
 
     key_list_file: str
         The name of the file containing the public keys for valid workers.
@@ -54,13 +54,12 @@ class WorkerManager(object):
                 logger.error(error_str)
                 raise ValueError(error_str)
             else:
-                logger.warning(f"No key list file provided - "
-                               f"no worker authentication will be used!!!.")
-                logger.warning(f"Server is running in ****UNSAFE MODE.****")
+                logger.info("Server started is running in **** UNSAFE MODE ****")
                 self.do_public_key_auth = False
-                self.public_keys = {}
                 return
 
+        logger.info("Server started is running in **** SAFE MODE **** - workers will need to use "
+                    "public key authentication.")
         self.do_public_key_auth = True
         if key_list_file is not None:
             with open(key_list_file, 'r') as f:
@@ -72,7 +71,8 @@ class WorkerManager(object):
 
     def authenticate_and_add_worker(self, public_key_str, signed_phrase):
         """
-        Authenticates the worker and then registers it.
+        Authenticates the worker and then adds it. Assumes that the
+        public key for the required (if required) was added previously.
 
         Parameters
         ----------
@@ -96,6 +96,7 @@ class WorkerManager(object):
     def add_worker(self, public_key_str):
         """
         Adds the worker with the given public key to the list of allowed workers.
+        Adds the public key of the worker to the set of public keys if necessary.
 
         Parameters
         ----------
@@ -163,8 +164,8 @@ class WorkerManager(object):
         Returns
         -------
 
-        str, bool:
-            The worker id and whether or not the operation was successful.
+        str:
+            The worker id if operation was successful and INVALID_WORKER otherwise.
         """
         if worker_id in self.allowed_workers:
             old_status = self.registered_workers[worker_id]
@@ -189,22 +190,23 @@ class WorkerManager(object):
         Returns
         -------
 
-        str, bool:
-            The worker id and whether or not the operation was successful.
+        str:
+            The worker id if operation was successful and INVALID_WORKER otherwise.
         """
         if worker_id in self.allowed_workers:
             self.allowed_workers.remove(worker_id)
             self.delete_public_key(worker_id)
             logger.info(f"Worker {worker_id} was removed - this worker will "
                         f"no longer be allowed to register or participate in federated learning. ")
-            return worker_id, True
+            return worker_id
         else:
             logger.warning(f"Attempt to remove non-existent worker {worker_id}.")
-            return INVALID_WORKER, False
+            return INVALID_WORKER
 
     def add_public_key(self, public_key_str):
         """
-        Adds the given worker to the internal set of workers.
+        Checks that the supplied public key is a valid public key, and
+        then adds it to the dictionary of public keys.
 
         Parameters
         ----------
@@ -214,8 +216,10 @@ class WorkerManager(object):
 
         Returns
         -------
+
         bool:
-            True if operation was successful false otherwise
+            True if the public key was added or if it was already in the list of public keys.
+            False otherwise.
         """
         if not self.do_public_key_auth:
             return True
@@ -232,7 +236,7 @@ class WorkerManager(object):
 
     def delete_public_key(self, public_key_str):
         """
-        Removes the given worker to the internal set of workers.
+        Removes the public key from the internal dictionary of public keys.
 
         Parameters
         ----------
@@ -242,8 +246,10 @@ class WorkerManager(object):
 
         Returns
         -------
+
         bool:
-            True if operation was successful false otherwise
+            True if the public key was removed or if it was not in the list to begin with.
+            False otherwise. 
         """
         if not self.do_public_key_auth:
             return True
@@ -266,7 +272,7 @@ class WorkerManager(object):
         --------
 
         list of str:
-            The set of keys.
+            The set of public keys for the clients.
         """
         return list(self.public_keys.keys())
 

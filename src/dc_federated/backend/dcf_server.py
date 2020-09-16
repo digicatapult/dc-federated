@@ -243,10 +243,9 @@ class DCFServer(object):
         Returns
         -------
 
-        str list:
-            The id of the workers
+        str:
+            JSON in string form containing id of workers and their registration status.
         """
-        response.content_type = 'application/json'
         return json.dumps(self.worker_manager.get_worker_list())
 
     def admin_add_worker(self):
@@ -260,9 +259,9 @@ class DCFServer(object):
         -------
 
         str:
-            The new worker id
+            JSON in string form either containing the id of the worker added + its
+            registration status or an error message if that failed.
         """
-        response.content_type = 'application/json'
         worker_data = request.json
 
         valid_failed = DCFServer.validate_input(worker_data,
@@ -298,6 +297,7 @@ class DCFServer(object):
             self.register_worker_callback(worker_id)
 
         return json.dumps({
+            SUCCESS_MESSAGE_KEY: f"Successfully added worker {worker_id}.",
             WORKER_ID_KEY: worker_id,
             REGISTRATION_STATUS_KEY: worker_data[REGISTRATION_STATUS_KEY]
         })
@@ -316,8 +316,8 @@ class DCFServer(object):
         -------
 
         str:
-            Id of worker removed or error message if worker was removed
-            or an error message.
+            JSON in string form containing either id of worker removed
+            or error message if the operation failed for some reason.
         """
         logger.info(f"Admin is removing worker {worker_id}...")
         worker_id = self.worker_manager.set_registration_status(worker_id, False)
@@ -325,11 +325,14 @@ class DCFServer(object):
             self.unregister_worker_callback(worker_id)
             logger.info(f"Worker {worker_id} was unregistered (removal)")
 
-        worker_id, success = self.worker_manager.remove_worker(worker_id)
-        if not success:
+        worker_id = self.worker_manager.remove_worker(worker_id)
+        if worker_id == INVALID_WORKER:
             return json.dumps({ERROR_MESSAGE_KEY: f"Attempt to remove unknown worker {worker_id}."})
 
-        return json.dumps({SUCCESS_MESSAGE_KEY: f"Successfully removed worker {worker_id}."})
+        return json.dumps({
+            WORKER_ID_KEY: worker_id,
+            SUCCESS_MESSAGE_KEY: f"Successfully removed worker {worker_id}."
+        })
 
     def admin_set_worker_status(self, worker_id):
         """
@@ -345,7 +348,9 @@ class DCFServer(object):
         -------
 
         str:
-            JSON string of error Or success message
+            JSON in string form containing either id of worker removed and
+            registration status or error message if the operation failed for
+            some reason.
         """
         worker_data = request.json
 
@@ -411,7 +416,8 @@ class DCFServer(object):
 
     def check_model_ready(self, body, last_worker_model_version):
         """
-        Threaded function run to check with the server if the model is ready.
+        Threaded function run to check with the implementation of the
+        algorithm server-side logic to see if the global model is ready.
 
         Parameters
         ---------
