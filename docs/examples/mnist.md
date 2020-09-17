@@ -52,7 +52,7 @@ Alternatively the server can be use https:
   --ssl-enabled
 ```
 
-Please refer to [the ssl document for more details](./enabling_ssl.md)
+Please refer to [the ssl document for more details](../library/enabling_ssl.md)
 
 You should see an output of the following form:
 
@@ -92,8 +92,9 @@ Or, if the server use https:
     --digit-class 0
 ```
 
-Please refer to [the ssl document for more details](./enabling_ssl.md)
+Please refer to [the ssl document for more details](../library/enabling_ssl.md)
 
+The `--digit-class 0` argument means that this worker only only train on digits `0-3`. Using arguments `1` and `2` correspond to training only on digits `4-6` and `7-9` respectively. The `192.124.1.177` and `8080` should be replaced by the values obtained when the server was run.
 The `--digit-class 0` argument means that this worker only only train on digits `0-3`. Using arguments `1` and `2` correspond to training only on digits `4-6` and `7-9` respectively. The `192.124.1.177` and `8080` should be replaced by the values obtained when the server was run.
 
 Once you run the worker, you should see an output of the form

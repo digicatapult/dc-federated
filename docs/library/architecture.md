@@ -12,3 +12,6 @@ In particular, an important decision we made was to make the library independent
 
 The figure below illustrates how these layers maps into different classes in the library. Please see the code in `src/algorithms/fed_avg` to see how the library may be used to implement specific federated learning algorithms (in this case `FedAvg`), and see `src/examples/mnist` to see how to apply the algorithm for specific datasets.
 
+
+
+![dc_federated_architecture](dc_federated_architecture.png)

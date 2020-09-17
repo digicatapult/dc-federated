@@ -45,8 +45,13 @@ Alternatively, to install in developer mode (so that any code change you make in
 (venv_dc_federated)> python setup.py develop
 ```
 
-### Running the tests
+## Running the tests
 
 ```bash
 (venv_dc_federated)> pytest
 ```
+## Running the Examples
+Detailed instructions for running the examples can be found in the following locations
+
+ - [MNIST](../examples/mnist.md)
+ - [PlantVillage](../examples/plantvillage.md)

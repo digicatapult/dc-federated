@@ -4,7 +4,7 @@ The communication between the server and workers can be optionally encrypted usi
 
 Following is a example using the MNIST dataset and a self-signed certificate for localhost.
 
-## 1. Generate the certificate (development only)
+## Generate the certificate (development only)
 
 We can use libressl to generate the certificate and key file locally.
 In a production setup these files would be provided by a system administrator.
@@ -26,7 +26,7 @@ openssl req -new -x509 \
     <(printf "\n[SAN]\nsubjectAltName=DNS:localhost"))
 ```
 
-## 2. Run the server:
+## Run the server:
 
 ```sh
 python mnist_fed_avg_server.py \
@@ -36,7 +36,7 @@ python mnist_fed_avg_server.py \
   --ssl-enabled
 ```
 
-## 3. Run the Worker(s)
+## Run the Worker(s)
 
 The easiest way to work with self-signed certificate during development is to
 add the environment variable `REQUESTS_CA_BUNDLE` set to the root CA.
@@ -49,7 +49,7 @@ add the environment variable `REQUESTS_CA_BUNDLE` set to the root CA.
     --digit-class 0
 ```
 
-# Production setup
+## Production setup
 
 This can be achieved in production in a similar way by replacing the server-host-ip
 by the actual server hostname or ip and replacing the certificated and key files by real ones.
