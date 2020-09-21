@@ -15,7 +15,7 @@ nav:
     - Secure Communication: 'library/enabling_ssl.md'
   - Examples:
     - MNIST: 'examples/mnist.md'
-    - Using FedAvg: 'examples/using_fed_avg.md'
     - PlantVillage: 'examples/plantvillage.md'
+    - Using FedAvg: 'examples/using_fed_avg.md'
+    - New Algorithms: 'examples/new_algorithms.md'
     - Multi-device example: 'examples/multi_device_test.md'
-
