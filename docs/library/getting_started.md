@@ -55,5 +55,5 @@ Detailed instructions for running the examples can be found in the following loc
 
  - Running the [MNIST](../examples/mnist.md) example (using FedAvg).
  - Using FedAvg on your [own application](../examples/using_fed_avg.md)
- - Recipe for implementing [new federated learning algorithms](../examples/new_algorithms.md). 
+ - Recipe for implementing [new federated learning algorithms](new_algorithms.md). 
  - Running the [PlantVillage](../examples/plantvillage.md) example (using FedAvg).

@@ -23,12 +23,13 @@ You can find additional information in the following locations.
   - The Library:
     - [getting started](library/getting_started.md)
     - [library architecture](library/architecture.md)
-    - [library backend](library/backend.md)
+    - [library core features](library/library_core_features.md)
+    - [implementing new algorithms](library/new_algorithms.md)
     - [worker authentication](library/worker_authentication.md)
     - [secure communication](library/enabling_ssl.md)
+    - [admin worker management](library/worker_management.md)
   - Examples:
     - [MNIST](examples/mnist.md)
     - [PlantVillage](examples/plantvillage.md)
     - [Using the FedAvg algorithm](examples/using_fed_avg.md)
-    - [Implementing new algorithms](examples/new_algorithms.md)
     - [Multi-Device Test](examples/multi_device_test.md)
