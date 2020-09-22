@@ -7,6 +7,7 @@ RETURN_GLOBAL_MODEL_ROUTE = 'return_global_model'
 QUERY_GLOBAL_MODEL_STATUS_ROUTE = 'query_global_model_status'
 RECEIVE_WORKER_UPDATE_ROUTE = 'receive_worker_update'
 WORKERS_ROUTE = 'workers'
+CHALLENGE_PHRASE_ROUTE = 'challenge_phrase'
 
 WORKER_ID_KEY = 'worker_id'
 MODEL_UPDATE_KEY = 'model_update'
