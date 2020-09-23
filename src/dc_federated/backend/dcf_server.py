@@ -425,7 +425,7 @@ class DCFServer(object):
                 hashlib.sha256(model_update).digest())
             if not verify_worker:
                 logger.error(f"Unable to verify worker with id {worker_id}")
-                return json.dumps({ERROR_MESSAGE_KEY: f"Unable to verify worker with id {worker_id}"})
+                return INVALID_WORKER
 
             if not self.worker_manager.is_worker_allowed(worker_id):
                 logger.warning(f"Unknown worker {worker_id} tried to send an update.")
@@ -485,7 +485,6 @@ class DCFServer(object):
 
             valid_failed = DCFServer.validate_input(
                 query_request, [WORKER_ID_KEY, SIGNED_PHRASE], [str, str])
-
             if ERROR_MESSAGE_KEY in valid_failed:
                 logger.error(valid_failed[ERROR_MESSAGE_KEY])
                 return INVALID_WORKER

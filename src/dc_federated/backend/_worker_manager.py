@@ -385,6 +385,8 @@ class WorkerManager(object):
         str:
             The challenge phrase
         """
+        if worker_id not in self.allowed_workers:
+            return INVALID_WORKER
         self.challenge_phrases[worker_id] = \
             hashlib.sha224(str(time.time()).encode('utf-8')).hexdigest()
         return self.challenge_phrases[worker_id]
@@ -407,8 +409,11 @@ class WorkerManager(object):
         str:
             The challenge phrase
         """
-        if self.challenge_phrases[worker_id] is None:
+        if not self.do_public_key_auth:
+            return True
+        if worker_id not in self.challenge_phrases or self.challenge_phrases[worker_id] is None:
             return False
+
         success = self.authenticate_worker(
             worker_id, signed_challenge, self.challenge_phrases[worker_id].encode())
         self.challenge_phrases[worker_id] = None
