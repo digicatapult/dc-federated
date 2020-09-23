@@ -150,12 +150,12 @@ class DCFWorker(object):
         binary string:
             The current global model returned by the server.
         """
-        response = requests.get(f"{self.server_loc}/{CHALLENGE_PHRASE_ROUTE}")
+        response = requests.get(f"{self.server_loc}/{CHALLENGE_PHRASE_ROUTE}/{self.worker_id}")
         challenge_phrase = response.content
         data = {
             WORKER_ID_KEY: self.worker_id,
             LAST_WORKER_MODEL_VERSION: self.get_worker_version_global_model(),
-            SIGNED_PHRASE: self.get_signed_phrase(challenge_phrase.encode())
+            SIGNED_PHRASE: self.get_signed_phrase(challenge_phrase)
         }
         return msgpack.unpackb(zlib.decompress(requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
                          json=data).content))
@@ -174,7 +174,7 @@ class DCFWorker(object):
         return requests.post(
             f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}/{self.worker_id}",
             files={ID_AND_MODEL_KEY: zlib.compress(model_update),
-                   SIGNED_PHRASE: hashlib.sha256(model_update).hexdigest()
+                   SIGNED_PHRASE: self.get_signed_phrase(hashlib.sha256(model_update).digest())
                    },
         ).content
 

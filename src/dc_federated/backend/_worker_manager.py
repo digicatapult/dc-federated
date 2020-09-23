@@ -407,7 +407,12 @@ class WorkerManager(object):
         str:
             The challenge phrase
         """
-        return self.authenticate_worker(worker_id, signed_challenge, self.challenge_phrases[worker_id])
+        if self.challenge_phrases[worker_id] is None:
+            return False
+        success = self.authenticate_worker(
+            worker_id, signed_challenge, self.challenge_phrases[worker_id].encode())
+        self.challenge_phrases[worker_id] = None
+        return success
 
     def authenticate_worker(self, public_key_str, signed_message, message_to_check=None):
         """
@@ -423,7 +428,7 @@ class WorkerManager(object):
         signed_message: str
             UTF-8 encoded signed message
 
-        message_to_check: str (default None)
+        message_to_check: object (default None)
             If given confirms that signed message corresponds to this string.
 
         Returns
@@ -441,17 +446,17 @@ class WorkerManager(object):
         try:
             if public_key_str not in self.public_keys:
                 return False
-            if message_to_check is None:
-                self.public_keys[public_key_str].verify(
-                    signed_message.encode(), encoder=HexEncoder)
-            else:
-                self.public_keys[public_key_str].verify(
-                    signed_message.encode(), message_to_check.encode(),
-                    encoder=HexEncoder)
+            v = self.public_keys[public_key_str].verify(
+                signed_message.encode(), encoder=HexEncoder)
+            if message_to_check is not None:
+                return v == message_to_check
 
         except BadSignatureError:
             logger.warning(
                 f"Failed to authenticate worker with public key: {public_key_str}.")
+            return False
+        except Exception as e:
+            logger.error(f"Exception when trying to authenticate worker {str(e)}")
             return False
         else:
             logger.info(

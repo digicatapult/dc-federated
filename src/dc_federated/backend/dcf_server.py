@@ -413,14 +413,16 @@ class DCFServer(object):
         """
         try:
             worker_data = request.files
-            valid_failed = DCFServer.validate_input(worker_data, [SIGNED_PHRASE], [str])
-            if ERROR_MESSAGE_KEY in valid_failed:
-                logger.error(valid_failed[ERROR_MESSAGE_KEY])
-                return json.dumps(valid_failed)
+            if SIGNED_PHRASE not in worker_data:
+                error_message = f"{SIGNED_PHRASE} not found in worker update payload."
+                logger.error(error_message)
+                return json.dumps({ERROR_MESSAGE_KEY: error_message})
 
             model_update = zlib.decompress(worker_data[ID_AND_MODEL_KEY].file.read())
+
             verify_worker = self.worker_manager.authenticate_worker(
-                worker_id, worker_data[SIGNED_PHRASE], hashlib.sha256(model_update).hexdigest())
+                worker_id, worker_data[SIGNED_PHRASE].file.read().decode('utf-8'),
+                hashlib.sha256(model_update).digest())
             if not verify_worker:
                 logger.error(f"Unable to verify worker with id {worker_id}")
                 return json.dumps({ERROR_MESSAGE_KEY: f"Unable to verify worker with id {worker_id}"})
@@ -500,7 +502,6 @@ class DCFServer(object):
             if not self.worker_manager.is_worker_registered(worker_id):
                 logger.warning(f"Unregistered worker {worker_id} tried to return global model.")
                 return UNREGISTERED_WORKER
-
 
             body = gevent.queue.Queue()
             g = Greenlet.spawn(self.check_model_ready, body, query_request[LAST_WORKER_MODEL_VERSION])
