@@ -10,7 +10,7 @@ nav:
   - The Library:
     - Getting Started: 'library/getting_started.md'
     - Architecture: 'library/architecture.md'
-    - Library Features: 'library/library_core_feature'
+    - Library Features: 'library/library_core_features.md'
     - Implementing New Algorithms: 'library/new_algorithms.md'
     - Worker Authentication: 'library/worker_authentication.md'
     - Secure Communication: 'library/enabling_ssl.md'

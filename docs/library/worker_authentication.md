@@ -1,4 +1,4 @@
-# Worker Authentication
+# Worker authentication
 
 The `dc_federated` library backend supports worker authentication via `Ed25519` based public/private key cryptography algorithm using the `libsodium` library. The scheme works as follows. 
 

@@ -1,82 +1,51 @@
 # Implementing new algorithms
 
-To implement a new algorithm using the `dc_federated` package it is necessary for the ML engineer to implement a set of callback functions implementing the algorithm logic. In the following, we will begin by describing the classes in the library backend in more detail and then desribe how to use them.  
-
-## The dc_federated.backend module
-
-The `dc_federated.backend` package for the backend for federated learning consists of two classes:
+To implement a new algorithm using the `dc_federated` package it is necessary for the ML engineer to implement a set of callback functions implementing the algorithm logic. The callback functions are called by the core of the library, which is contained in the`dc_federated.backend` module (everything else outside of it are reference implementaitons and the users of the library are free to decide for themselves how they want to use the facilities provided). This module consists of two public classes:
 
 - `DCFServer`
 - `DCFWorker`
 
-These classes abstract away the lower level server/worker communication logic away from the machine learning logic. For a quick example of how to use these, please refer to the example in the package `example_dcf_model` and the corresponding integration test `test_backend_model_integration.py`. For a detailed example, please see the implementation of the `FedAvg` algorithm in `dc_federated.algorithms.fed_avg`
+These classes abstract away implementation details of various lower level services (see [library core features](library_core_features.md)) from the machine learning logic. To describe how these classes use the callback funcitions, we start by describing the control flow in a typical application using the `dc_federated` library.
 
-In the following we briefly discuss the requirements for using these two classes.
+## Control flow in a `dc_federated` application
 
-### DCFServer
+The control flow can be understood in terms of the server side and worker side control flow. 
 
-The DCFServer class takes care of the lower level communication logic on the server side and it communicates with the workers using long-polling. This is expected to be used by a class implementing the server side of a federated learning algorithm.  A class using it should create an instance of the object with the following four functions.  
-
-- `register_worker_callback`: This function is expected to take the id of a newly registered worker and should contain the application specific logic for dealing with a new worker joining the federated learning pool.
-
-- `unregister_worker_callback`: This function is expected to take the id of a newly unregistered worker and should contain the application specific logic for dealing with a worker leaving the federated learning pool.
-
-- `return_global_model_callback`: This function is expected to return the current global model in a dictionary with two keys, giving the current global model in an application dependent binary serialized form and an federated learning algorithm dependent model version. See the `DCFServer` doc-string for details.
-
-- `is_global_model_most_recent`: This function is expected return true if the
-model version supplied as an argument is the most recent global model. The model versioning logic is left up to implementation of the algorithm.
-
-- `receive_worker_update_callback`: This function should receive a worker-id and an application dependent binary serialized update from the worker. The server code ensures that the worker-id was previously registered.
-
-- `start`: Starts the federated learning server.
-
-### DCFWorker
-
-The DCFWorker class takes care of the lower level communication logic with a corresponding running DCFServer object. This is expected to be used by a class implementing the worker side of a federated learning algorithm. The constructor expects the host-ip-address of the server and the port of the server. A class using it is required to supply the following two functions.
-
-- `global_model_version_changed_callback`: This callback is the algorithm dependent logic for what the worker should do when it receives a model from the server.
-
-- `get_worker_version_of_global_model`: This function returns the latest version of the global model that the worker has seen. This will typically be used by the server to decide which model to return to the worker. The versioning logic and the logic is algorithm dependent.
-
-The `DCFWorker` class also provides the following functions for implementing the worker side logic of the federated learning algorithm.
-
-- `register_worker`: Registers the DCFWorker instance with the server and returns the worker-id created.
-
-- `get_global_model`: Gets the global model from the server in application dependent binary serialized form.
-
-- `send_model_update`: Send the model update to the server in an application dependent binary string form.
-
-- `run`: Implements the main worker side loop that gets a model from the server, and then sends it to the worker side logic of the federated learning algorithm.     
-
-## Using the backend classes
-
-However before we describe those, we  and then start off  the callback functions required by. However before we describe these functions, it will be beneficial to understand the control flow in a typical distributed federated learning  application using the `dc_federated` package.  
-
-As a first step in the control flow, after some necessary initialization,  the server is started by calling the `DCFServer.start()` function which starts an http service. This service provides the following end-points for a remote worker:
+### Server side control flow
+As can be seen in the [MNIST example](../examples/mnist.md), the typical starting point in an application is the server script for the specific application. This script will, after some application specific initialization start the algorithm server ( `dc_federated.algorithsms.fed_avg.FedAvgServer` in the case of MNIST). This algorithm server will perform initialization and create a `DCFServer` object and start it by calling `DCFServer.start()` (the output seen on the console when the MNIST example server is started are as a result of calling this function). This will start the http service that the worker will use to communicate with the server. This service provides the following end-points for a remote worker:
   
- - registering *itself* (i.e. the worker) so that the worker can send and receive updates
- - sending a model update  
- - requesting the latest global model
- 
- The server also provides end-points for the admin on the server side, but they are not relevant for implementing algorithms.
+ - Registering *itself* (i.e. the worker) so that the worker can send and receive updates via the endpoint `/register_worker`.
+ - Sending a model update via the end-point `/receive_worker_update`
+ - Requesting the latest global model via the end-point `/return_global_model`. 
+   - When the server is running in the safe mode, this is preceeded by a call to the `/challenge_phrase` route to get a challenge phrase necessary for authentication.
+
+The above represents the sum total of the communication protocol supported between the worker and the server.These are all internal to the backend and not referred to in the algorithm implementation. The server also provides end-points for the admin on the server side, but they are not relevant for implementing algorithms.
   
-Once the server is up and running, each worker registers itself with the server and starts the main loop by calling `DCFWorker.run()`. This loop essentially waits until a new global model is available and then calls the callback function for when a new global model is created.
+### Worker side control flow
 
-A typical federated learning algorithm consists of a server side logic and worker side logic. The functions within `DCFServer` requires the following callbacks to be implemented.
+On the worker side, as can again be seen from the [MNIST example](../examples/mnist.md), the typical starting point in an application is the worker for that application. This worker will, after some application specific initialization, start the algorithm worker 
+ (the `dc_federated.algorithsms.fed_avg.FedAvgWorker.start()` in the case of MNIST), which in turn will start the `DCFWorker.run()` loop. In this loop the `DCFWorker` will check if a global model is ready and if so call the appropriate callback within the algorithm worker side logic. This worker side logic will typically perform the necessary updates and send the model to the server, using the `DCFWorker` instance, and then go back to the loop.
 
-- `register_worker_callback`: This function handles the initliazation logic necessary when a new worker joins the federated learning system.
+
+## Implementing the algorithm
+
+Given the above context, a federated learning algorithm can be implemented using `dc_federated` as follows (please following along to the implementation in `dc_federated.algorithms.fed_avg` for a concrete example).  A typical federated learning algorithm consists of a server side logic and worker side logic. The functions within `DCFServer` requires the following callbacks to be implemented to implement th server side logic.
+
+- `register_worker_callback`: This function handles the initialization logic necessary when a new worker joins the federated learning system. It is expected to take the id of a newly registered worker and should contain the algorithm specific logic for dealing with a new worker joining the federated learning pool. The algorithm implementation is free to expose the application to worker registration events via its application callbacks that are invoked when a worker registers.
 
 - `unregister_worker_callback`: This function handles the clean up logic necessary when an existing worker stops taking part in the federated learning system strategy.
 
-- `return_global_model_callback`: This callback returns the global model in a specific format.
+- `return_global_model_callback`: This function is expected to return the current global model in a dictionary with two keys, giving the current global model in an application dependent binary serialized form and an federated learning algorithm dependent model version. See the `DCFServer` doc-string for details.
 
-- `is_global_model_most_recent`: Given a model version number returns true if the model is the most recent version. This logic is specific to the algorithm implementation.
+- `is_global_model_most_recent`: Given a model version number returns true if the model is the most recent version. The versioning logic is specific to the algorithm implementation.
 
 - `receive_worker_update_callback`: This callback handles the logic that should be done when a new model update is recevied. In particular, this function should handle the **logic of performing model aggregation** when sufficient number of model updates have been received. 
 
 The `DCFWorker` class expects to be supplied the following callback functions;
 
-- `global_model_version_changed_callback`: This callback is executed when the server returns a new global model. So this function should contain the the logic necessary to retrain the local model once a new global model has been received. 
+- `global_model_version_changed_callback`: This callback is executed when the server returns a new global model. So this function should contain the the logic necessary to
+   - incorporate the new global model into the local model.
+   - retrain the local model once a new global model has been received. 
 
 - `get_worker_version_of_global_model`: This is a simple callback that is called to get the version of the global model that was last received by the worker. 
 
