@@ -191,6 +191,11 @@ class DCFServer(object):
             The id of the new client.
         """
         worker_data = request.json
+        if PUBLIC_KEY_STR not in worker_data or SIGNED_PHRASE not in worker_data:
+            error_string = "Worker JSON data does not contain "\
+                           f"`{PUBLIC_KEY_STR}` and `{SIGNED_PHRASE}`. Worker not registered."
+            logger.error(error_string)
+            return error_string
 
         auth_success, auth_type = \
             self.worker_authenticator.authenticate_worker(worker_data[PUBLIC_KEY_STR],
@@ -199,11 +204,19 @@ class DCFServer(object):
             worker_id = self.worker_authenticator.generate_id_for_worker(worker_data[PUBLIC_KEY_STR])
             if worker_id not in self.allowed_workers:
                 self.allowed_workers.append(worker_id)
+                logger.info(
+                    f"Successfully added worker with public key {worker_data[PUBLIC_KEY_STR]}")
+            else:
+                logger.info(f"Worker with public key {worker_data[PUBLIC_KEY_STR]} was added previously "
+                            "- no additional actions taken.")
             if worker_id not in self.registered_workers:
                 self.registered_workers.add(worker_id)
                 self.register_worker_callback(worker_id)
-            logger.info(
-                f"Successfully registered worker with public key: {worker_data[PUBLIC_KEY_STR]}")
+                logger.info(
+                    f"Successfully registered worker with public key {worker_data[PUBLIC_KEY_STR]}")
+            else:
+                logger.info(f"Worker with public key {worker_data[PUBLIC_KEY_STR]} is already registered "
+                            "- no additional actions taken.")
         else:
             logger.info(
                 f"Failed to register worker with public key: {worker_data[PUBLIC_KEY_STR]}")
@@ -389,7 +402,7 @@ class DCFServer(object):
             logger.warning(f"Nothing to change for {worker_id}")
 
         return json.dumps({
-            SUCCESS_MESSAGE_KEY:f"Successfully changed status for worker {worker_id}.",
+            SUCCESS_MESSAGE_KEY: f"Successfully changed status for worker {worker_id}.",
             WORKER_ID_KEY: worker_id,
             REGISTRATION_STATUS_KEY: should_register
         })
@@ -688,7 +701,6 @@ class WorkerAuthenticator(object):
         else:
             return hashlib.sha224(str(time.time()).encode(
                     'utf-8')).hexdigest() + '_unauthenticated'
-
 
     def authenticate_worker(self, public_key_str, signed_message):
         """
