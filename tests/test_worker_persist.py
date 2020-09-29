@@ -103,9 +103,7 @@ def test_worker_persistence():
     sleep(2)
 
     assert len(server.worker_manager.public_keys_db) == 3
-
-    returned_ids = []
-    # Phase 1: register a set of workers using the admin API and test registration
+    # Register a set of workers using the admin API and test registration
     for i in range(num_pre_load_workers, num_workers):
 
         admin_registered_worker = {
@@ -127,7 +125,7 @@ def test_worker_persistence():
     for doc in server.worker_manager.public_keys_db.all():
         assert doc[PUBLIC_KEY_STR] in public_keys
 
-    # Phase 2: Send updates and receive global updates for the registered workers
+    # Send updates and receive global updates for the registered workers
     # This should succeed
     worker_updates = {}
     for i in range(num_pre_load_workers, num_workers):
@@ -177,7 +175,7 @@ def test_worker_persistence():
     server_gl = Greenlet.spawn(begin_server, server, stoppable_server)
     sleep(2)
 
-    # Phase 7: Delete existing workers.
+    # Delete existing workers and check this works.
     for i in range(num_pre_load_workers):
         response = requests.delete(
             f"http://{server.server_host_ip}:{server.server_port}/{WORKERS_ROUTE}"

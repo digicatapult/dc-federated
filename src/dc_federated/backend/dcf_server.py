@@ -83,7 +83,7 @@ class DCFServer(object):
             from the previous session.
 
         path_to_keys_db: str
-            Path to the database of workers that has been added.
+            Path to the database of workers' public keys that has been added.
 
         server_host_ip: str (default None)
             The ip-address of the host of the server. If None, then it
