@@ -1,6 +1,6 @@
 # The dc_federated package
 
-The `dc_federated` package is a [fedeareted learning](https://en.wikipedia.org/wiki/Federated_learning) library that has been developed at Digital Catapult (UK), by the AI/ML team in London. It has been designed to research, experiment with and demo federated learning, and to deploy consortium  scale (< 1000 workers) federated learning applications. Please start at `docs/index.md` for the full documentation.
+The `dc_federated` package is a [fedeareted learning](https://en.wikipedia.org/wiki/Federated_learning) library that has been developed at Digital Catapult (UK), by the AI/ML team and the engineering team in London. It has been designed to research, experiment with and demo federated learning, and to deploy consortium  scale (< 1000 workers) federated learning applications. Please start at `docs/index.md` for the full documentation.
 
 
 ## Some quick facts about the library
@@ -29,7 +29,7 @@ You can find additional information in the following locations.
     - [secure communication](library/enabling_ssl.md)
     - [admin worker management](library/worker_management.md)
   - Examples:
-    - [MNIST](examples/mnist.md)
-    - [PlantVillage](examples/plantvillage.md)
-    - [Using the FedAvg algorithm](examples/using_fed_avg.md)
-    - [Multi-Device Test](examples/multi_device_test.md)
+    - [MNIST dataset](examples/mnist.md)
+    - [PlantVillage dataset](examples/plantvillage.md)
+    - [using the FedAvg algorithm](examples/using_fed_avg.md)
+    - [multi-Device Test](examples/multi_device_test.md)
