@@ -173,7 +173,7 @@ class DCFWorker(object):
         """
         return requests.post(
             f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}/{self.worker_id}",
-            files={ID_AND_MODEL_KEY: zlib.compress(model_update),
+            files={WORKER_MODEL_UPDATE_KEY: zlib.compress(model_update),
                    SIGNED_PHRASE: self.get_signed_phrase(hashlib.sha256(model_update).digest())
                    },
         ).content

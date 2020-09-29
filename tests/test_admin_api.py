@@ -134,7 +134,7 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!")),
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!")),
                        SIGNED_PHRASE: signed_phrase
                        }
             ).content
@@ -179,7 +179,7 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!")),
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!")),
                        SIGNED_PHRASE: signed_phrase
                        }
             ).content
@@ -216,7 +216,7 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!")),
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!")),
                        SIGNED_PHRASE: signed_phrase
                        }
             ).content
@@ -255,7 +255,7 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!")),
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!")),
                        SIGNED_PHRASE: signed_phrase
                        }
             ).content
