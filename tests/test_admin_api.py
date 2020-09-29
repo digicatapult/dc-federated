@@ -132,7 +132,7 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
             ).content
             assert msgpack.unpackb(worker_updates[worker_ids[i]]) == "Model update!!"
             assert response.decode(
@@ -170,7 +170,7 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
             ).content
             assert added_workers[i] not in worker_updates
             assert response.decode('UTF-8') == UNREGISTERED_WORKER
@@ -204,7 +204,7 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
             ).content
             assert msgpack.unpackb(worker_updates[worker_ids[i]]) == "Model update!!"
             assert response.decode(
@@ -237,7 +237,7 @@ def test_server_functionality():
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
             ).content
             assert added_workers[i] not in worker_updates
             assert response.decode('UTF-8') == INVALID_WORKER

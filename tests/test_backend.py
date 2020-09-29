@@ -155,7 +155,7 @@ def test_server_functionality():
     # test sending the model update
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/{worker_ids[1]}",
-        files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+        files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
     ).content
 
     assert msgpack.unpackb(worker_updates[worker_ids[1]]) == "Model update!!"
@@ -164,7 +164,7 @@ def test_server_functionality():
 
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/3",
-        files={ID_AND_MODEL_KEY: zlib.compress(
+        files={WORKER_MODEL_UPDATE_KEY: zlib.compress(
             msgpack.packb("Model update for unregistered worker!!"))}
     ).content
 
