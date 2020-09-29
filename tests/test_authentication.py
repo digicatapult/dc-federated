@@ -172,21 +172,24 @@ def test_worker_authentication():
         bad_worker_key = f.read()
 
     id_and_model_dict_good = {
-        ID_AND_MODEL_KEY: zlib.compress(msgpack.packb({
-            WORKER_ID_KEY: bad_worker_key,
-            MODEL_UPDATE_KEY: msgpack.packb("Bad Model update!!")
-        }))
+        WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Bad Model update!!")),
+        SIGNED_PHRASE: SigningKey(bad_worker_key.encode(), encoder=HexEncoder).sign(b"Bad Model update!!").hex()
     }
+
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/{bad_worker_key}",
         files=id_and_model_dict_good
     ).content
-    print(response)
     assert response.decode('utf-8') == INVALID_WORKER
+
+    challenge_phrase = requests.get(f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/"
+                                     f"{CHALLENGE_PHRASE_ROUTE}/{bad_worker_key}").content
+    assert challenge_phrase.decode('utf-8') == INVALID_WORKER
 
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
-        json={WORKER_ID_KEY: bad_worker_key}
+        json={WORKER_ID_KEY: bad_worker_key,
+              SIGNED_PHRASE: SigningKey(bad_worker_key.encode(), encoder=HexEncoder).sign(b"Some phrase").hex()}
     ).content
     assert response.decode('utf-8') == INVALID_WORKER
 
