@@ -113,6 +113,7 @@ def test_server_functionality():
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}",
         auth=admin_auth).content
 
+    print(response)
     workers_list = json.loads(response)
     assert all([worker[WORKER_ID_KEY] in worker_ids for worker in workers_list])
 
@@ -154,7 +155,7 @@ def test_server_functionality():
     # test sending the model update
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/{worker_ids[1]}",
-        files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+        files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
     ).content
 
     assert msgpack.unpackb(worker_updates[worker_ids[1]]) == "Model update!!"
@@ -163,12 +164,12 @@ def test_server_functionality():
 
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/3",
-        files={ID_AND_MODEL_KEY: zlib.compress(
+        files={WORKER_MODEL_UPDATE_KEY: zlib.compress(
             msgpack.packb("Model update for unregistered worker!!"))}
     ).content
 
     assert 3 not in worker_updates
-    assert response.decode('UTF-8') == UNREGISTERED_WORKER
+    assert response.decode('UTF-8') == INVALID_WORKER
 
     # *********** #
     # now test a DCFWorker on the same server.
