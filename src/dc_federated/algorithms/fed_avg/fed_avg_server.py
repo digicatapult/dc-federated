@@ -72,6 +72,7 @@ class FedAvgServer(object):
             is_global_model_most_recent=self.is_global_model_most_recent,
             receive_worker_update_callback=self.receive_worker_update,
             server_mode_safe=key_list_file is not None,
+            load_last_session_workers=False,
             key_list_file=key_list_file,
             server_host_ip=server_host_ip,
             ssl_enabled=ssl_enabled,
