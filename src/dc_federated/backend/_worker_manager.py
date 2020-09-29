@@ -373,18 +373,19 @@ class WorkerManager(object):
 
     def get_challenge_phrase(self, worker_id):
         """
-        Returns a challenge phrase for the worker.
+        Returns a challenge phrase for the worker to sign using
+        digital signatures for worker authentication.
 
         Parameters
         ----------
 
         worker_id: str
-            The id of the worker to delete
+            The id of the worker to get the challenge phrase for.
 
         Returns
         -------
         str:
-            The challenge phrase
+            The challenge phrase.
         """
         if worker_id not in self.allowed_workers:
             return INVALID_WORKER
@@ -394,21 +395,23 @@ class WorkerManager(object):
 
     def verify_challenge(self, worker_id, signed_challenge):
         """
-        Returns a challenge phrase for the worker.
+        Verifies that the signed_challenge was signed by worker with id
+        worker_id and that the phrase was what the worker was sent as
+        a challenge.
 
         Parameters
         ----------
 
         worker_id: str
-            The id of the worker to delete
+            The id of the worker to verify the challenge for.
 
         signed_challenge: str
             UTF-8 encoded signed message
 
         Returns
         -------
-        str:
-            The challenge phrase
+        bool:
+            Whether the verification succeeded or not.
         """
         if not self.do_public_key_auth:
             return True

@@ -423,8 +423,10 @@ class DCFServer(object):
             model_update = zlib.decompress(worker_data[WORKER_MODEL_UPDATE_KEY].file.read())
 
             verify_worker = self.worker_manager.authenticate_worker(
-                worker_id, worker_data[SIGNED_PHRASE].file.read().decode('utf-8'),
-                hashlib.sha256(model_update).digest())
+                worker_id,
+                worker_data[SIGNED_PHRASE].file.read().decode('utf-8'),
+                hashlib.sha256(model_update).digest()
+            )
             if not verify_worker:
                 logger.error(f"Unable to verify worker with id {worker_id}")
                 return INVALID_WORKER
@@ -489,7 +491,7 @@ class DCFServer(object):
                 query_request, [WORKER_ID_KEY, SIGNED_PHRASE], [str, str])
             if ERROR_MESSAGE_KEY in valid_failed:
                 logger.error(valid_failed[ERROR_MESSAGE_KEY])
-                return INVALID_WORKER
+                return json.dumps({ERROR_MESSAGE_KEY: valid_failed[ERROR_MESSAGE_KEY]})
 
             worker_id = query_request[WORKER_ID_KEY]
             if not self.worker_manager.verify_challenge(worker_id, query_request[SIGNED_PHRASE]):
