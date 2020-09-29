@@ -27,4 +27,5 @@ You can find additional information in the following locations.
   - Examples:
     - [MNIST](examples/mnist.md)
     - [PlantVillage](examples/plantvillage.md)
+    - [Using the FedAvg algorithm](examples/using_fed_avg.md)
     - [Multi-Device Test](examples/multi_device_test.md)

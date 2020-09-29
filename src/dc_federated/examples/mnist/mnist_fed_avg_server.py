@@ -60,7 +60,9 @@ def run():
     global_model_trainer = MNISTModelTrainer(
         train_loader=MNISTSubSet.default_dataset(
             is_train=True).get_data_loader(),
-        test_loader=MNISTSubSet.default_dataset(is_train=False).get_data_loader())
+        test_loader=MNISTSubSet.default_dataset(is_train=False).get_data_loader()
+    )
+
     fed_avg_server = FedAvgServer(global_model_trainer=global_model_trainer,
                                   key_list_file=args.key_list_file,
                                   update_lim=3,
