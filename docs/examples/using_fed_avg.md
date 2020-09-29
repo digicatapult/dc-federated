@@ -1,6 +1,6 @@
 # Using the FedAvg algorithm
 
-The `dc_federated` package contains an implementation of the FedAvg algorithm in `pytorch`. This can be found in `dc_federated.algorithms.fed_avg` and is implemented via two classes: 
+The `dc_federated` package contains an implementation of the [FedAvg](https://arxiv.org/abs/1602.05629) algorithm in `pytorch`. This can be found in `dc_federated.algorithms.fed_avg` and is implemented via two classes: 
 
 - `FedAvgServer` which implements the server side logic of FedAvg by using `dc_federated.backend.DCFServer`. This entails implementing certain callback functions required by `DCFServer`. 
  
