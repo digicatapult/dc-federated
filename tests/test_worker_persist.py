@@ -135,7 +135,7 @@ def test_worker_persistence():
         response = requests.post(
             f"http://{server.server_host_ip}:{server.server_port}/"
             f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i - num_pre_load_workers]}",
-            files={ID_AND_MODEL_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+            files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
         ).content
         assert msgpack.unpackb(worker_updates[worker_ids[i - num_pre_load_workers]]) == "Model update!!"
         assert response.decode(
@@ -153,6 +153,9 @@ def test_worker_persistence():
         assert msgpack.unpackb(model_return[GLOBAL_MODEL]) == "Pickle dump of a string"
 
     stoppable_server.shutdown()
+
+    worker_ids = []
+    worker_updates = {}
 
     server = DCFServer(
         register_worker_callback=test_register_func_cb,

@@ -67,7 +67,7 @@ class DCFServer(object):
 
         server_mode_safe: bool
             Whether or not the server should be in safe of unsafe mode. Safe
-            does not allow unauthenticated workers with the optional initial
+            mode does not allow unauthenticated workers with the optional initial
             set of public keys passed via the key_list_parameters. Raises
             an exception if server started in unsafe mode and key_list_file
             is not None.
@@ -228,7 +228,7 @@ class DCFServer(object):
         -------
 
         str:
-            The id of the new client, or INVALID_WORKER if the process failed
+            The id of the new client, or INVALID_WORKER if the process failed.
         """
         worker_data = request.json
         valid_failed = DCFServer.validate_input(worker_data, [PUBLIC_KEY_STR], [str])
@@ -333,10 +333,12 @@ class DCFServer(object):
             or error message if the operation failed for some reason.
         """
         logger.info(f"Admin is removing worker {worker_id}...")
+        was_registered = self.worker_manager.is_worker_registered(worker_id)
         worker_id = self.worker_manager.set_registration_status(worker_id, False)
         if worker_id != INVALID_WORKER:
-            self.unregister_worker_callback(worker_id)
-            logger.info(f"Worker {worker_id} was unregistered (removal)")
+            if was_registered:
+                self.unregister_worker_callback(worker_id)
+                logger.info(f"Worker {worker_id} was unregistered (removal)")
 
         worker_id = self.worker_manager.remove_worker(worker_id)
         if worker_id == INVALID_WORKER:
@@ -411,7 +413,7 @@ class DCFServer(object):
             Otherwise any exception that was raised.
         """
         try:
-            model_update = zlib.decompress(request.files[ID_AND_MODEL_KEY].file.read())
+            model_update = zlib.decompress(request.files[WORKER_MODEL_UPDATE_KEY].file.read())
 
             if not self.worker_manager.is_worker_allowed(worker_id):
                 logger.warning(f"Unknown worker {worker_id} tried to send an update.")
@@ -429,7 +431,7 @@ class DCFServer(object):
 
     def check_model_ready(self, body, last_worker_model_version):
         """
-        Threaded function run to check with the implementation of the
+        Greenlet function run to check with the implementation of the
         algorithm server-side logic to see if the global model is ready.
 
         Parameters
@@ -475,11 +477,11 @@ class DCFServer(object):
             worker_id = query_request[WORKER_ID_KEY]
 
             if not self.worker_manager.is_worker_allowed(worker_id):
-                logger.warning(f"Unknown worker {worker_id} tried to return global model.")
+                logger.warning(f"Unknown worker {worker_id} tried to get the global model.")
                 return INVALID_WORKER
 
             if not self.worker_manager.is_worker_registered(worker_id):
-                logger.warning(f"Unregistered worker {worker_id} tried to return global model.")
+                logger.warning(f"Unregistered worker {worker_id} tried to get the global model.")
                 return UNREGISTERED_WORKER
 
             body = gevent.queue.Queue()

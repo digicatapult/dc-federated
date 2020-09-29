@@ -25,7 +25,7 @@ logger.setLevel(level=logging.INFO)
 class WorkerManager(object):
     """
     Manages workers. It maintains a list of allowed workers and registered workers
-    and provides an interface of adding, removing, registering and authenticating them.
+    and provides an interface for adding, removing, registering and authenticating them.
 
     Parameters
     ----------
@@ -68,7 +68,7 @@ class WorkerManager(object):
                 logger.error(error_str)
                 raise ValueError(error_str)
             else:
-                logger.info("Server started is running in **** UNSAFE MODE ****")
+                logger.info("Server started is running in **** UNSAFE MODE **** - all workers will be accepted.")
                 self.do_public_key_auth = False
                 return
 
@@ -131,7 +131,7 @@ class WorkerManager(object):
     def authenticate_and_add_worker(self, public_key_str, signed_phrase):
         """
         Authenticates the worker and then adds it. Assumes that the
-        public key for the required (if required) was added previously.
+        public key (if required) was added previously.
 
         Parameters
         ----------
@@ -139,7 +139,7 @@ class WorkerManager(object):
             The public key
 
         signed_phrase: binary string
-            Signed binary string.
+            Binary string signed using the public key.
 
         Returns
         -------
@@ -178,6 +178,7 @@ class WorkerManager(object):
     def _add_worker(self, public_key_str):
         """
         Internal function for adding worker to the list of allowed workers.
+        Assumes the public key was added prior to calling this function.
 
         Parameters
         ----------
@@ -193,7 +194,7 @@ class WorkerManager(object):
         """
         worker_id = self.generate_id_for_worker(public_key_str)
         if self.do_public_key_auth and public_key_str not in self.public_keys:
-            err = message_seriously_wrong("trying to add worker without adding worker first")
+            err = message_seriously_wrong("trying to add worker without first adding its public key")
             logger.error(err)
             return err, False
         if worker_id not in self.allowed_workers:
@@ -381,19 +382,16 @@ class WorkerManager(object):
             UFT-8 encoded version of the public key
 
         signed_message: str
-            UTF-8 encoded signed message
+            message signed with the public key.
 
         Returns
         -------
 
-        bool, str:
+        bool:
             The bool is True if the public key matches the singed message, False otherwise.
-            The str indicates whether the public key authentication was performed.
         """
         if not self.do_public_key_auth:
             logger.warning("Accepting worker as valid without authentication.")
-            logger.warning(
-                "Server was likely started without a list of valid public keys from workers.")
             return True
         try:
             if public_key_str not in self.public_keys:
@@ -425,7 +423,8 @@ class WorkerManager(object):
 
     def is_worker_allowed(self, worker_id):
         """
-        Whether or not the worker is allowed or not.
+        Whether or not the worker is allowed to register and/or
+        participate in the federated learning at all.
 
         Returns
         -------
