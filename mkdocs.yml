@@ -1,0 +1,20 @@
+site_name: dc_federated Documentation
+
+theme:
+  name: material
+
+docs_dir: docs
+
+nav:
+  - Home: 'index.md'
+  - The Library:
+    - Getting Started: 'library/getting_started.md'
+    - Architecture: 'library/architecture.md'
+    - Backend: 'library/backend.md'
+    - Worker Authentication: 'library/worker_authentication.md'
+    - Secure Communication: 'library/enabling_ssl.md'
+  - Examples:
+    - MNIST: 'examples/mnist.md'
+    - PlantVillage: 'examples/plantvillage.md'
+    - Multi-device example: 'examples/multi_device_test.md'
+

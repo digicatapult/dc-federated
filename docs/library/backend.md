@@ -1,4 +1,4 @@
-### Documentation for the classes in dc_federated.backend
+# The dc_federated.backend module
 
 The `dc_federated.backend` package for the backend for federated learning consists of two classes:
 
@@ -9,7 +9,7 @@ These classes abstract away the lower level server/worker communication logic aw
 
 In the following we briefly discuss the requirements for using these two classes.
 
-#### DCFServer
+## DCFServer
 
 The DCFServer class takes care of the lower level communication logic on the server side and it communicates with the workers using long-polling. This is expected to be used by a class implementing the server side of a federated learning algorithm.  A class using it should create an instance of the object with the following four functions.  
 
@@ -26,7 +26,7 @@ model version supplied as an argument is the most recent global model. The model
 
 - `start`: Starts the federated learning server.
 
-#### DCFWorker
+## DCFWorker
 
 The DCFWorker class takes care of the lower level communication logic with a corresponding running DCFServer object. This is expected to be used by a class implementing the worker side of a federated learning algorithm. The constructor expects the host-ip-address of the server and the port of the server. A class using it is required to supply the following two functions.
 
