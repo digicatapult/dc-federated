@@ -113,7 +113,6 @@ def test_server_functionality():
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{WORKERS_ROUTE}",
         auth=admin_auth).content
 
-    print(response)
     workers_list = json.loads(response)
     assert all([worker[WORKER_ID_KEY] in worker_ids for worker in workers_list])
 
@@ -145,6 +144,7 @@ def test_server_functionality():
     model_return_binary = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
         json={WORKER_ID_KEY: worker_ids[0],
+              SIGNED_PHRASE: "",
               LAST_WORKER_MODEL_VERSION: "0"}
     ).content
     model_return = msgpack.unpackb(zlib.decompress(model_return_binary))
@@ -155,7 +155,9 @@ def test_server_functionality():
     # test sending the model update
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/{worker_ids[1]}",
-        files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+        files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!")),
+               SIGNED_PHRASE: ""
+               }
     ).content
 
     assert msgpack.unpackb(worker_updates[worker_ids[1]]) == "Model update!!"
@@ -164,9 +166,8 @@ def test_server_functionality():
 
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/3",
-        files={WORKER_MODEL_UPDATE_KEY: zlib.compress(
-            msgpack.packb("Model update for unregistered worker!!"))}
-    ).content
+        files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update for unregistered worker!!")),
+               SIGNED_PHRASE: ""}).content
 
     assert 3 not in worker_updates
     assert response.decode('UTF-8') == INVALID_WORKER

@@ -13,6 +13,7 @@ import json
 import os.path
 import zlib
 import msgpack
+import hashlib
 
 from bottle import Bottle, run, request, response, auth_basic, ServerAdapter
 
@@ -413,7 +414,22 @@ class DCFServer(object):
             Otherwise any exception that was raised.
         """
         try:
-            model_update = zlib.decompress(request.files[WORKER_MODEL_UPDATE_KEY].file.read())
+            worker_data = request.files
+            if SIGNED_PHRASE not in worker_data:
+                error_message = f"{SIGNED_PHRASE} not found in worker update payload."
+                logger.error(error_message)
+                return json.dumps({ERROR_MESSAGE_KEY: error_message})
+
+            model_update = zlib.decompress(worker_data[WORKER_MODEL_UPDATE_KEY].file.read())
+
+            verify_worker = self.worker_manager.authenticate_worker(
+                worker_id,
+                worker_data[SIGNED_PHRASE].file.read().decode('utf-8'),
+                hashlib.sha256(model_update).digest()
+            )
+            if not verify_worker:
+                logger.error(f"Unable to verify worker with id {worker_id}")
+                return INVALID_WORKER
 
             if not self.worker_manager.is_worker_allowed(worker_id):
                 logger.warning(f"Unknown worker {worker_id} tried to send an update.")
@@ -470,11 +486,17 @@ class DCFServer(object):
         """
         try:
             query_request = request.json
-            if WORKER_ID_KEY not in query_request:
-                logger.warning(f"Key {WORKER_ID_KEY} is missing in query_request.")
-                return UNREGISTERED_WORKER
+
+            valid_failed = DCFServer.validate_input(
+                query_request, [WORKER_ID_KEY, SIGNED_PHRASE], [str, str])
+            if ERROR_MESSAGE_KEY in valid_failed:
+                logger.error(valid_failed[ERROR_MESSAGE_KEY])
+                return json.dumps({ERROR_MESSAGE_KEY: valid_failed[ERROR_MESSAGE_KEY]})
 
             worker_id = query_request[WORKER_ID_KEY]
+            if not self.worker_manager.verify_challenge(worker_id, query_request[SIGNED_PHRASE]):
+                logger.error(f"Failed to verify worker with id {worker_id}")
+                return INVALID_WORKER
 
             if not self.worker_manager.is_worker_allowed(worker_id):
                 logger.warning(f"Unknown worker {worker_id} tried to get the global model.")
@@ -515,6 +537,8 @@ class DCFServer(object):
         application = Bottle()
         application.route(f"/{REGISTER_WORKER_ROUTE}",
                           method='POST', callback=self.add_and_register_worker)
+        application.route(f"/{CHALLENGE_PHRASE_ROUTE}/<worker_id>",
+                          method='GET', callback=self.worker_manager.get_challenge_phrase)
         application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}",
                           method='POST', callback=self.return_global_model)
         application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}/<worker_id>",

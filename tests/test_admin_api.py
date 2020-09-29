@@ -16,6 +16,7 @@ import logging
 import zlib
 import requests
 import json
+import hashlib
 
 from dc_federated.backend import DCFServer, DCFWorker, create_model_dict, is_valid_model_dict
 from dc_federated.backend._constants import *
@@ -93,9 +94,9 @@ def test_server_functionality():
         if mode == 'safe': return public_keys[i].decode('utf-8')
         else: return 'dummy_public_key'
 
-    def get_signed_phrase(mode, i):
+    def get_signed_phrase(mode, i, phrase=b'test phrase'):
         if mode == 'safe':
-            return SigningKey(private_keys[i], encoder=HexEncoder).sign(b'test phrase').hex()
+            return SigningKey(private_keys[i], encoder=HexEncoder).sign(phrase).hex()
         else: return 'dummy_signed_phrase'
 
     for server, mode in zip([dcf_server_unsafe, dcf_server_safe], ['unsafe', 'safe']):
@@ -129,19 +130,26 @@ def test_server_functionality():
         worker_updates = {}
         for i in range(num_workers):
             # send updates
+            signed_phrase = get_signed_phrase(mode, i, hashlib.sha256(msgpack.packb("Model update!!")).digest())
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!")),
+                       SIGNED_PHRASE: signed_phrase
+                       }
             ).content
+            print(response)
             assert msgpack.unpackb(worker_updates[worker_ids[i]]) == "Model update!!"
             assert response.decode(
                 "UTF-8") == f"Update received for worker {added_workers[i]}."
 
             # receive updates
+            challenge_phrase = requests.get(f"http://{server.server_host_ip}:{server.server_port}/"
+                                            f"{CHALLENGE_PHRASE_ROUTE}/{added_workers[i]}").content
             model_return_binary = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
                 json={WORKER_ID_KEY: added_workers[i],
+                      SIGNED_PHRASE: get_signed_phrase(mode, i, challenge_phrase),
                       LAST_WORKER_MODEL_VERSION: "0"}
             ).content
             model_return = msgpack.unpackb(zlib.decompress(model_return_binary))
@@ -163,14 +171,17 @@ def test_server_functionality():
             assert not unreg_worker_dict[REGISTRATION_STATUS_KEY]
         assert len(worker_ids) == 0
 
-        # Phase 4: Try to send updates to the unregistered workers - this should fail
+        # Phase 4: Try to send updates from the unregistered workers - this should fail
         worker_updates = {}
         for i in range(num_workers):
             # send updates
+            signed_phrase = get_signed_phrase(mode, i, hashlib.sha256(msgpack.packb("Model update!!")).digest())
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!")),
+                       SIGNED_PHRASE: signed_phrase
+                       }
             ).content
             assert added_workers[i] not in worker_updates
             assert response.decode('UTF-8') == UNREGISTERED_WORKER
@@ -201,19 +212,25 @@ def test_server_functionality():
         worker_updates = {}
         for i in range(num_workers):
             # send updates
+            signed_phrase = get_signed_phrase(mode, i, hashlib.sha256(msgpack.packb("Model update!!")).digest())
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!")),
+                       SIGNED_PHRASE: signed_phrase
+                       }
             ).content
             assert msgpack.unpackb(worker_updates[worker_ids[i]]) == "Model update!!"
             assert response.decode(
                 "UTF-8") == f"Update received for worker {added_workers[i]}."
 
             # receive updates
+            challenge_phrase = requests.get(f"http://{server.server_host_ip}:{server.server_port}/"
+                                            f"{CHALLENGE_PHRASE_ROUTE}/{added_workers[i]}").content
             model_return_binary = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
                 json={WORKER_ID_KEY: added_workers[i],
+                      SIGNED_PHRASE: get_signed_phrase(mode, i, challenge_phrase),
                       LAST_WORKER_MODEL_VERSION: "0"}
             ).content
             model_return = msgpack.unpackb(zlib.decompress(model_return_binary))
@@ -234,18 +251,24 @@ def test_server_functionality():
         worker_updates = {}
         for i in range(num_workers):
             # send updates
+            signed_phrase = get_signed_phrase(mode, i, hashlib.sha256(msgpack.packb("Model update!!")).digest())
             response = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/"
                 f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i]}",
-                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+                files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!")),
+                       SIGNED_PHRASE: signed_phrase
+                       }
             ).content
             assert added_workers[i] not in worker_updates
             assert response.decode('UTF-8') == INVALID_WORKER
 
             # receive updates
+            challenge_phrase = requests.get(f"http://{server.server_host_ip}:{server.server_port}/"
+                                            f"{CHALLENGE_PHRASE_ROUTE}/{added_workers[i]}").content
             model_return_binary = requests.post(
                 f"http://{server.server_host_ip}:{server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
                 json={WORKER_ID_KEY: added_workers[i],
+                      SIGNED_PHRASE: get_signed_phrase(mode, i, challenge_phrase),
                       LAST_WORKER_MODEL_VERSION: "0"}
             ).content
             assert response.decode('UTF-8') == INVALID_WORKER

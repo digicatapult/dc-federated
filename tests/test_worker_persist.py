@@ -6,6 +6,7 @@ import os
 import zlib
 import msgpack
 import json
+import hashlib
 from tinydb import Query
 
 from nacl.exceptions import BadSignatureError
@@ -78,8 +79,8 @@ def test_worker_persistence():
         else:
             return f"Unregistered worker {worker_id} tried to send an update."
 
-    def get_signed_phrase(private_key):
-        return SigningKey(private_key, encoder=HexEncoder).sign(b'test phrase').hex()
+    def get_signed_phrase(private_key, phrase=b'test phrase'):
+        return SigningKey(private_key, encoder=HexEncoder).sign(phrase).hex()
 
     if os.path.exists('workers_db.json'):
         os.remove('workers_db.json')
@@ -130,19 +131,27 @@ def test_worker_persistence():
     worker_updates = {}
     for i in range(num_pre_load_workers, num_workers):
         # send updates
+
+        signed_phrase = get_signed_phrase(private_keys[i], hashlib.sha256(msgpack.packb("Model update!!")).digest())
         response = requests.post(
             f"http://{server.server_host_ip}:{server.server_port}/"
             f"{RECEIVE_WORKER_UPDATE_ROUTE}/{added_workers[i - num_pre_load_workers]}",
-            files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!"))}
+            files={WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Model update!!")),
+                   SIGNED_PHRASE: signed_phrase
+                   }
         ).content
         assert msgpack.unpackb(worker_updates[worker_ids[i - num_pre_load_workers]]) == "Model update!!"
         assert response.decode(
             "UTF-8") == f"Update received for worker {added_workers[i - num_pre_load_workers]}."
 
         # receive updates
+
+        challenge_phrase = requests.get(f"http://{server.server_host_ip}:{server.server_port}/"
+                                        f"{CHALLENGE_PHRASE_ROUTE}/{added_workers[i - num_pre_load_workers]}").content
         model_return_binary = requests.post(
             f"http://{server.server_host_ip}:{server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
             json={WORKER_ID_KEY: added_workers[i - num_pre_load_workers],
+                  SIGNED_PHRASE: get_signed_phrase(private_keys[i], challenge_phrase),
                   LAST_WORKER_MODEL_VERSION: "0"}
         ).content
         model_return = msgpack.unpackb(zlib.decompress(model_return_binary))

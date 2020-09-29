@@ -58,6 +58,7 @@ class WorkerManager(object):
         self.allowed_workers = []
         self.registered_workers = {}
         self.public_keys_db = None
+        self.challenge_phrases = {}
 
         if not server_mode_safe:
             if key_list_file is not None:
@@ -370,7 +371,59 @@ class WorkerManager(object):
             return hashlib.sha224(str(time.time()).encode(
                     'utf-8')).hexdigest() + '_unauthenticated'
 
-    def authenticate_worker(self, public_key_str, signed_message):
+    def get_challenge_phrase(self, worker_id):
+        """
+        Returns a challenge phrase for the worker to sign using
+        digital signatures for worker authentication.
+
+        Parameters
+        ----------
+
+        worker_id: str
+            The id of the worker to get the challenge phrase for.
+
+        Returns
+        -------
+        str:
+            The challenge phrase.
+        """
+        if worker_id not in self.allowed_workers:
+            return INVALID_WORKER
+        self.challenge_phrases[worker_id] = \
+            hashlib.sha224(str(time.time()).encode('utf-8')).hexdigest()
+        return self.challenge_phrases[worker_id]
+
+    def verify_challenge(self, worker_id, signed_challenge):
+        """
+        Verifies that the signed_challenge was signed by worker with id
+        worker_id and that the phrase was what the worker was sent as
+        a challenge.
+
+        Parameters
+        ----------
+
+        worker_id: str
+            The id of the worker to verify the challenge for.
+
+        signed_challenge: str
+            UTF-8 encoded signed message
+
+        Returns
+        -------
+        bool:
+            Whether the verification succeeded or not.
+        """
+        if not self.do_public_key_auth:
+            return True
+        if worker_id not in self.challenge_phrases or self.challenge_phrases[worker_id] is None:
+            return False
+
+        success = self.authenticate_worker(
+            worker_id, signed_challenge, self.challenge_phrases[worker_id].encode())
+        self.challenge_phrases[worker_id] = None
+        return success
+
+    def authenticate_worker(self, public_key_str, signed_message, message_to_check=None):
         """
         Authenticates a worker with the given public key against the
         given signed message.
@@ -384,6 +437,9 @@ class WorkerManager(object):
         signed_message: str
             message signed with the public key.
 
+        message_to_check: object (default None)
+            If given confirms that signed message corresponds to this string.
+
         Returns
         -------
 
@@ -396,11 +452,17 @@ class WorkerManager(object):
         try:
             if public_key_str not in self.public_keys:
                 return False
-            self.public_keys[public_key_str].verify(
+            v = self.public_keys[public_key_str].verify(
                 signed_message.encode(), encoder=HexEncoder)
+            if message_to_check is not None:
+                return v == message_to_check
+
         except BadSignatureError:
             logger.warning(
                 f"Failed to authenticate worker with public key: {public_key_str}.")
+            return False
+        except Exception as e:
+            logger.error(f"Exception when trying to authenticate worker {str(e)}")
             return False
         else:
             logger.info(

@@ -5,6 +5,7 @@ machine learning logic.
 """
 import zlib
 import msgpack
+import hashlib
 from nacl.signing import SigningKey, VerifyKey
 from nacl.encoding import HexEncoder
 
@@ -70,10 +71,16 @@ class DCFWorker(object):
         if server_protocol == 'http' and server_host_ip != 'localhost':
             logger.warning("Security alert: https is not enabled!")
 
-    def get_signed_phrase(self):
+    def get_signed_phrase(self, phrase_to_sign=WORKER_AUTHENTICATION_PHRASE):
         """
         Returns the the authentication string signed using the private key of this
         worker.
+
+        Parameters
+        ----------
+
+        phrase_to_sign: bytes (default WORKER_AUTHENTICATION_PHRASE)
+            The phrase to sign with the public key of this worker
 
         Returns
         -------
@@ -87,7 +94,7 @@ class DCFWorker(object):
         with open(self.private_key_file, 'r') as f:
             hex_read = f.read().encode()
             private_key_read = SigningKey(hex_read, encoder=HexEncoder)
-            return private_key_read.sign(WORKER_AUTHENTICATION_PHRASE).hex()
+            return private_key_read.sign(phrase_to_sign).hex()
 
     def get_public_key_str(self):
         """
@@ -143,9 +150,12 @@ class DCFWorker(object):
         binary string:
             The current global model returned by the server.
         """
+        response = requests.get(f"{self.server_loc}/{CHALLENGE_PHRASE_ROUTE}/{self.worker_id}")
+        challenge_phrase = response.content
         data = {
             WORKER_ID_KEY: self.worker_id,
-            LAST_WORKER_MODEL_VERSION: self.get_worker_version_global_model()
+            LAST_WORKER_MODEL_VERSION: self.get_worker_version_global_model(),
+            SIGNED_PHRASE: self.get_signed_phrase(challenge_phrase)
         }
         return msgpack.unpackb(zlib.decompress(requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
                          json=data).content))
@@ -163,7 +173,9 @@ class DCFWorker(object):
         """
         return requests.post(
             f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}/{self.worker_id}",
-            files={WORKER_MODEL_UPDATE_KEY: zlib.compress(model_update)},
+            files={WORKER_MODEL_UPDATE_KEY: zlib.compress(model_update),
+                   SIGNED_PHRASE: self.get_signed_phrase(hashlib.sha256(model_update).digest())
+                   },
         ).content
 
     def run(self):
