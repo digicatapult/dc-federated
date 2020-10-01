@@ -4,9 +4,7 @@ Test worker authentication related functions.
 
 import os
 import zlib
-import time
-import pickle
-import requests
+import msgpack
 
 from nacl.exceptions import BadSignatureError
 from nacl.encoding import HexEncoder
@@ -85,7 +83,7 @@ def test_worker_authentication():
 
     def test_ret_global_model_cb():
         return create_model_dict(
-            pickle.dumps("Pickle dump of a string"),
+            msgpack.packb("Serialized dump of a string"),
             global_model_version)
 
     def is_global_model_most_recent(version):
@@ -120,6 +118,7 @@ def test_worker_authentication():
         return_global_model_callback=test_ret_global_model_cb,
         is_global_model_most_recent=is_global_model_most_recent,
         receive_worker_update_callback=test_rec_server_update_cb,
+        server_mode_safe=True,
         key_list_file=worker_key_file
     )
     stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
@@ -147,7 +146,7 @@ def test_worker_authentication():
         global_model_dict = worker.get_global_model()
         worker.send_model_update(b'model_update')
         assert is_valid_model_dict(global_model_dict)
-        assert global_model_dict[GLOBAL_MODEL] == pickle.dumps("Pickle dump of a string")
+        assert global_model_dict[GLOBAL_MODEL] == msgpack.packb("Serialized dump of a string")
         assert global_model_dict[GLOBAL_MODEL_VERSION] == global_model_version
         assert worker_updates[worker.worker_id] == b'model_update'
         assert worker.worker_id == key.encode(encoder=HexEncoder).decode('utf-8')
@@ -173,23 +172,26 @@ def test_worker_authentication():
         bad_worker_key = f.read()
 
     id_and_model_dict_good = {
-        ID_AND_MODEL_KEY: zlib.compress(pickle.dumps({
-            WORKER_ID_KEY: bad_worker_key,
-            MODEL_UPDATE_KEY: pickle.dumps("Bad Model update!!")
-        }))
+        WORKER_MODEL_UPDATE_KEY: zlib.compress(msgpack.packb("Bad Model update!!")),
+        SIGNED_PHRASE: SigningKey(bad_worker_key.encode(), encoder=HexEncoder).sign(b"Bad Model update!!").hex()
     }
+
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/{bad_worker_key}",
         files=id_and_model_dict_good
     ).content
-    print(response)
-    assert response.decode('utf-8') == UNREGISTERED_WORKER
+    assert response.decode('utf-8') == INVALID_WORKER
+
+    challenge_phrase = requests.get(f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/"
+                                     f"{CHALLENGE_PHRASE_ROUTE}/{bad_worker_key}").content
+    assert challenge_phrase.decode('utf-8') == INVALID_WORKER
 
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RETURN_GLOBAL_MODEL_ROUTE}",
-        json={WORKER_ID_KEY: bad_worker_key}
+        json={WORKER_ID_KEY: bad_worker_key,
+              SIGNED_PHRASE: SigningKey(bad_worker_key.encode(), encoder=HexEncoder).sign(b"Some phrase").hex()}
     ).content
-    assert response.decode('utf-8') == UNREGISTERED_WORKER
+    assert response.decode('utf-8') == INVALID_WORKER
 
     # delete the files
     for n in range(num_workers):

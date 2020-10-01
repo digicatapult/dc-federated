@@ -2,11 +2,9 @@
 Contains the implementation of the server side logic for the FedAvg algorithm.
 """
 
-import pickle
-
+import msgpack
 import io
 from datetime import datetime
-import logging
 from collections import OrderedDict
 
 import torch
@@ -16,6 +14,7 @@ from dc_federated.backend import DCFServer, \
 from dc_federated.backend._constants import *
 from dc_federated.algorithms.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
+import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -72,6 +71,8 @@ class FedAvgServer(object):
             return_global_model_callback=self.return_global_model,
             is_global_model_most_recent=self.is_global_model_most_recent,
             receive_worker_update_callback=self.receive_worker_update,
+            server_mode_safe=key_list_file is not None,
+            load_last_session_workers=False,
             key_list_file=key_list_file,
             server_host_ip=server_host_ip,
             ssl_enabled=ssl_enabled,
@@ -166,7 +167,7 @@ class FedAvgServer(object):
             if self.worker_updates[worker_id] is None or \
                     self.worker_updates[worker_id][0] < self.last_global_model_update_timestamp:
                 self.unique_updates_since_last_agg += 1
-            update_size, model_bytes = pickle.loads(model_update)
+            update_size, model_bytes = msgpack.unpackb(model_update)
             self.worker_updates[worker_id] = (datetime.now(), update_size,
                                               torch.load(io.BytesIO(model_bytes)))
             logger.info(f" Model update received from worker {worker_id}")

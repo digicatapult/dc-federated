@@ -1,11 +1,11 @@
-## Federated Learning with PlantVillage dataset
+# The PlantVillage federated earning example
 
 This document will show you how to run the PlantVillage dataset federated learning example included in the repo in a fully distributed fashion. In particular, it will show you:
 - how to start the server
 - how to start a desired number different workers in one or more machines
 - run the FedAvg algorithm to solve the PlantVillage machine vision problem.
 
-### The Problem
+## The Problem
 
 The PlantVillage dataset consists of images of diseased leaves for various kinds of crops and the diseases that each image corresponds to. To use this data for federated learning case, we choose a subset of the whole set and split the data into 4 datasets with different distributions (which can be specified via a configuration file) each corresponding to a different worker. As in the standard federated learning setting the goal is to learn a model at the server that uses all the data in the workers.
 
@@ -64,8 +64,8 @@ where `v` is between `0` to `3`. Use the configuration file `PlantVillage_cfg.ya
 (venv_dc_federated)> python plant_fed_avg_worker.py --server-host-ip *your_server_ip* --server-port 8080 --worker-id [worker id] --train-data-path [path] --validation-data-path [path]
 ```
 
-### Docker
-#### Running the example using docker
+## Docker
+
 Download the dataset in the root of the directory
 ```wget https://github.com/spMohanty/PlantVillage-Dataset/archive/master.zip -O master.zip```
 

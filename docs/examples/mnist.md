@@ -1,4 +1,4 @@
-## The MNIST Federated Learning Example
+# The MNIST federated learning Example
 
 This document will show you how to run the MNIST federated learning example included in the repo in a fully distributed fashion. In particular, it will show you:
 
@@ -7,19 +7,19 @@ This document will show you how to run the MNIST federated learning example incl
 - run the `FedAvg` algorithm to solve the MNIST problem
 - use the authentication facility in `dc_federated` to authenticate workers.
 
-### The problem
+## The problem
 
 The MNIST dataset is, at this point, one of the simplest machine vision benchmark problems for deep neural networks. It consists of images of handwritten digits (0 to 9) and the task is to recognize which digit each image corresponds to. In the federated setting we describe below, there are three workers and each worker will only have images for a particular subset of the digits - worker `0` will have images for digits `0 - 3`, worker `1` for `4 - 6` and worker `2` for `7 - 9`. During federated learning the goal will be to create a model at the server that is equally good on the combined dataset but without looking at all three datasets.
 
-### Running the Example
+## Running the example
 
 We assume that you are running on Linux or Mac OS. You will need to translate the instructions for Windows, which should be quite similar. Follow the steps below to run the example:
 
-#### Setting up
+### Setting up
 
 Clone and install the repo in the machines where you want to deploy the servers and the workers (as described in `docs/getting_started.md`). _You can skip this step if you are running everything on the same machine._ Open a terminal for the server, and one terminal for each of the three workers.
 
-#### Start The Server
+### Start The Server
 
 > NOTE: The machine that the server is running on must be enabled to host a webserver accessible to the machines running the workers.
 
@@ -52,7 +52,7 @@ Alternatively the server can be use https:
   --ssl-enabled
 ```
 
-Please refer to [the ssl document for more details](./enabling_ssl.md)
+Please refer to [the ssl document for more details](../library/enabling_ssl.md)
 
 You should see an output of the following form:
 
@@ -71,7 +71,7 @@ Starting an Federated Average Server at
 
 But with different `server-host-ip` but the same `server-port`. You may see additional output if you are downloading the mnist dataset. Note the warning that the server is starting in `unsafe mode` - this is because that the worker authentication is not being used. See below for how to run this example with the workers being authenticated.
 
-#### Start the Workers
+### Start the workers
 
 Now move to a terminal for a worker and `cd` into the location where the library is installed and, then to the mnist folder (same as above), activate the virtual enironment and run:
 
@@ -92,8 +92,9 @@ Or, if the server use https:
     --digit-class 0
 ```
 
-Please refer to [the ssl document for more details](./enabling_ssl.md)
+Please refer to [the ssl document for more details](../library/enabling_ssl.md)
 
+The `--digit-class 0` argument means that this worker only only train on digits `0-3`. Using arguments `1` and `2` correspond to training only on digits `4-6` and `7-9` respectively. The `192.124.1.177` and `8080` should be replaced by the values obtained when the server was run.
 The `--digit-class 0` argument means that this worker only only train on digits `0-3`. Using arguments `1` and `2` correspond to training only on digits `4-6` and `7-9` respectively. The `192.124.1.177` and `8080` should be replaced by the values obtained when the server was run.
 
 Once you run the worker, you should see an output of the form
@@ -136,7 +137,7 @@ and
 
 Note that only the `--digit-class` argument changes.
 
-#### Federated Learning In Action
+### Federated Learning In Action
 
 Once you have started the third worker, the `FedAvg` federated learning iterations will start and you should see scrolling output in all four terminals, with the output performance in the server improving over time. For instance on the server side you will see outputs of the form.
 
@@ -208,15 +209,14 @@ Note that for the server, the test set is based on the combined data set of all 
 
 You can stop by pressing `Ctrl+C` on the server terminal.
 
-### Docker
+## Docker
 
-#### Running the example using docker
 
 Run `docker-compose -f docker_compose_mnist.yml up`
 
 This will build the relevant images and bring up the example. This example has been tested and works using only 8GB of host memory.
 
-### Worker Authentication
+## Worker Authentication
 
 We now show how worker authentication may be incoporated into mnist example, so that only valid workers are allowed to join. To get a general introduction to the `dc_federated` authentication scheme please see `docs/worker_authentication.md` and then come back here.
 

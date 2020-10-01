@@ -39,6 +39,7 @@ class ExampleGlobalModel(object):
             return_global_model_callback=self.return_global_model,
             is_global_model_most_recent=self.is_global_model_most_recent,
             receive_worker_update_callback=self.receive_worker_update,
+            server_mode_safe=False,
             key_list_file=None
         )
 

@@ -7,10 +7,10 @@ RETURN_GLOBAL_MODEL_ROUTE = 'return_global_model'
 QUERY_GLOBAL_MODEL_STATUS_ROUTE = 'query_global_model_status'
 RECEIVE_WORKER_UPDATE_ROUTE = 'receive_worker_update'
 WORKERS_ROUTE = 'workers'
+CHALLENGE_PHRASE_ROUTE = 'challenge_phrase'
 
 WORKER_ID_KEY = 'worker_id'
-MODEL_UPDATE_KEY = 'model_update'
-ID_AND_MODEL_KEY = 'id_and_model'
+WORKER_MODEL_UPDATE_KEY = 'worker_model_update'
 LAST_WORKER_MODEL_VERSION = 'last_worker_model_version'
 GLOBAL_MODEL_VERSION = 'global_model_version'
 GLOBAL_MODEL = 'global_model'
@@ -31,3 +31,4 @@ ADMIN_USERNAME = 'DCF_SERVER_ADMIN_USERNAME'
 
 ERROR_MESSAGE_KEY = 'error'
 SUCCESS_MESSAGE_KEY = 'success'
+

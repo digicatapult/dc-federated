@@ -1,4 +1,4 @@
-### Running the Multi-Device Test
+# Running the Multi-Device Test
 
 To run the multi-device test, to check that the backend works when the server and worker are running in different devices, please follow the following steps.
 

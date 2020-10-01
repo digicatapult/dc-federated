@@ -1,0 +1,22 @@
+site_name: dc_federated Documentation
+
+theme:
+  name: material
+
+docs_dir: docs
+
+nav:
+  - Home: 'index.md'
+  - The Library:
+    - Getting Started: 'library/getting_started.md'
+    - Architecture: 'library/architecture.md'
+    - Library Features: 'library/library_core_features.md'
+    - Implementing New Algorithms: 'library/new_algorithms.md'
+    - Worker Authentication: 'library/worker_authentication.md'
+    - Secure Communication: 'library/enabling_ssl.md'
+    - Admin Worker Management: 'library/worker_management.md'
+  - Examples:
+    - MNIST: 'examples/mnist.md'
+    - PlantVillage: 'examples/plantvillage.md'
+    - Using FedAvg: 'examples/using_fed_avg.md'
+    - Multi-device example: 'examples/multi_device_test.md'
