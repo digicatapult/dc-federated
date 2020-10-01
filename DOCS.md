@@ -2,7 +2,7 @@
 
 To create the html version of the documentation do the following. After you have [installed the package](docs/library/getting_started.md), install the the additional requirements using 
 ```bash
-> pip install requirements-docs.txt
+> pip install -r requirements-docs.txt
 ```
 Then run 
 ```bash
