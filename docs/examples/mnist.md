@@ -231,7 +231,7 @@ This script is simply a helper wrapper around the `dc_federated.backend.worker_k
 Now follow the exact same steps as above, but start the server with:
 
 ```bash
-(venv_dc_federated)> python mnist_fed_avg_server --key-list-file mnist_key_list_file.txt
+(venv_dc_federated)> python mnist_fed_avg_server.py --key-list-file mnist_key_list_file.txt
 ```
 
 and start the workers with, for example:
