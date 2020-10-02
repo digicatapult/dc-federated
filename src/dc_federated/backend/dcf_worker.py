@@ -3,6 +3,9 @@ Defines the core worker class for the federated learning.
 Abstracts away the lower level worker logic from the federated
 machine learning logic.
 """
+import gevent
+from gevent import monkey; monkey.patch_all()
+
 import zlib
 import msgpack
 import hashlib
@@ -10,6 +13,8 @@ from nacl.signing import SigningKey, VerifyKey
 from nacl.encoding import HexEncoder
 
 import requests
+from requests.adapters import HTTPAdapter
+
 from dc_federated.backend._constants import *
 from dc_federated.backend.backend_utils import is_valid_model_dict
 
@@ -63,13 +68,46 @@ class DCFWorker(object):
         self.server_port = server_port
         self.global_model_version_changed_callback = global_model_version_changed_callback
         self.get_worker_version_global_model = get_worker_version_of_global_model
-        self.private_key_file = private_key_file
+        self.private_key, self.public_key_str = DCFWorker.get_keys_from_file(private_key_file)
 
         self.server_loc = f"{self.server_protocol}://{self.server_host_ip}:{self.server_port}"
         self.worker_id = None
 
+        self.session = requests.Session()
+        self.session.mount(f"{self.server_protocol}://", HTTPAdapter(max_retries=10))
+
         if server_protocol == 'http' and server_host_ip != 'localhost':
             logger.warning("Security alert: https is not enabled!")
+
+    @staticmethod
+    def get_keys_from_file(private_key_file):
+        """
+        Creates the SigningKey object from the private_key_file containing
+        the private key string, and reads the public key from the corresponding
+        .pub file and returns the SigningKey and the public key string.
+
+        Parameters
+        ----------
+
+        private_key_file: str
+            The name of the file containing the private key. The correspodning
+            public key is expected to be in the private_key_file+'.pub' file
+
+        Returns
+        -------
+
+        SigningKey, str:
+            The private key, and the public key in string form.
+        """
+        if private_key_file is None:
+            return None, None
+        with open(private_key_file, 'r') as f:
+            hex_read = f.read().encode()
+            private_key = SigningKey(hex_read, encoder=HexEncoder)
+        with open(private_key_file + '.pub', 'r') as f:
+            public_key_str = f.read()
+
+        return private_key, public_key_str
 
     def get_signed_phrase(self, phrase_to_sign=WORKER_AUTHENTICATION_PHRASE):
         """
@@ -87,14 +125,12 @@ class DCFWorker(object):
         str:
             The hex string corresponding to the signed string.
         """
-        if self.private_key_file is None:
+        if self.private_key is None:
             logger.warning(
                 "Unable to sign message - no private key file provided.")
             return "No private key was provided when worker was started."
-        with open(self.private_key_file, 'r') as f:
-            hex_read = f.read().encode()
-            private_key_read = SigningKey(hex_read, encoder=HexEncoder)
-            return private_key_read.sign(phrase_to_sign).hex()
+        else:
+            return self.private_key.sign(phrase_to_sign).hex()
 
     def get_public_key_str(self):
         """
@@ -106,13 +142,12 @@ class DCFWorker(object):
         str:
             The hex string corresponding to the public key string.
         """
-        if self.private_key_file is None:
+        if self.public_key_str is None:
             logger.warning(
                 "No public key file provided - server side authentication will not succeed.")
             return "No public key was provided when worker was started."
 
-        with open(self.private_key_file+'.pub', 'r') as f:
-            return f.read()
+        return self.public_key_str
 
     def register_worker(self):
         """
@@ -130,7 +165,7 @@ class DCFWorker(object):
                 PUBLIC_KEY_STR: self.get_public_key_str(),
                 SIGNED_PHRASE: self.get_signed_phrase()
             }
-            self.worker_id = requests.post(
+            self.worker_id = self.session.post(
                 f"{self.server_loc}/{REGISTER_WORKER_ROUTE}", json=data).content.decode('UTF-8')
 
             if self.worker_id == INVALID_WORKER:
@@ -150,14 +185,14 @@ class DCFWorker(object):
         binary string:
             The current global model returned by the server.
         """
-        response = requests.get(f"{self.server_loc}/{CHALLENGE_PHRASE_ROUTE}/{self.worker_id}")
+        response = self.session.get(f"{self.server_loc}/{CHALLENGE_PHRASE_ROUTE}/{self.worker_id}")
         challenge_phrase = response.content
         data = {
             WORKER_ID_KEY: self.worker_id,
             LAST_WORKER_MODEL_VERSION: self.get_worker_version_global_model(),
             SIGNED_PHRASE: self.get_signed_phrase(challenge_phrase)
         }
-        return msgpack.unpackb(zlib.decompress(requests.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
+        return msgpack.unpackb(zlib.decompress(self.session.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
                          json=data).content))
 
     def send_model_update(self, model_update):
@@ -171,7 +206,7 @@ class DCFWorker(object):
         model_update: binary string
             The model update to send to the server.
         """
-        return requests.post(
+        return self.session.post(
             f"{self.server_loc}/{RECEIVE_WORKER_UPDATE_ROUTE}/{self.worker_id}",
             files={WORKER_MODEL_UPDATE_KEY: zlib.compress(model_update),
                    SIGNED_PHRASE: self.get_signed_phrase(hashlib.sha256(model_update).digest())

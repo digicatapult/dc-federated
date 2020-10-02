@@ -40,7 +40,8 @@ class ExampleGlobalModel(object):
             is_global_model_most_recent=self.is_global_model_most_recent,
             receive_worker_update_callback=self.receive_worker_update,
             server_mode_safe=False,
-            key_list_file=None
+            key_list_file=None,
+            load_last_session_workers=False
         )
 
     def register_worker(self, worker_id):

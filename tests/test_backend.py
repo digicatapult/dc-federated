@@ -73,7 +73,8 @@ def test_server_functionality():
             is_global_model_most_recent=is_global_model_most_recent,
             receive_worker_update_callback=test_rec_server_update_cb,
             server_mode_safe=False,
-            key_list_file="some_file_name.txt"
+            key_list_file="some_file_name.txt",
+            load_last_session_workers=False
         )
     except ValueError as ve:
         error_str = "Server started in unsafe mode but list of public keys provided. " \

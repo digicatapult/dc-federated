@@ -119,7 +119,8 @@ def test_worker_authentication():
         is_global_model_most_recent=is_global_model_most_recent,
         receive_worker_update_callback=test_rec_server_update_cb,
         server_mode_safe=True,
-        key_list_file=worker_key_file
+        key_list_file=worker_key_file,
+        load_last_session_workers=False
     )
     stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
 

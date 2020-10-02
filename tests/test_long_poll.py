@@ -105,7 +105,8 @@ def test_long_polling():
         receive_worker_update_callback=test_rec_server_update_cb,
         server_mode_safe=True,
         key_list_file=worker_key_file,
-        model_check_interval=server_model_check_interval
+        model_check_interval=server_model_check_interval,
+        load_last_session_workers=False
     )
 
     stoppable_server = StoppableServer(host=get_host_ip(), port=8080)

@@ -4,7 +4,6 @@ Abstracts away the lower level server logic from the federated
 machine learning logic.
 """
 import gevent
-from dc_federated.backend._worker_manager import WorkerManager
 from gevent import monkey; monkey.patch_all()
 from gevent import Greenlet, queue
 
@@ -21,7 +20,7 @@ from dc_federated.backend._constants import *
 from dc_federated.backend.backend_utils import *
 from dc_federated.utils import get_host_ip
 from dc_federated.backend.backend_utils import is_valid_model_dict
-
+from dc_federated.backend._worker_manager import WorkerManager
 
 import logging
 
