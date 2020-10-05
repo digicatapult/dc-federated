@@ -1,20 +1,13 @@
 """
 Test long polling.
 """
-
-import os
 import sys
+import argparse
 import msgpack
-from datetime import datetime
 
-from nacl.encoding import HexEncoder
-from gevent import Greenlet, sleep
+from gevent import sleep
 
-from dc_federated.backend import DCFServer, DCFWorker, create_model_dict
-from dc_federated.backend._constants import *
-from dc_federated.backend.worker_key_pair_tool import gen_pair
-from dc_federated.utils import StoppableServer, get_host_ip
-
+from dc_federated.backend import DCFServer, create_model_dict
 
 import logging
 
@@ -23,36 +16,19 @@ logger = logging.getLogger(__file__)
 logger.setLevel(level=logging.INFO)
 
 
-class SimpleLPWorker(object):
+def run_stress_server(stress_keys_list_file):
     """
-    Simple worker class to test the long-polling. This class was created because
-    for the test we need to maintain the state gm_version on the different
-    greenlets (whicha are pseduo-threads).
+    Runs the server for the basic stress test. This is started with a list of
+    public keys and increments the model number/returns a model when it has received
+    an update from each of the workers.
+
+    Paramters
+    ---------
+
+    stress_keys_list_file: str
+        The public keys of the worker for the stress test.
     """
-    def __init__(self, s_host, s_port, private_key_file):
-        self.gm_version = "0"
-        self.update = None
-        self.worker = DCFWorker(
-            server_protocol='http',
-            server_host_ip=s_host,
-            server_port=s_port,
-            global_model_version_changed_callback=self.global_model_changed_callback,
-            get_worker_version_of_global_model=self.get_last_global_model_version,
-            private_key_file=private_key_file
-        )
-
-    def global_model_changed_callback(self, model_dict):
-        self.update = model_dict[GLOBAL_MODEL]
-        self.gm_version = model_dict[GLOBAL_MODEL_VERSION]
-
-    def get_last_global_model_version(self):
-        return self.gm_version
-
-
-def start_server():
-    # Create a set of keys to be supplied to the server
     server_model_check_interval = 1
-
     worker_ids = []
     worker_updates = {}
     global_model_version = 1
@@ -61,9 +37,11 @@ def start_server():
 
     def test_register_func_cb(id):
         worker_ids.append(id)
+        worker_updates[id] = None
 
     def test_unregister_func_cb(id):
         worker_ids.remove(id)
+        del worker_updates[id]
 
     def test_ret_global_model_cb():
         return create_model_dict(
@@ -73,8 +51,8 @@ def start_server():
     def is_global_model_most_recent(version):
         return version == global_model_version
 
-    def test_rec_server_update_cb(worker_id, update):
-        if worker_id in worker_ids:
+    def rec_worker_update_cb(worker_id, update):
+        if worker_id in worker_ids and worker_updates[worker_id] is None:
             worker_updates[worker_id] = update
             nonlocal updates_received_count
             updates_received_count += 1
@@ -82,38 +60,49 @@ def start_server():
                 halt_time = 10
                 print(f"Sleeping for {halt_time} seconds now...")
                 sleep(halt_time)
-                print(f"Done sleeping changing global model...")
+                print(f"Done sleeping ... changing global model...")
+
                 nonlocal global_model_version
-                global_model_version += 1
                 updates_received_count = 0
+                for worker_id in worker_ids:
+                    worker_updates[worker_id] = None
+                global_model_version += 1
 
             return f"Update received for worker {worker_id}."
         else:
             return f"Unregistered worker {worker_id} tried to send an update."
-
-    keys_folder = 'stress_keys_folder'
 
     dcf_server = DCFServer(
         register_worker_callback=test_register_func_cb,
         unregister_worker_callback=test_unregister_func_cb,
         return_global_model_callback=test_ret_global_model_cb,
         is_global_model_most_recent=is_global_model_most_recent,
-        receive_worker_update_callback=test_rec_server_update_cb,
+        receive_worker_update_callback=rec_worker_update_cb,
         server_mode_safe=True,
-        key_list_file=os.path.join(keys_folder, 'stress_worker_public_keys.txt'),
+        key_list_file=stress_keys_list_file,
         model_check_interval=server_model_check_interval,
         load_last_session_workers=False
     )
-
-    stoppable_server = StoppableServer(host=get_host_ip(), port=8080)
-
-    # def begin_server():
-    #     dcf_server.start_server()
-    # server_gl = Greenlet.spawn(begin_server)
-    # sleep(2)
-
     dcf_server.start_server()
 
 
+def get_args():
+    """
+    Parse the argument for starting the server for the basic stress testing.
+    """
+    # Make parser object
+    p = argparse.ArgumentParser(
+        description="Start the server for the basic stress test.\n")
+
+    p.add_argument("--stress-keys-file-list",
+                   help="The file containing the list of worker public keys for the stress test.",
+                   type=str,
+                   default=None,
+                   required=False)
+
+    return p.parse_args()
+
+
 if __name__ == '__main__':
-    start_server()
+    args = get_args()
+    run_stress_server(args.stress_keys_file_list)
