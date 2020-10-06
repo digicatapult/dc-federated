@@ -32,27 +32,27 @@ class DCFWorker(object):
     Parameters
     ----------
 
-        server_host_ip: str
-            The ip-address of the host of the server.
+    server_host_ip: str
+        The ip-address of the host of the server.
 
-        server_port: int
-            The port at which the serer should listen to
+    server_port: int
+        The port at which the serer should listen to
 
-        global_model_version_changed_callback: dict -> ()
-            The callback to run if server status has changed. The function
-            is expected to take a dictionary with two entries:
-            GLOBAL_MODEL: serialized version of the global model.
-            GLOBAL_MODEL_VERSION: str giving the version of the current
-            global model.
+    global_model_version_changed_callback: dict -> ()
+        The callback to run if server status has changed. The function
+        is expected to take a dictionary with two entries:
+        GLOBAL_MODEL: serialized version of the global model.
+        GLOBAL_MODEL_VERSION: str giving the version of the current
+        global model.
 
-        get_worker_version_of_global_model: () -> object
-            This function is expected to return the version of the last global
-            model that the worker received.
+    get_worker_version_of_global_model: () -> object
+        This function is expected to return the version of the last global
+        model that the worker received.
 
-        private_key_file: str
-            Name of the private key to use to authenticate the worker to the server.
-            No authentication is performed if a None is passed.  Name of the
-            corresponding public key file is assumed to be key_file + '.pub'
+    private_key_file: str
+        Name of the private key to use to authenticate the worker to the server.
+        No authentication is performed if a None is passed.  Name of the
+        corresponding public key file is assumed to be key_file + '.pub'
     """
     def __init__(
             self,

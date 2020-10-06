@@ -10,8 +10,7 @@ from dc_federated.examples.mnist.mnist_fed_model import MNISTModelTrainer, MNIST
 
 def get_args():
     """
-    Parse the argument for running the example local model for the distributed
-    federated test.
+    Parse the argument for running the MNIST worker.
     """
     # Make parser object
     p = argparse.ArgumentParser(
