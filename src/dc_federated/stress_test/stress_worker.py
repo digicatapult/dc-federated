@@ -6,6 +6,11 @@ import os
 import sys
 import argparse
 import msgpack
+import io
+
+import torch
+import torchvision.models as models
+
 from datetime import datetime
 
 from gevent import Greenlet, sleep
@@ -61,7 +66,7 @@ class SimpleLPWorker(object):
         return self.gm_version
 
 
-def run_stress_worker(server_host_ip, server_port):
+def run_stress_worker(server_host_ip, server_port, num_runs=1, global_model_real=False):
         """
         Run the workers loop for the basic stress test. This involves
         creating a a set of workers according to the keys in STRESS_KEYS_FOLDER then:
@@ -79,8 +84,21 @@ def run_stress_worker(server_host_ip, server_port):
 
         server_port: int
             The port at which the serer should listen to
+
+        num_runs: int
+            Number of runs of the sending of models etc. to perform
+
+        global_model_real: bool
+            If true, the global model returned is a bianry serialized version of
+            MobileNetV2 that is used in the plantvillage example.
         """
         workers = []
+        if global_model_real:
+            model_data = io.BytesIO()
+            torch.save(models.mobilenet_v2(pretrained=True), model_data)
+            bin_model = model_data.getvalue()
+        else:
+            bin_model = msgpack.packb("A 'local model update'!!")
 
         for fn in os.listdir(STRESS_KEYS_FOLDER):
             if fn.startswith(STRESS_WORKER_PREFIX) and not fn.endswith('.pub'):
@@ -91,7 +109,7 @@ def run_stress_worker(server_host_ip, server_port):
 
         num_workers = len(workers)
         for i, worker in enumerate(workers):
-            print(f'Registering {i} th worker')
+            # print(f'Registering {i} th worker')
             worker.worker.register_worker()
 
         # get the current global model and check
@@ -103,23 +121,27 @@ def run_stress_worker(server_host_ip, server_port):
         def run_wg(gl_worker):
             nonlocal done_count
             logger.info(f"Starting long poll for {gl_worker.worker.worker_id}")
-            gl_worker.worker.send_model_update(msgpack.packb('A model update'))
+            gl_worker.worker.send_model_update(bin_model)
             gl_worker.global_model_changed_callback(
                 gl_worker.worker.get_global_model())
             logger.info(f"Long poll for {gl_worker.worker.worker_id} finished")
             done_count += 1
 
-        for i, worker in enumerate(workers):
-            print(f"Spawning for worker {i}")
-            Greenlet.spawn(run_wg, worker)
-            if (i+1) % 100 == 0:
-                sleep(0.5)
+        for run_no in range(num_runs):
+            logger.info(f"********************** STARTING RUN {run_no + 1}:")
+            sleep(5)
+            for i, worker in enumerate(workers):
+                # print(f"Spawning for worker {i}")
+                Greenlet.spawn(run_wg, worker)
+                if (i+1) % 100 == 0:
+                    sleep(0.5)
 
-        start_time = datetime.now()
-        # if it hasn't stopped after 100 seconds, it has failed.
-        while done_count < num_workers and (datetime.now() - start_time).seconds < 100 :
-            sleep(1)
-            logger.info(f"{done_count} workers have received the global model update - need to get to {num_workers}...")
+            start_time = datetime.now()
+            # if it hasn't stopped after 100 seconds, it has failed.
+            while done_count < num_workers and (datetime.now() - start_time).seconds < 100 :
+                sleep(1)
+                logger.info(f"{done_count} workers have received the global model update - need to get to {num_workers}...")
+            done_count = 0
 
 
 def get_args():
@@ -138,10 +160,18 @@ def get_args():
                    help="The ip of the host of server",
                    type=int,
                    required=True)
+    p.add_argument("--num-runs",
+                   help="The number of iterations of simulated FL to run.",
+                   type=int,
+                   required=False,
+                   default=1)
+    p.add_argument("--global-model-real",
+                   action='store_true')
+
 
     return p.parse_args()
 
 
 if __name__ == '__main__':
     args = get_args()
-    run_stress_worker(args.server_host_ip, args.server_port)
+    run_stress_worker(args.server_host_ip, args.server_port, args.num_runs, args.global_model_real)
