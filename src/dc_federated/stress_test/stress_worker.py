@@ -4,9 +4,11 @@ Run the workers for the basic stress test.
 
 import os
 import sys
+import re
 import argparse
 import msgpack
 import io
+import math
 
 import torch
 import torchvision.models as models
@@ -66,7 +68,62 @@ class SimpleLPWorker(object):
         return self.gm_version
 
 
-def run_stress_worker(server_host_ip, server_port, num_runs=1, global_model_real=False):
+def parse_chunk(chunk_str):
+    """
+    Parse a chunk string of the form "<k> of <n>" and returns k, n.
+    If k > n, returns None, None
+
+    Parameters
+    ----------
+
+    chunk_str: str
+        The chunk string of the form "<k> of <n>"
+
+    Returns
+    -------
+
+    int, int:
+        k and n from valid chunk string with k<= n - None, None
+        otherwise.
+    """
+    try:
+        values = re.findall("([1-9]*)? of ([1-9]*)?", chunk_str)
+        k, n = int(values[0][0]), int(values[0][1])
+        if 1 <= k <= n: return k, n
+    except IndexError as e:
+        logger.error(e)
+        return None, None
+
+
+def get_worker_keys_from_chunk(chunk_str):
+    """
+    Gets the set of worker keys from the chunk string description.
+
+    Parameters
+    ----------
+
+    chunk_str: str
+        The chunk string of the form "<k> of <n>"
+
+    Returns
+    -------
+
+    str list:
+        List of valid worker kyes for this process.
+    """
+    k, n = parse_chunk(chunk_str)
+    print(f"n = {n} , k = {k}")
+    if n is None or k is None: return []
+    files = [fn for fn in os.listdir(STRESS_KEYS_FOLDER)
+             if fn.startswith(STRESS_WORKER_PREFIX) and not fn.endswith('.pub')]
+    if n > len(files):
+        logger.error(f"n in {chunk_str} cannot be greater than number of keys ({len(files)})")
+        return []
+    chunk_len = math.ceil(len(files) / n)
+    return files[(k-1)*chunk_len: k*chunk_len]
+
+
+def run_stress_worker(server_host_ip, server_port, num_runs, global_model_real, chunk_str):
         """
         Run the workers loop for the basic stress test. This involves
         creating a a set of workers according to the keys in STRESS_KEYS_FOLDER then:
@@ -91,6 +148,9 @@ def run_stress_worker(server_host_ip, server_port, num_runs=1, global_model_real
         global_model_real: bool
             If true, the global model returned is a bianry serialized version of
             MobileNetV2 that is used in the plantvillage example.
+
+        chunk_str: str
+            String giving the chunk of keys to use.
         """
         workers = []
         if global_model_real:
@@ -100,12 +160,11 @@ def run_stress_worker(server_host_ip, server_port, num_runs=1, global_model_real
         else:
             bin_model = msgpack.packb("A 'local model update'!!")
 
-        for fn in os.listdir(STRESS_KEYS_FOLDER):
-            if fn.startswith(STRESS_WORKER_PREFIX) and not fn.endswith('.pub'):
-                workers.append(SimpleLPWorker(
-                   server_host_ip, server_port,
-                   os.path.join(STRESS_KEYS_FOLDER, fn))
-                )
+        for fn in get_worker_keys_from_chunk(chunk_str):
+            workers.append(SimpleLPWorker(
+               server_host_ip, server_port,
+               os.path.join(STRESS_KEYS_FOLDER, fn))
+            )
 
         num_workers = len(workers)
         for i, worker in enumerate(workers):
@@ -136,9 +195,7 @@ def run_stress_worker(server_host_ip, server_port, num_runs=1, global_model_real
                 if (i+1) % 100 == 0:
                     sleep(0.5)
 
-            start_time = datetime.now()
-            # if it hasn't stopped after 100 seconds, it has failed.
-            while done_count < num_workers and (datetime.now() - start_time).seconds < 100 :
+            while done_count < num_workers:
                 sleep(1)
                 logger.info(f"{done_count} workers have received the global model update - need to get to {num_workers}...")
             done_count = 0
@@ -167,11 +224,20 @@ def get_args():
                    default=1)
     p.add_argument("--global-model-real",
                    action='store_true')
-
+    p.add_argument("--chunk",
+                   type=str,
+                   required=False,
+                   default="1 of 1")
 
     return p.parse_args()
 
 
 if __name__ == '__main__':
     args = get_args()
-    run_stress_worker(args.server_host_ip, args.server_port, args.num_runs, args.global_model_real)
+    run_stress_worker(
+        args.server_host_ip,
+        args.server_port,
+        args.num_runs,
+        args.global_model_real,
+        args.chunk
+    )
