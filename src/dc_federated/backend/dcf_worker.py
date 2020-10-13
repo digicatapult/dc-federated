@@ -192,8 +192,14 @@ class DCFWorker(object):
             LAST_WORKER_MODEL_VERSION: self.get_worker_version_global_model(),
             SIGNED_PHRASE: self.get_signed_phrase(challenge_phrase)
         }
-        return msgpack.unpackb(zlib.decompress(self.session.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
-                         json=data).content))
+        response = self.session.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
+                                     json=data).content
+        try:
+            model = msgpack.unpackb(zlib.decompress(response))
+            return model
+        except zlib.error as e:
+            logger.error(f"Received error message: {response}")
+            return response
 
     def send_model_update(self, model_update):
         """

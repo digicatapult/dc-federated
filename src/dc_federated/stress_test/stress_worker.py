@@ -61,8 +61,13 @@ class SimpleLPWorker(object):
 
     def global_model_changed_callback(self, model_dict):
         print(f'Received global model for {self.worker.worker_id}')
-        self.update = model_dict[GLOBAL_MODEL]
-        self.gm_version = model_dict[GLOBAL_MODEL_VERSION]
+        try:
+            self.update = model_dict[GLOBAL_MODEL]
+            self.gm_version = model_dict[GLOBAL_MODEL_VERSION]
+        except Exception as e:
+            print(str(e))
+            print("Update received: ")
+            print(model_dict)
 
     def get_last_global_model_version(self):
         return self.gm_version
@@ -172,8 +177,9 @@ def run_stress_worker(server_host_ip, server_port, num_runs, global_model_real, 
             worker.worker.register_worker()
 
         # get the current global model and check
-        print("Requesting global model")
+
         for worker in workers:
+            print(f"Requesting global model for {worker}")
             worker.global_model_changed_callback(worker.worker.get_global_model())
 
         done_count = 0
