@@ -179,7 +179,7 @@ def run_stress_worker(server_host_ip, server_port, num_runs, global_model_real, 
         # get the current global model and check
 
         for worker in workers:
-            print(f"Requesting global model for {worker}")
+            print(f"Requesting global model for {worker.worker.worker_id}")
             worker.global_model_changed_callback(worker.worker.get_global_model())
 
         done_count = 0
