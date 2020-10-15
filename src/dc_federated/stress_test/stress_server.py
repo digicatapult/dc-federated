@@ -88,6 +88,8 @@ def run_stress_server(global_model_real=False):
 
     keys_list_file = os.path.join(STRESS_KEYS_FOLDER, STRESS_WORKER_KEY_LIST_FILE)
     dcf_server = DCFServer(
+        server_host_ip='127.0.0.1',
+        server_port=5000,
         register_worker_callback=test_register_func_cb,
         unregister_worker_callback=test_unregister_func_cb,
         return_global_model_callback=test_ret_global_model_cb,

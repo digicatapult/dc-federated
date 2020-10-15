@@ -92,7 +92,7 @@ def parse_chunk(chunk_str):
         otherwise.
     """
     try:
-        values = re.findall("([1-9]*)? of ([1-9]*)?", chunk_str)
+        values = re.findall("([0-9]*)? of ([0-9]*)?", chunk_str)
         k, n = int(values[0][0]), int(values[0][1])
         if 1 <= k <= n: return k, n
     except IndexError as e:
@@ -119,13 +119,15 @@ def get_worker_keys_from_chunk(chunk_str):
     k, n = parse_chunk(chunk_str)
     print(f"n = {n} , k = {k}")
     if n is None or k is None: return []
-    files = [fn for fn in os.listdir(STRESS_KEYS_FOLDER)
+    files = [(fn, int(fn[len(STRESS_WORKER_PREFIX)+1:]))
+             for fn in os.listdir(STRESS_KEYS_FOLDER)
              if fn.startswith(STRESS_WORKER_PREFIX) and not fn.endswith('.pub')]
     if n > len(files):
         logger.error(f"n in {chunk_str} cannot be greater than number of keys ({len(files)})")
         return []
     chunk_len = math.ceil(len(files) / n)
-    return files[(k-1)*chunk_len: k*chunk_len]
+    files = sorted(files, key=lambda x: x[1])
+    return [fn for fn, idx in files[(k-1)*chunk_len:  k*chunk_len]]
 
 
 def run_stress_worker(server_host_ip, server_port, num_runs, global_model_real, chunk_str):
