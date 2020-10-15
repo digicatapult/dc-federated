@@ -191,21 +191,23 @@ def run_stress_worker(server_host_ip, server_port, num_runs, global_model_real, 
                 gl_worker.worker.get_global_model())
             logger.info(f"Long poll for {gl_worker.worker.worker_id} finished")
             done_count += 1
+        try:
+            for run_no in range(num_runs):
+                logger.info(f"********************** STARTING RUN {run_no + 1}:")
+                sleep(5)
+                for i, worker in enumerate(workers):
+                    # print(f"Spawning for worker {i}")
+                    Greenlet.spawn(run_wg, worker)
+                    if (i+1) % 100 == 0:
+                        sleep(0.5)
 
-        for run_no in range(num_runs):
-            logger.info(f"********************** STARTING RUN {run_no + 1}:")
-            sleep(5)
-            for i, worker in enumerate(workers):
-                # print(f"Spawning for worker {i}")
-                Greenlet.spawn(run_wg, worker)
-                if (i+1) % 100 == 0:
-                    sleep(0.5)
-
-            while done_count < num_workers:
-                sleep(1)
-                logger.info(f"{done_count} workers have received the global model update - need to get to {num_workers}...")
-            done_count = 0
-
+                while done_count < num_workers:
+                    sleep(1)
+                    logger.info(f"{done_count} workers have received the global model update - need to get to {num_workers}...")
+                done_count = 0
+        except Exception as e:
+            print(e)
+            exit()
 
 def get_args():
     """
