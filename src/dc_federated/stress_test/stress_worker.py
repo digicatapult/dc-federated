@@ -196,9 +196,9 @@ def run_stress_worker(server_host_ip, server_port, num_runs, global_model_real, 
                 logger.info(f"********************** STARTING RUN {run_no + 1}:")
                 sleep(5)
                 for i, worker in enumerate(workers):
-                    # print(f"Spawning for worker {i}")
+                    print(f"Spawning for worker {i}")
                     Greenlet.spawn(run_wg, worker)
-                    if (i+1) % 100 == 0:
+                    if (i+1) % 10 == 0:
                         sleep(0.5)
 
                 while done_count < num_workers:
