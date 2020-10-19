@@ -415,12 +415,17 @@ class WorkerManager(object):
         """
         if not self.do_public_key_auth:
             return True
-        if worker_id not in self.challenge_phrases or self.challenge_phrases[worker_id] is None:
+        if worker_id not in self.challenge_phrases:
+            logger.error(f"Worker id {worker_id} not found in challenge phrases")
+            return False
+        if self.challenge_phrases[worker_id] is None:
+            logger.error(f"Challenge phrase for worker id {worker_id} is None")
             return False
 
         success = self.authenticate_worker(
             worker_id, signed_challenge, self.challenge_phrases[worker_id].encode())
         self.challenge_phrases[worker_id] = None
+
         return success
 
     def authenticate_worker(self, public_key_str, signed_message, message_to_check=None):
