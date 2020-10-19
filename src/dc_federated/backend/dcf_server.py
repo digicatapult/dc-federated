@@ -5,7 +5,7 @@ machine learning logic.
 """
 import gevent
 from gevent import monkey; monkey.patch_all()
-from gevent import Greenlet, queue
+from gevent import Greenlet, queue, pool
 
 import os
 import json
@@ -140,6 +140,7 @@ class DCFServer(object):
                                             key_list_file,
                                             load_last_session_workers,
                                             path_to_keys_db)
+        self.gevent_pool = pool.Pool(200)
         self.model_check_interval = model_check_interval
         self.debug = debug
 
@@ -509,7 +510,7 @@ class DCFServer(object):
 
             logger.info(f"Received request for global model from {worker_id}.")
             body = gevent.queue.Queue()
-            g = Greenlet.spawn(self.check_model_ready, worker_id, body, query_request[LAST_WORKER_MODEL_VERSION])
+            g = self.gevent_pool.spawn(self.check_model_ready, worker_id, body, query_request[LAST_WORKER_MODEL_VERSION])
             return body
 
         except Exception as e:
