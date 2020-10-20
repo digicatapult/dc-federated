@@ -140,7 +140,11 @@ class DCFServer(object):
                                             key_list_file,
                                             load_last_session_workers,
                                             path_to_keys_db)
-        self.gevent_pool = pool.Pool(200)
+        if self.worker_manager.do_public_key_auth:
+            self.gevent_pool = pool.Pool(10 * len(self.worker_manager.allowed_workers))
+        else:
+            self.gevent_pool = pool.Pool(10000)
+
         self.model_check_interval = model_check_interval
         self.debug = debug
 
@@ -509,6 +513,7 @@ class DCFServer(object):
                 return UNREGISTERED_WORKER
 
             logger.info(f"Received request for global model from {worker_id}.")
+            logger.info(f"Current pool availability {self.gevent_pool.free_count()}")
             body = gevent.queue.Queue()
             g = self.gevent_pool.spawn(self.check_model_ready, worker_id, body, query_request[LAST_WORKER_MODEL_VERSION])
             return body
