@@ -145,6 +145,8 @@ class DCFServer(object):
         else:
             self.gevent_pool = pool.Pool(10000)
 
+        self.model_req_dict = {}
+
         self.model_check_interval = model_check_interval
         self.debug = debug
 
@@ -462,7 +464,7 @@ class DCFServer(object):
             The Queue used to return the data to the calling worker and
             fulfill the WSGI promise/map.
 
-       last_worker_model_version: object
+        last_worker_model_version: object
             The version of the last model that the worker was using.
         """
         while self.is_global_model_most_recent(last_worker_model_version):
@@ -475,6 +477,13 @@ class DCFServer(object):
         body.put(zlib.compress(msgpack.packb(model_update)))
         body.put(StopIteration)
         logger.info(f"Returned latest global model to {worker_id}.")
+
+        # clean up the list of model requests for this worker
+        if len(self.model_req_dict[worker_id]) > 0:
+            self.model_req_dict[worker_id].pop()
+        if len(self.model_req_dict[worker_id]) > 0:
+            message_seriously_wrong(f"in 'return_global_model', "
+                                    f"more than one entry in the 'mode_req_dict' for {worker_id}")
 
     def return_global_model(self):
         """
@@ -500,12 +509,12 @@ class DCFServer(object):
                 return json.dumps({ERROR_MESSAGE_KEY: valid_failed[ERROR_MESSAGE_KEY]})
 
             worker_id = query_request[WORKER_ID_KEY]
-            if not self.worker_manager.verify_challenge(worker_id, query_request[SIGNED_PHRASE]):
-                logger.error(f"Failed to verify worker with id {worker_id}")
-                return INVALID_WORKER
-
             if not self.worker_manager.is_worker_allowed(worker_id):
                 logger.warning(f"Unknown worker {worker_id} tried to get the global model.")
+                return INVALID_WORKER
+
+            if not self.worker_manager.verify_challenge(worker_id, query_request[SIGNED_PHRASE]):
+                logger.error(f"Failed to verify worker with id {worker_id}")
                 return INVALID_WORKER
 
             if not self.worker_manager.is_worker_registered(worker_id):
@@ -514,12 +523,32 @@ class DCFServer(object):
 
             logger.info(f"Received request for global model from {worker_id}.")
             logger.info(f"Current pool availability {self.gevent_pool.free_count()}")
+
+            if worker_id in self.model_req_dict and len(self.model_req_dict[worker_id]) > 0:
+                old_g, old_b = self.model_req_dict[worker_id].pop()
+                msg = f"New request for global model received from {worker_id} - "\
+                      "this request is therefore terminated."
+                logger.info(msg)
+                old_b.put(msg)
+                old_b.put(StopIteration)
+                old_g.kill()
+                if len(self.model_req_dict[worker_id]) > 0:
+                    message_seriously_wrong(f"in 'return_global_model', "
+                                            f"more than one entry in the 'mode_req_dict' for {worker_id}")
+
             body = gevent.queue.Queue()
-            g = self.gevent_pool.spawn(self.check_model_ready, worker_id, body, query_request[LAST_WORKER_MODEL_VERSION])
+            g = Greenlet(self.check_model_ready, worker_id, body, query_request[LAST_WORKER_MODEL_VERSION])
+            # g = self.gevent_pool.spawn(self.check_model_ready, worker_id, body, query_request[LAST_WORKER_MODEL_VERSION])
+            self.gevent_pool.add(g)
+            if worker_id not in self.model_req_dict:
+                self.model_req_dict[worker_id] = []
+            self.model_req_dict[worker_id].append((g, body))
+            g.start()
+
             return body
 
         except Exception as e:
-            logger.warning(e)
+            logger.warning(str(e.__class__) + str(e))
             return str(e)
 
     @staticmethod

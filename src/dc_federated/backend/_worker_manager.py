@@ -456,11 +456,16 @@ class WorkerManager(object):
             return True
         try:
             if public_key_str not in self.public_keys:
+                logger.error(f"Unknown public key {public_key_str}.")
                 return False
             v = self.public_keys[public_key_str].verify(
                 signed_message.encode(), encoder=HexEncoder)
             if message_to_check is not None:
-                return v == message_to_check
+                if v != message_to_check:
+                    logger.error(f"Message {message_to_check} does not match decrypted message {v}")
+                    return False
+                else:
+                    return True
 
         except BadSignatureError:
             logger.warning(

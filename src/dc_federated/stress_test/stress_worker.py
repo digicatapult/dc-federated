@@ -3,24 +3,17 @@ Run the workers for the basic stress test.
 """
 
 import os
-import sys
-import re
 import argparse
 import msgpack
 import io
-import math
 
 import torch
 import torchvision.models as models
 
-from datetime import datetime
-
+from dc_federated.stress_test.stress_utils import get_worker_keys_from_chunk, SimpleLPWorker
 from gevent import Greenlet, sleep
 
-from dc_federated.backend import DCFWorker
-from dc_federated.backend._constants import *
-from dc_federated.stress_test.stress_gen_keys import STRESS_KEYS_FOLDER, STRESS_WORKER_PREFIX
-
+from dc_federated.stress_test.stress_gen_keys import STRESS_KEYS_FOLDER
 
 import logging
 
@@ -29,111 +22,14 @@ logger = logging.getLogger(__file__)
 logger.setLevel(level=logging.INFO)
 
 
-class SimpleLPWorker(object):
-    """
-    Simple worker class for the stress testing. This class was created because
-    for the test we need to maintain the state gm_version on the different
-    greenlets (whicha are pseduo-threads).
-
-    Parameters
-    ----------
-
-    s_host: str
-        The server host
-
-    s_port: int
-        the server port
-
-    private_key_file: str
-        The file containing the private key for this worker.
-    """
-    def __init__(self, s_host, s_port, private_key_file):
-        self.gm_version = 0
-        self.update = None
-        self.worker = DCFWorker(
-            server_protocol='http',
-            server_host_ip=s_host,
-            server_port=s_port,
-            global_model_version_changed_callback=self.global_model_changed_callback,
-            get_worker_version_of_global_model=self.get_last_global_model_version,
-            private_key_file=private_key_file
-        )
-
-    def global_model_changed_callback(self, model_dict):
-        print(f'Received global model for {self.worker.worker_id}')
-        try:
-            self.update = model_dict[GLOBAL_MODEL]
-            self.gm_version = model_dict[GLOBAL_MODEL_VERSION]
-        except Exception as e:
-            print(str(e))
-            print("Update received: ")
-            print(model_dict)
-
-    def get_last_global_model_version(self):
-        return self.gm_version
-
-
-def parse_chunk(chunk_str):
-    """
-    Parse a chunk string of the form "<k> of <n>" and returns k, n.
-    If k > n, returns None, None
-
-    Parameters
-    ----------
-
-    chunk_str: str
-        The chunk string of the form "<k> of <n>"
-
-    Returns
-    -------
-
-    int, int:
-        k and n from valid chunk string with k<= n - None, None
-        otherwise.
-    """
-    try:
-        values = re.findall("([0-9]*)? of ([0-9]*)?", chunk_str)
-        k, n = int(values[0][0]), int(values[0][1])
-        if 1 <= k <= n: return k, n
-    except IndexError as e:
-        logger.error(e)
-        return None, None
-
-
-def get_worker_keys_from_chunk(chunk_str):
-    """
-    Gets the set of worker keys from the chunk string description.
-
-    Parameters
-    ----------
-
-    chunk_str: str
-        The chunk string of the form "<k> of <n>"
-
-    Returns
-    -------
-
-    str list:
-        List of valid worker kyes for this process.
-    """
-    k, n = parse_chunk(chunk_str)
-    print(f"n = {n} , k = {k}")
-    if n is None or k is None: return []
-    files = [(fn, int(fn[len(STRESS_WORKER_PREFIX)+1:]))
-             for fn in os.listdir(STRESS_KEYS_FOLDER)
-             if fn.startswith(STRESS_WORKER_PREFIX) and not fn.endswith('.pub')]
-    if n > len(files):
-        logger.error(f"n in {chunk_str} cannot be greater than number of keys ({len(files)})")
-        return []
-    chunk_len = math.ceil(len(files) / n)
-    files = sorted(files, key=lambda x: x[1])
-    return [fn for fn, idx in files[(k-1)*chunk_len:  k*chunk_len]]
-
-
 def run_stress_worker(server_host_ip, server_port, num_runs, global_model_real, chunk_str):
         """
-        Run the workers loop for the basic stress test. This involves
-        creating a a set of workers according to the keys in STRESS_KEYS_FOLDER then:
+        Run the workers loop to exhaust the gevent pool in a stress test.
+        This involves running requesting the global model from the server
+        for all but one worker 20 times. Since the server only allocates
+        enough gevent pool resources for 10 times the number of workers,
+        this should exhaust the pool if repeated requests are not taken
+        care of properly by the server.
 
         - registering them with the server
         - get the current global model
@@ -179,7 +75,6 @@ def run_stress_worker(server_host_ip, server_port, num_runs, global_model_real, 
             worker.worker.register_worker()
 
         # get the current global model and check
-
         for worker in workers:
             print(f"Requesting global model for {worker.worker.worker_id}")
             worker.global_model_changed_callback(worker.worker.get_global_model())
