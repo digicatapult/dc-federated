@@ -5,6 +5,7 @@ Run the server for the basic stress test.
 import sys
 import os
 import io
+import datetime
 import msgpack
 import argparse
 
@@ -68,7 +69,7 @@ def run_stress_server(global_model_real=False):
         nonlocal updates_received_count
         logger.info(f"Updates received {updates_received_count}")
         if worker_id in worker_ids and worker_updates[worker_id] is None:
-            worker_updates[worker_id] = update
+            worker_updates[worker_id] = f"Update received at {datetime.datetime.now}"
             updates_received_count += 1
             if updates_received_count == num_workers:
                 halt_time = 10

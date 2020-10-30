@@ -46,22 +46,28 @@ Now open the file `/etc/var/nginx/sites_availabl/default` (create a different fi
 
 ```
 server {
-	listen 80 default_server;
-	listen [::]:80 default_server;
-	root /var/www/html;
-	index index.html index.htm index.nginx-debian.html;
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    
+    # This determines the size of the model you can 
+    # send to the server - set it to large values for 
+    # large models.
+    client_max_body_size 20M; 
+    
+    root /var/www/html;
+    index index.html index.htm index.nginx-debian.html;
 
-	server_name _;
+    server_name _;
 
     location / {
-
-            proxy_pass http://127.0.0.1:5000;
-            proxy_set_header Host $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-	    proxy_connect_timeout 1d;
-            proxy_send_timeout 1d;
-            proxy_read_timeout 1d;
-            send_timeout 1d;
+    
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_connect_timeout 1d;
+        proxy_send_timeout 1d;
+        proxy_read_timeout 1d;
+        send_timeout 1d;
 
 
         }
