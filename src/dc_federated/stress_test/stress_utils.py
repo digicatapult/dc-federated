@@ -1,6 +1,7 @@
 import math
 import os
 import re
+import datetime
 
 from dc_federated.backend import DCFWorker, GLOBAL_MODEL, GLOBAL_MODEL_VERSION
 from dc_federated.stress_test.stress_gen_keys import STRESS_WORKER_PREFIX, STRESS_KEYS_FOLDER
@@ -101,7 +102,8 @@ class SimpleLPWorker(object):
     def global_model_changed_callback(self, model_dict):
         print(f'Received global model for {self.worker.worker_id}')
         try:
-            self.update = model_dict[GLOBAL_MODEL]
+            # don't save the actual update because it will use up RAM
+            self.update = f"Global model received at {datetime.datetime.now()}"
             self.gm_version = model_dict[GLOBAL_MODEL_VERSION]
         except Exception as e:
             print(str(e))
