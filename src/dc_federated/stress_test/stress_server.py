@@ -70,12 +70,13 @@ def run_stress_server(global_model_real=False):
         logger.info(f"Updates received {updates_received_count}")
         if worker_id in worker_ids and worker_updates[worker_id] is None:
             worker_updates[worker_id] = f"Update received at {datetime.datetime.now}"
+            del update
             updates_received_count += 1
             if updates_received_count == num_workers:
                 halt_time = 10
-                print(f"Sleeping for {halt_time} seconds now...")
+                logger.info(f"Sleeping for {halt_time} seconds now...")
                 sleep(halt_time)
-                print(f"Done sleeping ... changing global model...")
+                logger.info(f"Done sleeping ... changing global model...")
                 updates_received_count = 0
                 for worker_id in worker_ids:
                     worker_updates[worker_id] = None

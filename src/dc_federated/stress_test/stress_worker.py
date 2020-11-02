@@ -75,26 +75,33 @@ def run_stress_worker(server_host_ip, server_port, num_runs, worker_model_real, 
         worker.worker.register_worker()
 
     # get the current global model and check
-    for worker in workers:
-        print(f"Requesting global model for {worker.worker.worker_id}")
+    for i, worker in enumerate(workers):
+        print(f"Requesting global model for {worker.worker.worker_id} (no. {i}) ")
         worker.global_model_changed_callback(worker.worker.get_global_model())
 
     done_count = 0
-    def run_wg(gl_worker):
+
+    def run_wg(gl_worker, num):
         nonlocal done_count
-        logger.info(f"Starting long poll for {gl_worker.worker.worker_id}")
-        gl_worker.worker.send_model_update(bin_model)
+        logger.info(f"Starting long poll for {gl_worker.worker.worker_id} (no. {num})")
         gl_worker.global_model_changed_callback(
             gl_worker.worker.get_global_model())
         logger.info(f"Long poll for {gl_worker.worker.worker_id} finished")
         done_count += 1
+
     try:
         for run_no in range(num_runs):
             logger.info(f"********************** STARTING RUN {run_no + 1}:")
             sleep(5)
             for i, worker in enumerate(workers):
-                print(f"Spawning for worker {i}")
-                Greenlet.spawn(run_wg, worker)
+                # Robustness of receiving the update can be tested by adding groups
+                # of the send_model_updates in a gevent pool and joining.
+                # WARNING: Each update sent but not received a response for will consume
+                # RAM equal to size of model updates.
+                response = worker.worker.send_model_update(bin_model)
+                logger.info(f"Response from server sending model update: {response}")
+                logger.info(f"Spawning for worker {i}")
+                Greenlet.spawn(run_wg, worker, i)
                 if (i+1) % 10 == 0:
                     sleep(0.5)
 
