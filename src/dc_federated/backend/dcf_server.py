@@ -606,6 +606,7 @@ class DCFServer(object):
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
                 debug=self.debug,
+                timeout=60*60*24,
                 quiet=True)
         else:
             run(application,
@@ -614,4 +615,5 @@ class DCFServer(object):
                 server='gunicorn',
                 worker_class='gevent',
                 debug=self.debug,
+                timeout=60*60*24,
                 quiet=True)
