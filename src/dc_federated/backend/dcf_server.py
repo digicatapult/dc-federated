@@ -140,13 +140,9 @@ class DCFServer(object):
                                             key_list_file,
                                             load_last_session_workers,
                                             path_to_keys_db)
-        if self.worker_manager.do_public_key_auth:
-            self.gevent_pool = pool.Pool(10 * len(self.worker_manager.allowed_workers))
-        else:
-            self.gevent_pool = pool.Pool(10000)
 
+        self.gevent_pool = pool.Pool(None)
         self.model_req_dict = {}
-
         self.model_check_interval = model_check_interval
         self.debug = debug
 
@@ -522,8 +518,9 @@ class DCFServer(object):
                 return UNREGISTERED_WORKER
 
             logger.info(f"Received request for global model from {worker_id}.")
-            logger.info(f"Current pool availability {self.gevent_pool.free_count()}")
 
+            # If the same worker made a long poll request previously,
+            # terminate that request
             if worker_id in self.model_req_dict and len(self.model_req_dict[worker_id]) > 0:
                 old_g, old_b = self.model_req_dict[worker_id].pop()
                 msg = f"New request for global model received from {worker_id} - "\
@@ -535,10 +532,8 @@ class DCFServer(object):
                 if len(self.model_req_dict[worker_id]) > 0:
                     message_seriously_wrong(f"in 'return_global_model', "
                                             f"more than one entry in the 'mode_req_dict' for {worker_id}")
-
             body = gevent.queue.Queue()
             g = Greenlet(self.check_model_ready, worker_id, body, query_request[LAST_WORKER_MODEL_VERSION])
-            # g = self.gevent_pool.spawn(self.check_model_ready, worker_id, body, query_request[LAST_WORKER_MODEL_VERSION])
             self.gevent_pool.add(g)
             if worker_id not in self.model_req_dict:
                 self.model_req_dict[worker_id] = []

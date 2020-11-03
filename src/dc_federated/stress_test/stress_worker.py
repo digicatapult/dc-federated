@@ -71,7 +71,7 @@ def run_stress_worker(server_host_ip, server_port, num_runs, worker_model_real, 
 
     num_workers = len(workers)
     for i, worker in enumerate(workers):
-        # print(f'Registering {i} th worker')
+        logger.info(f'Registering {i} th worker')
         worker.worker.register_worker()
 
     # get the current global model and check

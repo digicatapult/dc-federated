@@ -165,6 +165,7 @@ class DCFWorker(object):
                 PUBLIC_KEY_STR: self.get_public_key_str(),
                 SIGNED_PHRASE: self.get_signed_phrase()
             }
+            logger.info(f"Registering public key {data[PUBLIC_KEY_STR]} with server...")
             self.worker_id = self.session.post(
                 f"{self.server_loc}/{REGISTER_WORKER_ROUTE}", json=data).content.decode('UTF-8')
 
@@ -173,6 +174,9 @@ class DCFWorker(object):
                     "Server returned {INVALID_WORKER} which means it was unable to authenticate this worker. "
                     "Please verify that the private key you started this worker with corresponds to the "
                     "public key shared with the server.")
+
+            else:
+                logger.info(f"Registration for public key {data[PUBLIC_KEY_STR]} done.")
         return self.worker_id
 
     def get_global_model(self):
