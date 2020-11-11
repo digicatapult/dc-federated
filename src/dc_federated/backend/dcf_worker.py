@@ -196,6 +196,19 @@ class DCFWorker(object):
             LAST_WORKER_MODEL_VERSION: self.get_worker_version_global_model(),
             SIGNED_PHRASE: self.get_signed_phrase(challenge_phrase)
         }
+        response = self.session.post(
+            f"{self.server_loc}/{NOTIFY_ME_IF_GM_VERSION_UPDATED_ROUTE}",
+            json=data
+        ).content
+        if response != GLOBAL_MODEL_UPDATED_STRING.encode():
+            logger.error(f"Unable to retrieve confirmation global model has changed - received response {response}")
+            logger.error("Global model not retrieved.")
+            return response
+
+        response = self.session.get(f"{self.server_loc}/{CHALLENGE_PHRASE_ROUTE}/{self.worker_id}")
+        challenge_phrase = response.content
+        data[SIGNED_PHRASE] = self.get_signed_phrase(challenge_phrase)
+        del data[LAST_WORKER_MODEL_VERSION]
         response = self.session.post(f"{self.server_loc}/{RETURN_GLOBAL_MODEL_ROUTE}",
                                      json=data).content
         try:

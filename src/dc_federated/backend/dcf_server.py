@@ -142,7 +142,7 @@ class DCFServer(object):
                                             path_to_keys_db)
 
         self.gevent_pool = pool.Pool(None)
-        self.model_req_dict = {}
+        self.model_version_req_dict = {}
         self.model_check_interval = model_check_interval
         self.debug = debug
 
@@ -448,7 +448,7 @@ class DCFServer(object):
             logger.warning(e)
             return str(e)
 
-    def check_model_ready(self, worker_id, body, last_worker_model_version):
+    def check_model_version_updated(self, worker_id, body, last_worker_model_version):
         """
         Greenlet function run to check with the implementation of the
         algorithm server-side logic to see if the global model is ready.
@@ -470,16 +470,77 @@ class DCFServer(object):
         if not is_valid_model_dict(model_update):
             logger.error(f"Expected dictionary with {GLOBAL_MODEL} and {GLOBAL_MODEL_VERSION} keys - "
                          "return_global_model_callback() implementation is incorrect")
-        body.put(zlib.compress(msgpack.packb(model_update)))
+        body.put(GLOBAL_MODEL_UPDATED_STRING)
         body.put(StopIteration)
-        logger.info(f"Returned latest global model to {worker_id}.")
+        logger.info(f"Notified global model version changed to {worker_id}.")
 
         # clean up the list of model requests for this worker
-        if len(self.model_req_dict[worker_id]) > 0:
-            self.model_req_dict[worker_id].pop()
-        if len(self.model_req_dict[worker_id]) > 0:
-            message_seriously_wrong(f"in 'return_global_model', "
+        if len(self.model_version_req_dict[worker_id]) > 0:
+            self.model_version_req_dict[worker_id].pop()
+        if len(self.model_version_req_dict[worker_id]) > 0:
+            message_seriously_wrong(f"in 'check_model_ready', "
                                     f"more than one entry in the 'mode_req_dict' for {worker_id}")
+
+    def notify_me_if_gm_version_updated(self):
+        """
+        Sends a respond back to a worker indicating that the current
+        global model is more recent than the model version indicated by
+        the worker.
+        """
+        try:
+            query_request = request.json
+            valid_failed = DCFServer.validate_input(
+                query_request,
+                [WORKER_ID_KEY, LAST_WORKER_MODEL_VERSION, SIGNED_PHRASE],
+                [str, object, str]
+            )
+            if ERROR_MESSAGE_KEY in valid_failed:
+                logger.error(valid_failed[ERROR_MESSAGE_KEY])
+                return json.dumps({ERROR_MESSAGE_KEY: valid_failed[ERROR_MESSAGE_KEY]})
+
+            worker_id = query_request[WORKER_ID_KEY]
+            if not self.worker_manager.is_worker_allowed(worker_id):
+                logger.warning(f"Unknown worker {worker_id} tried to get the global model.")
+                return INVALID_WORKER
+
+            if not self.worker_manager.verify_challenge(worker_id, query_request[SIGNED_PHRASE]):
+                logger.error(f"Failed to verify worker with id {worker_id}")
+                return INVALID_WORKER
+
+            if not self.worker_manager.is_worker_registered(worker_id):
+                logger.warning(f"Unregistered worker {worker_id} tried to get the global model.")
+                return UNREGISTERED_WORKER
+
+            logger.info(f"Received request for global model version change notification from {worker_id}.")
+            # in case a new request is made, terminate the old one
+            if worker_id in self.model_version_req_dict and \
+                    len(self.model_version_req_dict[worker_id]) > 0:
+                old_g, old_b = self.model_version_req_dict[worker_id].pop()
+                msg = f"New request for global model version change notification received from {worker_id} - " \
+                      "existing request terminated."
+                logger.info(msg)
+                old_b.put(msg)
+                old_b.put(StopIteration)
+                old_g.kill()
+                if len(self.model_version_req_dict[worker_id]) > 0:
+                    message_seriously_wrong(f"in 'return_global_model', "
+                                            f"more than one entry in the 'mode_req_dict' for {worker_id}")
+            body = gevent.queue.Queue()
+            g = Greenlet(self.check_model_version_updated, worker_id, body, query_request[LAST_WORKER_MODEL_VERSION])
+            self.gevent_pool.add(g)
+            if worker_id not in self.model_version_req_dict:
+                self.model_version_req_dict[worker_id] = []
+            self.model_version_req_dict[worker_id].append((g, body))
+            g.start()
+
+            return body
+
+        except Exception as e:
+            logger.warning(str(e.__class__) + str(e))
+            return str(e)
+
+        # If the same worker made a long poll request previously,
+        # terminate that request
 
     def return_global_model(self):
         """
@@ -517,30 +578,8 @@ class DCFServer(object):
                 logger.warning(f"Unregistered worker {worker_id} tried to get the global model.")
                 return UNREGISTERED_WORKER
 
-            logger.info(f"Received request for global model from {worker_id}.")
-
-            # If the same worker made a long poll request previously,
-            # terminate that request
-            if worker_id in self.model_req_dict and len(self.model_req_dict[worker_id]) > 0:
-                old_g, old_b = self.model_req_dict[worker_id].pop()
-                msg = f"New request for global model received from {worker_id} - "\
-                      "this request is therefore terminated."
-                logger.info(msg)
-                old_b.put(msg)
-                old_b.put(StopIteration)
-                old_g.kill()
-                if len(self.model_req_dict[worker_id]) > 0:
-                    message_seriously_wrong(f"in 'return_global_model', "
-                                            f"more than one entry in the 'mode_req_dict' for {worker_id}")
-            body = gevent.queue.Queue()
-            g = Greenlet(self.check_model_ready, worker_id, body, query_request[LAST_WORKER_MODEL_VERSION])
-            self.gevent_pool.add(g)
-            if worker_id not in self.model_req_dict:
-                self.model_req_dict[worker_id] = []
-            self.model_req_dict[worker_id].append((g, body))
-            g.start()
-
-            return body
+            logger.info(f"Returned global model to {worker_id}.")
+            return zlib.compress(msgpack.packb(self.return_global_model_callback()))
 
         except Exception as e:
             logger.warning(str(e.__class__) + str(e))
@@ -573,6 +612,8 @@ class DCFServer(object):
                           method='GET', callback=self.worker_manager.get_challenge_phrase)
         application.route(f"/{RETURN_GLOBAL_MODEL_ROUTE}",
                           method='POST', callback=self.return_global_model)
+        application.route(f"/{NOTIFY_ME_IF_GM_VERSION_UPDATED_ROUTE}",
+                          method='POST', callback=self.notify_me_if_gm_version_updated)
         application.route(f"/{RECEIVE_WORKER_UPDATE_ROUTE}/<worker_id>",
                           method='POST', callback=self.receive_worker_update)
 
