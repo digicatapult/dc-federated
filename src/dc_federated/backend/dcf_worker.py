@@ -20,7 +20,7 @@ from dc_federated.backend.backend_utils import is_valid_model_dict
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
@@ -90,7 +90,7 @@ class DCFWorker(object):
         ----------
 
         private_key_file: str
-            The name of the file containing the private key. The correspodning
+            The name of the file containing the private key. The corresponding
             public key is expected to be in the private_key_file+'.pub' file
 
         Returns
@@ -165,7 +165,7 @@ class DCFWorker(object):
                 PUBLIC_KEY_STR: self.get_public_key_str(),
                 SIGNED_PHRASE: self.get_signed_phrase()
             }
-            logger.info(f"Registering public key {data[PUBLIC_KEY_STR]} with server...")
+            logger.info(f"Registering public key (short) {data[PUBLIC_KEY_STR][0:WID_LEN]} with server...")
             self.worker_id = self.session.post(
                 f"{self.server_loc}/{REGISTER_WORKER_ROUTE}", json=data).content.decode('UTF-8')
 
@@ -176,7 +176,7 @@ class DCFWorker(object):
                     "public key shared with the server.")
 
             else:
-                logger.info(f"Registration for public key {data[PUBLIC_KEY_STR]} done.")
+                logger.info(f"Registration for public key (short) {data[PUBLIC_KEY_STR][0:WID_LEN]} done.")
         return self.worker_id
 
     def get_global_model(self):
@@ -189,6 +189,8 @@ class DCFWorker(object):
         binary string:
             The current global model returned by the server.
         """
+        # First confirm that the global model version is newer
+        # compared to the version that the worker has using long polling
         response = self.session.get(f"{self.server_loc}/{CHALLENGE_PHRASE_ROUTE}/{self.worker_id}")
         challenge_phrase = response.content
         data = {
@@ -205,6 +207,7 @@ class DCFWorker(object):
             logger.error("Global model not retrieved.")
             return response
 
+        # Now get the model.
         response = self.session.get(f"{self.server_loc}/{CHALLENGE_PHRASE_ROUTE}/{self.worker_id}")
         challenge_phrase = response.content
         data[SIGNED_PHRASE] = self.get_signed_phrase(challenge_phrase)
@@ -213,6 +216,7 @@ class DCFWorker(object):
                                      json=data).content
         try:
             model = msgpack.unpackb(zlib.decompress(response))
+            logger.info(f"Received global model for worker {self.worker_id[0:WID_LEN]}")
             return model
         except zlib.error as e:
             logger.error(f"Received error message: {response}")
@@ -248,4 +252,4 @@ class DCFWorker(object):
                     self.global_model_version_changed_callback(model_dict)
         except Exception as e:
             logger.warning(str(e))
-            logger.info(f"Exiting DCFworker {self.worker_id} run loop.")
+            logger.info(f"Exiting DCFworker {self.worker_id[0:WID_LEN]} run loop.")

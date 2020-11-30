@@ -72,6 +72,7 @@ class FedAvgTestTrainer(FedAvgModelTrainer):
             This object should contain a serilaized model.
 
         """
+        pass
 
     def load_model_from_state_dict(self, state_dict):
         """
@@ -106,22 +107,24 @@ def test_fed_avg_server():
     assert_models_equal(model_ret, trainer.model)
 
     # test that worker updates are received properly.
+    dummy_worker_id_1 = "dummy_worker_id_1"
     worker_model_1 = FedAvgTestModel()
-    fed_avg_server.worker_updates[10] = None
+    fed_avg_server.worker_updates[dummy_worker_id_1] = None
     model_update = io.BytesIO()
     torch.save(worker_model_1, model_update)
     fed_avg_server.receive_worker_update(
-        10, msgpack.packb((15, model_update.getvalue())))
-    assert_models_equal(worker_model_1, fed_avg_server.worker_updates[10][2])
+        dummy_worker_id_1, msgpack.packb((15, model_update.getvalue())))
+    assert_models_equal(worker_model_1, fed_avg_server.worker_updates[dummy_worker_id_1][2])
 
     # check that the global updates happen as expected
+    dummy_worker_id_2 = "dummy_worker_id_2"
     fed_avg_server.update_lim = 2
     worker_model_2 = FedAvgTestModel()
-    fed_avg_server.worker_updates[11] = None
+    fed_avg_server.worker_updates[dummy_worker_id_2] = None
     model_update = io.BytesIO()
     torch.save(worker_model_2, model_update)
     fed_avg_server.receive_worker_update(
-        11, msgpack.packb((20, model_update.getvalue())))
+        dummy_worker_id_2, msgpack.packb((20, model_update.getvalue())))
 
     global_update_dict = {}
     sd_1 = worker_model_1.state_dict()

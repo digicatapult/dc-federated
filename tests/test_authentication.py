@@ -20,7 +20,10 @@ from dc_federated.utils import StoppableServer, get_host_ip
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__file__)
 logger.setLevel(level=logging.INFO)
 
@@ -92,9 +95,9 @@ def test_worker_authentication():
     def test_rec_server_update_cb(worker_id, update):
         if worker_id in worker_ids:
             worker_updates[worker_id] = update
-            return f"Update received for worker {worker_id}."
+            return f"Update received for worker {worker_id[0:WID_LEN]}."
         else:
-            return f"Unregistered worker {worker_id} tried to send an update."
+            return f"Unregistered worker {worker_id[0:WID_LEN]} tried to send an update."
 
     def test_glob_mod_chng_cb(model_dict):
         nonlocal worker_global_model_version

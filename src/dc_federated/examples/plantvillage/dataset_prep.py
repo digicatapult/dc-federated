@@ -26,7 +26,6 @@ from os import listdir
 import yaml
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 

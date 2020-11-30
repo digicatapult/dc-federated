@@ -13,12 +13,12 @@ from gevent import sleep
 import torch
 import torchvision.models as models
 
-from dc_federated.backend import DCFServer, create_model_dict
+from dc_federated.backend import DCFServer, create_model_dict, WID_LEN
 from dc_federated.stress_test.stress_gen_keys import STRESS_KEYS_FOLDER, STRESS_WORKER_KEY_LIST_FILE
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__file__)
 logger.setLevel(level=logging.INFO)
 
@@ -83,7 +83,7 @@ def run_stress_server(global_model_real=False):
                 nonlocal global_model_version
                 global_model_version += 1
 
-            return f"Update received for worker {worker_id}."
+            return f"Update received for worker {worker_id[0:WID_LEN]}."
         else:
             logger.info("Update not accepted.")
             return f"Update not accepted."

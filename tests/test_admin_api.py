@@ -66,9 +66,9 @@ def test_server_functionality():
     def test_rec_server_update_cb(worker_id, update):
         if worker_id in worker_ids:
             worker_updates[worker_id] = update
-            return f"Update received for worker {worker_id}."
+            return f"Update received for worker {worker_id[0:WID_LEN]}."
         else:
-            return f"Unregistered worker {worker_id} tried to send an update."
+            return f"Unregistered worker {worker_id[0:WID_LEN]} tried to send an update."
 
     dcf_server_safe = DCFServer(
         register_worker_callback=test_register_func_cb,
@@ -143,7 +143,7 @@ def test_server_functionality():
             print(response)
             assert msgpack.unpackb(worker_updates[worker_ids[i]]) == "Model update!!"
             assert response.decode(
-                "UTF-8") == f"Update received for worker {added_workers[i]}."
+                "UTF-8") == f"Update received for worker {added_workers[i][0:WID_LEN]}."
 
             # receive updates
             challenge_phrase = requests.get(f"http://{server.server_host_ip}:{server.server_port}/"
@@ -224,7 +224,7 @@ def test_server_functionality():
             ).content
             assert msgpack.unpackb(worker_updates[worker_ids[i]]) == "Model update!!"
             assert response.decode(
-                "UTF-8") == f"Update received for worker {added_workers[i]}."
+                "UTF-8") == f"Update received for worker {added_workers[i][0:WID_LEN]}."
 
             # receive updates
             challenge_phrase = requests.get(f"http://{server.server_host_ip}:{server.server_port}/"
@@ -321,8 +321,9 @@ def test_server_functionality():
                     json=admin_registered_worker, auth=admin_auth)
                 message = json.loads(response.content.decode('utf-8'))
                 assert ERROR_MESSAGE_KEY in message
+                key_short = "dummy public key"[0:WID_LEN]
                 assert message[ERROR_MESSAGE_KEY] == \
-                       "Unable to validate public key for dummy public key " \
+                       f"Unable to validate public key (short) {key_short} " \
                        "- worker not added."
 
         stoppable_server.shutdown()

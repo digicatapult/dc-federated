@@ -11,10 +11,9 @@ import torch
 
 from dc_federated.utils import get_host_ip
 from dc_federated.examples.example_dcf_model.torch_nn_class import ExampleModelClass
-from dc_federated.backend import DCFWorker, GLOBAL_MODEL_VERSION, GLOBAL_MODEL
+from dc_federated.backend import DCFWorker, GLOBAL_MODEL_VERSION, GLOBAL_MODEL, WID_LEN
 
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 

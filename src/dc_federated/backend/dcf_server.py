@@ -24,7 +24,6 @@ from dc_federated.backend._worker_manager import WorkerManager
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
@@ -291,7 +290,7 @@ class DCFServer(object):
 
         worker_id, success = self.worker_manager.add_worker(worker_data[PUBLIC_KEY_STR])
         if worker_id == INVALID_WORKER:
-            err_msg = f"Unable to validate public key for {worker_data[PUBLIC_KEY_STR]} "\
+            err_msg = f"Unable to validate public key (short) {worker_data[PUBLIC_KEY_STR][0:WID_LEN]} "\
                        "- worker not added."
             logger.warning(err_msg)
             return json.dumps({
@@ -299,7 +298,7 @@ class DCFServer(object):
             })
 
         if not success:
-            return json.dumps({ERROR_MESSAGE_KEY: f"Worker {worker_id} already exists."})
+            return json.dumps({ERROR_MESSAGE_KEY: f"Worker {worker_id[0:WID_LEN]} already exists."})
 
         worker_id = self.worker_manager.set_registration_status(
             worker_id, worker_data[REGISTRATION_STATUS_KEY])
@@ -313,7 +312,7 @@ class DCFServer(object):
             self.register_worker_callback(worker_id)
 
         return json.dumps({
-            SUCCESS_MESSAGE_KEY: f"Successfully added worker {worker_id}.",
+            SUCCESS_MESSAGE_KEY: f"Successfully added worker {worker_id[0:WID_LEN]}.",
             WORKER_ID_KEY: worker_id,
             REGISTRATION_STATUS_KEY: worker_data[REGISTRATION_STATUS_KEY]
         })
@@ -335,21 +334,21 @@ class DCFServer(object):
             JSON in string form containing either id of worker removed
             or error message if the operation failed for some reason.
         """
-        logger.info(f"Admin is removing worker {worker_id}...")
+        logger.info(f"Admin is removing worker {worker_id[0:WID_LEN]}...")
         was_registered = self.worker_manager.is_worker_registered(worker_id)
         worker_id = self.worker_manager.set_registration_status(worker_id, False)
         if worker_id != INVALID_WORKER:
             if was_registered:
                 self.unregister_worker_callback(worker_id)
-                logger.info(f"Worker {worker_id} was unregistered (removal)")
+                logger.info(f"Worker {worker_id[0:WID_LEN]} was unregistered (removal)")
 
         worker_id = self.worker_manager.remove_worker(worker_id)
         if worker_id == INVALID_WORKER:
-            return json.dumps({ERROR_MESSAGE_KEY: f"Attempt to remove unknown worker {worker_id}."})
+            return json.dumps({ERROR_MESSAGE_KEY: f"Attempt to remove unknown worker {worker_id[0:WID_LEN]}."})
 
         return json.dumps({
             WORKER_ID_KEY: worker_id,
-            SUCCESS_MESSAGE_KEY: f"Successfully removed worker {worker_id}."
+            SUCCESS_MESSAGE_KEY: f"Successfully removed worker {worker_id[0:WID_LEN]}."
         })
 
     def admin_set_worker_status(self, worker_id):
@@ -372,7 +371,7 @@ class DCFServer(object):
         """
         worker_data = request.json
 
-        logger.info(f"Admin is setting the status of {worker_id}...")
+        logger.info(f"Admin is setting the status of {worker_id[0:WID_LEN]}...")
         valid_failed = DCFServer.validate_input(worker_data, [REGISTRATION_STATUS_KEY], [bool])
         if ERROR_MESSAGE_KEY in valid_failed:
             logger.error(valid_failed[ERROR_MESSAGE_KEY])
@@ -385,10 +384,10 @@ class DCFServer(object):
         if worker_id == INVALID_WORKER:
             return json.dumps({
                 ERROR_MESSAGE_KEY: f"Attempt at changing worker status failed - "
-                                   f"please ensure this worker was added: {worker_id}."
+                                   f"please ensure this worker was added: {worker_id[0:WID_LEN]}."
             })
 
-        logger.info(f"New {worker_id} status is {REGISTRATION_STATUS_KEY}: "
+        logger.info(f"New {worker_id[0:WID_LEN]} status is {REGISTRATION_STATUS_KEY}: "
                     f"{worker_data[REGISTRATION_STATUS_KEY]}")
 
         if not was_registered and worker_data[REGISTRATION_STATUS_KEY]:
@@ -398,7 +397,7 @@ class DCFServer(object):
             self.unregister_worker_callback(worker_id)
 
         return json.dumps({
-            SUCCESS_MESSAGE_KEY: f"Successfully changed status for worker {worker_id}.",
+            SUCCESS_MESSAGE_KEY: f"Successfully changed status for worker {worker_id[0:WID_LEN]}.",
             WORKER_ID_KEY: worker_id,
             REGISTRATION_STATUS_KEY: worker_data[REGISTRATION_STATUS_KEY]
         })
@@ -430,18 +429,18 @@ class DCFServer(object):
                 hashlib.sha256(model_update).digest()
             )
             if not verify_worker:
-                logger.error(f"Unable to verify worker with id {worker_id}")
+                logger.error(f"Unable to verify worker with id {worker_id[0:WID_LEN]}")
                 return INVALID_WORKER
 
             if not self.worker_manager.is_worker_allowed(worker_id):
-                logger.warning(f"Unknown worker {worker_id} tried to send an update.")
+                logger.warning(f"Unknown worker {worker_id[0:WID_LEN]} tried to send an update.")
                 return INVALID_WORKER
 
             if not self.worker_manager.is_worker_registered(worker_id):
-                logger.warning(f"Unregistered worker {worker_id} tried to send an update.")
+                logger.warning(f"Unregistered worker {worker_id[0:WID_LEN]} tried to send an update.")
                 return UNREGISTERED_WORKER
 
-            logger.info(f'Received model update from worker {worker_id}.')
+            logger.info(f'Received model update from worker {worker_id[0:WID_LEN]}.')
             return self.receive_worker_update_callback(worker_id, model_update)
 
         except Exception as e:
@@ -472,14 +471,14 @@ class DCFServer(object):
                          "return_global_model_callback() implementation is incorrect")
         body.put(GLOBAL_MODEL_UPDATED_STRING)
         body.put(StopIteration)
-        logger.info(f"Notified global model version changed to {worker_id}.")
+        logger.info(f"Notified global model version changed to {worker_id[0:WID_LEN]}.")
 
         # clean up the list of model requests for this worker
         if len(self.model_version_req_dict[worker_id]) > 0:
             self.model_version_req_dict[worker_id].pop()
         if len(self.model_version_req_dict[worker_id]) > 0:
             message_seriously_wrong(f"in 'check_model_ready', "
-                                    f"more than one entry in the 'mode_req_dict' for {worker_id}")
+                                    f"more than one entry in the 'mode_req_dict' for {worker_id[0:WID_LEN]}")
 
     def notify_me_if_gm_version_updated(self):
         """
@@ -500,23 +499,23 @@ class DCFServer(object):
 
             worker_id = query_request[WORKER_ID_KEY]
             if not self.worker_manager.is_worker_allowed(worker_id):
-                logger.warning(f"Unknown worker {worker_id} tried to get the global model.")
+                logger.warning(f"Unknown worker {worker_id[0:WID_LEN]} tried to get the global model.")
                 return INVALID_WORKER
 
             if not self.worker_manager.verify_challenge(worker_id, query_request[SIGNED_PHRASE]):
-                logger.error(f"Failed to verify worker with id {worker_id}")
+                logger.error(f"Failed to verify worker with id {worker_id[0:WID_LEN]}")
                 return INVALID_WORKER
 
             if not self.worker_manager.is_worker_registered(worker_id):
-                logger.warning(f"Unregistered worker {worker_id} tried to get the global model.")
+                logger.warning(f"Unregistered worker {worker_id[0:WID_LEN]} tried to get the global model.")
                 return UNREGISTERED_WORKER
 
-            logger.info(f"Received request for global model version change notification from {worker_id}.")
+            logger.info(f"Received request for global model version change notification from {worker_id[0:WID_LEN]}.")
             # in case a new request is made, terminate the old one
             if worker_id in self.model_version_req_dict and \
                     len(self.model_version_req_dict[worker_id]) > 0:
                 old_g, old_b = self.model_version_req_dict[worker_id].pop()
-                msg = f"New request for global model version change notification received from {worker_id} - " \
+                msg = f"New request for global model version change notification received from {worker_id[0:WID_LEN]} - " \
                       "existing request terminated."
                 logger.info(msg)
                 old_b.put(msg)
@@ -524,7 +523,7 @@ class DCFServer(object):
                 old_g.kill()
                 if len(self.model_version_req_dict[worker_id]) > 0:
                     message_seriously_wrong(f"in 'return_global_model', "
-                                            f"more than one entry in the 'mode_req_dict' for {worker_id}")
+                                            f"more than one entry in the 'mode_req_dict' for {worker_id[0:WID_LEN]}")
             body = gevent.queue.Queue()
             g = Greenlet(self.check_model_version_updated, worker_id, body, query_request[LAST_WORKER_MODEL_VERSION])
             self.gevent_pool.add(g)
@@ -567,18 +566,18 @@ class DCFServer(object):
 
             worker_id = query_request[WORKER_ID_KEY]
             if not self.worker_manager.is_worker_allowed(worker_id):
-                logger.warning(f"Unknown worker {worker_id} tried to get the global model.")
+                logger.warning(f"Unknown worker {worker_id[0:WID_LEN]} tried to get the global model.")
                 return INVALID_WORKER
 
             if not self.worker_manager.verify_challenge(worker_id, query_request[SIGNED_PHRASE]):
-                logger.error(f"Failed to verify worker with id {worker_id}")
+                logger.error(f"Failed to verify worker with id {worker_id[0:WID_LEN]}")
                 return INVALID_WORKER
 
             if not self.worker_manager.is_worker_registered(worker_id):
-                logger.warning(f"Unregistered worker {worker_id} tried to get the global model.")
+                logger.warning(f"Unregistered worker {worker_id[0:WID_LEN]} tried to get the global model.")
                 return UNREGISTERED_WORKER
 
-            logger.info(f"Returned global model to {worker_id}.")
+            logger.info(f"Returned global model to {worker_id[0:WID_LEN]}.")
             return zlib.compress(msgpack.packb(self.return_global_model_callback()))
 
         except Exception as e:

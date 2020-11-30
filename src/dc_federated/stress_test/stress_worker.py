@@ -17,7 +17,7 @@ from dc_federated.stress_test.stress_gen_keys import STRESS_KEYS_FOLDER
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__file__)
 logger.setLevel(level=logging.INFO)
 
