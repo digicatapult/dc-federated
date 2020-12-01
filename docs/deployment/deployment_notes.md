@@ -1,13 +1,13 @@
 # Deployment Notes
 
-The first point we make here is that deployment of an `dc_federated` application in a POC or production setting  should always be done in consultation with the dev-ops team. This document, therefore, should serve as a starting point, where we highlight the main issues that needs to be considered for deployment. The solutions we provide are by no means exhaustive - we have found them to work for the applications we have tried, but they are likely not the complete answer for your use-case.  
+The first point we make here is that deployment of an `dc_federated` application in a POC or production setting  should always be done in consultation with the dev-ops team. This document, therefore, should serve as a starting point, where we highlight the main issues that need to be considered for deployment. The solutions we provide are by no means exhaustive - we have found them to work for the applications we have tried, but they are likely not the complete answer for your use-case.  
 
-At the minimum, one needs to consider two different issues during deployment: scalability and security. In the folloiwing we address each in turn.
+At a minimum, one needs to consider two different issues during deployment: scalability and security. In the following we address each in turn.
 
 
 ## Scalability
 
-We start by recalling that the server side is implemented as a http service and workers make REST API calls to the server during federated learning iterations. During federated learning iterations, the main source of resource drain is multiple workers long-polling to get the current global model. During a long poll the http request from a worker does not return until the global model is returned by the server and the connection is kept open. This reduces the network traffic, but also means that some basic configuration needs to be done on the server side to ensure that the requisite number of open connections are supported. We now describe the such a configuration for the specific setup of server running on Ubuntu 20.0.4 system. This should help guide as to what is needed for your use case.
+We start by recalling that the server side is implemented as a http service and workers make REST API calls to the server during federated learning iterations. During federated learning iterations, the main source of resource drain is multiple workers long-polling to get the current global model. During a long poll the http request from a worker does not return until a new global model is available and the connection is kept open. This reduces the network traffic, but also means that some basic configuration needs to be done on the server side to ensure that the requisite number of open connections are supported. We now describe the such a configuration for the specific setup of server running on Ubuntu 20.0.4 system. This should help guide as to what is needed for your use case.
 
 
 ### Open Files
@@ -42,7 +42,7 @@ events {
 ```  
 The first option determines the number of simultaneous open files for the server and the second helps set the number of open connections. 
 
-Now open the file `/etc/var/nginx/sites_availabl/default` (create a different file if you want to put the configuration for the FL server in a different location). Now add the following block to enable reverse-proxy into the FL server.
+Now open the file `/etc/var/nginx/sites_available/default` (create a different file if you want to put the configuration for the FL server in a different location). Now add the following block to enable reverse-proxy into the FL server.
 
 ```
 server {
@@ -87,4 +87,4 @@ You have taken the first step in securing your federated learning setup by using
 
 In addition, the `DCFServer` also supports [SSL communication natively](../library/enabling_ssl.md) so that if the communication between the reverse-proxy and the fedearted learning server happens via the internet, this last leg can also be secure. As before, please consult your local sys-admin or dev-ops guru to figure out the details.
 
-Of course, the above is just the first step and there are many other aspects of security that needs to be taken care of based on the specific problem (for instance handling potenial denial-of-service attacks etc.) These should considered and handled by your dev-ops team.
+There are many other aspects of security that needs to be taken care of based on the specific problem (for instance handling potenial denial-of-service attacks etc.) These should considered and handled by your dev-ops team.
