@@ -172,13 +172,13 @@ class FedAvgServer(object):
                 update_size,
                 torch.load(io.BytesIO(model_bytes))
             )
-            logger.info(f" Model update received from worker {worker_id[0:WID_LEN]}")
+            logger.info(f"Model update from worker {worker_id[0:WID_LEN]} accepted.")
             if self.agg_model():
                 self.global_model_trainer.test()
             return f"Update received for worker {worker_id[0:WID_LEN]}"
         else:
             logger.warning(
-                f" Unregistered worker {worker_id[0:WID_LEN]} tried to send an update.")
+                f"Unregistered worker {worker_id[0:WID_LEN]} tried to send an update.")
             return f"Please register before sending an update."
 
     def agg_model(self):
@@ -190,7 +190,7 @@ class FedAvgServer(object):
         if self.unique_updates_since_last_agg < self.update_lim:
             return False
 
-        logger.info(" Updating the global model.\n")
+        logger.info("Updating the global model.\n")
 
         def agg_params(key, state_dicts, update_sizes):
             agg_val = state_dicts[0][key] * update_sizes[0]

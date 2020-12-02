@@ -5,6 +5,7 @@ machine learning logic.
 """
 import gevent
 from gevent import monkey; monkey.patch_all()
+from datetime import datetime
 
 import zlib
 import msgpack
@@ -219,7 +220,10 @@ class DCFWorker(object):
             logger.info(f"Received global model for worker {self.worker_id[0:WID_LEN]}")
             return model
         except zlib.error as e:
-            logger.error(f"Received error message: {response}")
+            fn = f'{self.worker_id[0:WID_LEN]}_server_error_{datetime.now().strftime("%Y_%m_%d-%H_%M_%S_%f")}'
+            with open(fn, 'w') as f:
+                f.write(response)
+            logger.error(f"Exception {str(e)} - written error message from server to : {fn}")
             return response
 
     def send_model_update(self, model_update):
