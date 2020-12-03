@@ -11,11 +11,10 @@ import msgpack
 import torch
 
 from dc_federated.utils import get_host_ip
-from dc_federated.backend import GLOBAL_MODEL, GLOBAL_MODEL_VERSION
+from dc_federated.backend import GLOBAL_MODEL, GLOBAL_MODEL_VERSION, WID_LEN
 from dc_federated.backend import DCFWorker
 
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
@@ -87,7 +86,7 @@ class FedAvgWorker(object):
         self.fed_model.train()
         self.fed_model.test()
         logger.info(
-            f"Finished training of local model for worker {self.worker_id}")
+            f"Finished training of local model for worker {self.worker_id[0:WID_LEN]}")
 
     def send_model_update(self):
         """
@@ -98,7 +97,7 @@ class FedAvgWorker(object):
                           self.serialize_model()))
         )
         logger.info(
-            f"Sent model update from worker {self.worker_id} to the server.")
+            f"Sent model update from worker {self.worker_id[0:WID_LEN]} to the server.")
 
     def initialize(self):
         """
@@ -109,7 +108,7 @@ class FedAvgWorker(object):
         if not self.worker_id:
             self.worker_id = self.worker.register_worker()
             logger.info(
-                f"Registered with FedAvg Server with worker id {self.worker_id}")
+                f"Registered with FedAvg Server with worker id {self.worker_id[0:WID_LEN]}")
 
         self.train_and_test_model()
         self.send_model_update()

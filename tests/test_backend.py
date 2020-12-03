@@ -51,9 +51,9 @@ def test_server_functionality():
     def test_rec_server_update_cb(worker_id, update):
         if worker_id in worker_ids:
             worker_updates[worker_id] = update
-            return f"Update received for worker {worker_id}."
+            return f"Update received for worker {worker_id[0:WID_LEN]}."
         else:
-            return f"Unregistered worker {worker_id} tried to send an update."
+            return f"Unregistered worker {worker_id[0:WID_LEN]} tried to send an update."
 
     def test_glob_mod_chng_cb(model_dict):
         nonlocal worker_global_model_version
@@ -73,7 +73,8 @@ def test_server_functionality():
             is_global_model_most_recent=is_global_model_most_recent,
             receive_worker_update_callback=test_rec_server_update_cb,
             server_mode_safe=False,
-            key_list_file="some_file_name.txt"
+            key_list_file="some_file_name.txt",
+            load_last_session_workers=False
         )
     except ValueError as ve:
         error_str = "Server started in unsafe mode but list of public keys provided. " \
@@ -162,7 +163,7 @@ def test_server_functionality():
 
     assert msgpack.unpackb(worker_updates[worker_ids[1]]) == "Model update!!"
     assert response.decode(
-        "UTF-8") == f"Update received for worker {worker_ids[1]}."
+        "UTF-8") == f"Update received for worker {worker_ids[1][0:WID_LEN]}."
 
     response = requests.post(
         f"http://{dcf_server.server_host_ip}:{dcf_server.server_port}/{RECEIVE_WORKER_UPDATE_ROUTE}/3",
@@ -197,6 +198,6 @@ def test_server_functionality():
         msgpack.packb("DCFWorker model update"))
     assert msgpack.unpackb(worker_updates[worker_ids[3]]) == "DCFWorker model update"
     assert response.decode(
-        "UTF-8") == f"Update received for worker {worker_ids[3]}."
+        "UTF-8") == f"Update received for worker {worker_ids[3][0:WID_LEN]}."
 
     stoppable_server.shutdown()

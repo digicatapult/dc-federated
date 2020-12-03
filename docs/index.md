@@ -21,15 +21,19 @@ The `dc_federated` package is a [fedeareted learning](https://en.wikipedia.org/w
 You can find additional information in the following locations.
 
   - The Library:
-    - [getting started](library/getting_started.md)
-    - [library architecture](library/architecture.md)
-    - [library core features](library/library_core_features.md)
-    - [implementing new algorithms](library/new_algorithms.md)
-    - [worker authentication](library/worker_authentication.md)
-    - [secure communication](library/enabling_ssl.md)
-    - [admin worker management](library/worker_management.md)
+    - [Getting Started](library/getting_started.md)
+    - [Library Architecture](library/architecture.md)
+    - [Library Core Features](library/library_core_features.md)
+    - [Implementing New Algorithms](library/new_algorithms.md)
+    - [Worker Authentication](library/worker_authentication.md)
+    - [Secure Communication](library/enabling_ssl.md)
+    - [Admin Worker Management](library/worker_management.md)
   - Examples:
-    - [MNIST dataset](examples/mnist.md)
-    - [PlantVillage dataset](examples/plantvillage.md)
-    - [using the FedAvg algorithm](examples/using_fed_avg.md)
-    - [multi-Device Test](examples/multi_device_test.md)
+    - [MNIST Dataset](examples/mnist.md)
+    - [PlantVillage Dataset](examples/plantvillage.md)
+    - [Using the FedAvg algorithm](examples/using_fed_avg.md)
+    - [Multi-Device Test](examples/multi_device_test.md)
+  - Deployment:
+    - [Deployment Notes](deployment/deployment_notes.md)
+    - [Stress Test](deployment/stress_test.md)
+  

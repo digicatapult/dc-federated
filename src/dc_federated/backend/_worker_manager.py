@@ -7,7 +7,7 @@ import time
 import json
 
 from dc_federated.backend._constants import INVALID_WORKER, WORKER_ID_KEY, \
-    REGISTRATION_STATUS_KEY, PUBLIC_KEY_STR
+    REGISTRATION_STATUS_KEY, PUBLIC_KEY_STR, WID_LEN
 from dc_federated.backend.backend_utils import message_seriously_wrong
 from nacl.encoding import HexEncoder
 from nacl.exceptions import BadSignatureError
@@ -17,7 +17,6 @@ from tinydb import TinyDB, Query
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
@@ -172,7 +171,7 @@ class WorkerManager(object):
         """
         if self.do_public_key_auth:
             if not self.add_public_key(public_key_str):
-                logger.warning(f"Invalid public key {public_key_str} - worker not added")
+                logger.warning(f"Invalid public key (short) {public_key_str[0:WID_LEN]} - worker not added")
                 return INVALID_WORKER, False
         return self._add_worker(public_key_str)
 
@@ -202,12 +201,12 @@ class WorkerManager(object):
             self.allowed_workers.append(worker_id)
             self.registered_workers[worker_id] = False
             if self.public_keys_db is not None:
-                self.public_keys_db.insert({PUBLIC_KEY_STR: public_key_str})
+                    self.public_keys_db.insert({PUBLIC_KEY_STR: public_key_str})
             logger.info(
-                f"Successfully added worker with public key {public_key_str}")
+                f"Successfully added worker with public key (short) {public_key_str[0:WID_LEN]}")
             return worker_id, True
         else:
-            logger.info(f"Worker with public key {public_key_str} was added previously "
+            logger.info(f"Worker with public key (short) {public_key_str[0:WID_LEN]} was added previously "
                         "- no additional actions taken.")
             return worker_id, False
 
@@ -233,11 +232,11 @@ class WorkerManager(object):
         if worker_id in self.allowed_workers:
             old_status = self.registered_workers[worker_id]
             self.registered_workers[worker_id] = should_register
-            logger.info(f"Set registration status of worker {worker_id} from {old_status} to {should_register}.")
+            logger.info(f"Set registration status of worker {worker_id[0:WID_LEN]} from {old_status} to {should_register}.")
             return worker_id
         else:
             logger.warning(
-                f"Please add worker with public key {worker_id} before trying to change registration status.")
+                f"Please add worker with public key {worker_id[0:WID_LEN]} before trying to change registration status.")
             return INVALID_WORKER
 
     def remove_worker(self, worker_id):
@@ -263,14 +262,14 @@ class WorkerManager(object):
                 doc_ids = [doc.doc_id
                            for doc in self.public_keys_db.search(Query()[PUBLIC_KEY_STR] == worker_id)]
                 if len(doc_ids) == 0:
-                    logger.error(f"Worker {worker_id} not found in workers_db!!!")
+                    logger.error(f"Worker {worker_id[0:WID_LEN]} not found in workers_db!!!")
                 self.public_keys_db.remove(doc_ids=doc_ids)
 
-            logger.info(f"Worker {worker_id} was removed - this worker will "
+            logger.info(f"Worker {worker_id[0:WID_LEN]} was removed - this worker will "
                         f"no longer be allowed to register or participate in federated learning. ")
             return worker_id
         else:
-            logger.warning(f"Attempt to remove non-existent worker {worker_id}.")
+            logger.warning(f"Attempt to remove non-existent worker {worker_id[0:WID_LEN]}.")
             return INVALID_WORKER
 
     def add_public_key(self, public_key_str):
@@ -298,7 +297,7 @@ class WorkerManager(object):
                 self.public_keys[public_key_str] = VerifyKey(public_key_str.encode(), encoder=HexEncoder)
                 return True
             else:
-                logger.warning(f"Attempt to add previously added public key {public_key_str}.")
+                logger.warning(f"Attempt to add previously added public key (short) {public_key_str[0:WID_LEN]}.")
                 return True
         except Exception as e:
             logger.warning(e)
@@ -328,7 +327,7 @@ class WorkerManager(object):
                 del self.public_keys[public_key_str]
                 return True
             else:
-                logger.warning(f"Attempt to remove unknown public key {public_key_str}.")
+                logger.warning(f"Attempt to remove unknown public key (short) {public_key_str[0:WID_LEN]}.")
                 return True
         except Exception as e:
             logger.warning(e)
@@ -415,12 +414,17 @@ class WorkerManager(object):
         """
         if not self.do_public_key_auth:
             return True
-        if worker_id not in self.challenge_phrases or self.challenge_phrases[worker_id] is None:
+        if worker_id not in self.challenge_phrases:
+            logger.error(f"Worker id {worker_id[0:WID_LEN]} not found in challenge phrases")
+            return False
+        if self.challenge_phrases[worker_id] is None:
+            logger.error(f"Challenge phrase for worker id {worker_id[0:WID_LEN]} is None")
             return False
 
         success = self.authenticate_worker(
             worker_id, signed_challenge, self.challenge_phrases[worker_id].encode())
         self.challenge_phrases[worker_id] = None
+
         return success
 
     def authenticate_worker(self, public_key_str, signed_message, message_to_check=None):
@@ -451,22 +455,27 @@ class WorkerManager(object):
             return True
         try:
             if public_key_str not in self.public_keys:
+                logger.error(f"Unknown public key (short) {public_key_str[0:WID_LEN]}.")
                 return False
             v = self.public_keys[public_key_str].verify(
                 signed_message.encode(), encoder=HexEncoder)
             if message_to_check is not None:
-                return v == message_to_check
+                if v != message_to_check:
+                    logger.error(f"Message {message_to_check} does not match decrypted message {v}")
+                    return False
+                else:
+                    return True
 
         except BadSignatureError:
             logger.warning(
-                f"Failed to authenticate worker with public key: {public_key_str}.")
+                f"Failed to authenticate worker with public key (short) {public_key_str[0:WID_LEN]}.")
             return False
         except Exception as e:
             logger.error(f"Exception when trying to authenticate worker {str(e)}")
             return False
         else:
             logger.info(
-                f"Successfully authenticated worker with public key: {public_key_str}.")
+                f"Successfully authenticated worker with public key (short) {public_key_str[0:WID_LEN]}.")
             return True
 
     def get_worker_list(self):

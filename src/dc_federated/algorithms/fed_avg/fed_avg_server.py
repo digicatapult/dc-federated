@@ -16,7 +16,6 @@ from dc_federated.algorithms.fed_avg.fed_avg_model_trainer import FedAvgModelTra
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
@@ -95,7 +94,7 @@ class FedAvgServer(object):
         worker_id: int
             The id of the new worker.
         """
-        logger.info(f"Registered worker {worker_id}")
+        logger.info(f"Registered worker {worker_id[0:WID_LEN]}")
         self.worker_updates[worker_id] = None
 
     def unregister_worker(self, worker_id):
@@ -108,7 +107,7 @@ class FedAvgServer(object):
         worker_id: int
             The id of the worker to be removed.
         """
-        logger.info(f"Unregistered worker {worker_id}")
+        logger.info(f"Unregistered worker {worker_id[0:WID_LEN]}")
         self.worker_updates.pop(worker_id)
 
     def return_global_model(self):
@@ -168,15 +167,18 @@ class FedAvgServer(object):
                     self.worker_updates[worker_id][0] < self.last_global_model_update_timestamp:
                 self.unique_updates_since_last_agg += 1
             update_size, model_bytes = msgpack.unpackb(model_update)
-            self.worker_updates[worker_id] = (datetime.now(), update_size,
-                                              torch.load(io.BytesIO(model_bytes)))
-            logger.info(f" Model update received from worker {worker_id}")
+            self.worker_updates[worker_id] = (
+                datetime.now(),
+                update_size,
+                torch.load(io.BytesIO(model_bytes))
+            )
+            logger.info(f"Model update from worker {worker_id[0:WID_LEN]} accepted.")
             if self.agg_model():
                 self.global_model_trainer.test()
-            return f"Update received for worker {worker_id}"
+            return f"Update received for worker {worker_id[0:WID_LEN]}"
         else:
             logger.warning(
-                f" Unregistered worker {worker_id} tried to send an update.")
+                f"Unregistered worker {worker_id[0:WID_LEN]} tried to send an update.")
             return f"Please register before sending an update."
 
     def agg_model(self):
@@ -188,7 +190,7 @@ class FedAvgServer(object):
         if self.unique_updates_since_last_agg < self.update_lim:
             return False
 
-        logger.info(" Updating the global model.\n")
+        logger.info("Updating the global model.\n")
 
         def agg_params(key, state_dicts, update_sizes):
             agg_val = state_dicts[0][key] * update_sizes[0]

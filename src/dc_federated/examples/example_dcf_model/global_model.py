@@ -10,10 +10,9 @@ import logging
 import torch
 
 from dc_federated.examples.example_dcf_model.torch_nn_class import ExampleModelClass
-from dc_federated.backend import DCFServer, create_model_dict
+from dc_federated.backend import DCFServer, create_model_dict, WID_LEN
 
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
@@ -40,7 +39,8 @@ class ExampleGlobalModel(object):
             is_global_model_most_recent=self.is_global_model_most_recent,
             receive_worker_update_callback=self.receive_worker_update,
             server_mode_safe=False,
-            key_list_file=None
+            key_list_file=None,
+            load_last_session_workers=False
         )
 
     def register_worker(self, worker_id):
@@ -53,7 +53,7 @@ class ExampleGlobalModel(object):
         worker_id: int
             The id of the new worker.
         """
-        logger.info(f"Example Global Model: Registering worker {worker_id}")
+        logger.info(f"Example Global Model: Registering worker {worker_id[0:WID_LEN]}")
         self.worker_updates[worker_id] = None
 
     def unregister_worker(self, worker_id):
@@ -66,7 +66,7 @@ class ExampleGlobalModel(object):
         worker_id: int
             The id of the worker to be removed.
         """
-        logger.info(f"Example Global Model: Unregistering worker {worker_id}")
+        logger.info(f"Example Global Model: Unregistering worker {worker_id[0:WID_LEN]}")
         self.worker_updates.pop(worker_id)
 
     def return_global_model(self):
@@ -115,14 +115,14 @@ class ExampleGlobalModel(object):
         if worker_id in self.worker_updates:
             self.worker_updates[worker_id] = \
                 torch.load(io.BytesIO(model_update))
-            logger.info(f"Model update received from worker {worker_id}")
+            logger.info(f"Model update received from worker {worker_id[0:WID_LEN]}")
             logger.info(self.worker_updates[worker_id])
             with open(f"egm_worker_update_{worker_id}.torch", 'wb') as f:
                 torch.save(self.worker_updates[worker_id], f)
             self.global_model_version += 1
-            return f"Update received for worker {worker_id}"
+            return f"Update received for worker {worker_id[0:WID_LEN]}"
         else:
-            return f"Unregistered worker {worker_id} tried to send an update!!"
+            return f"Unregistered worker {worker_id[0:WID_LEN]} tried to send an update!!"
 
     def start(self):
         self.server.start_server()

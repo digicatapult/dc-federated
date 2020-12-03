@@ -23,7 +23,10 @@ from dc_federated.utils import StoppableServer, get_host_ip
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__file__)
 logger.setLevel(level=logging.INFO)
 
@@ -75,9 +78,9 @@ def test_worker_persistence():
     def test_rec_server_update_cb(worker_id, update):
         if worker_id in worker_ids:
             worker_updates[worker_id] = update
-            return f"Update received for worker {worker_id}."
+            return f"Update received for worker {worker_id[0:WID_LEN]}."
         else:
-            return f"Unregistered worker {worker_id} tried to send an update."
+            return f"Unregistered worker {worker_id[0:WID_LEN]} tried to send an update."
 
     def get_signed_phrase(private_key, phrase=b'test phrase'):
         return SigningKey(private_key, encoder=HexEncoder).sign(phrase).hex()
@@ -142,7 +145,7 @@ def test_worker_persistence():
         ).content
         assert msgpack.unpackb(worker_updates[worker_ids[i - num_pre_load_workers]]) == "Model update!!"
         assert response.decode(
-            "UTF-8") == f"Update received for worker {added_workers[i - num_pre_load_workers]}."
+            "UTF-8") == f"Update received for worker {added_workers[i - num_pre_load_workers][0:WID_LEN]}."
 
         # receive updates
 

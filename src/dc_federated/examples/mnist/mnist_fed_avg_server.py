@@ -10,8 +10,7 @@ from dc_federated.examples.mnist.mnist_fed_model import MNISTModelTrainer, MNIST
 
 def get_args():
     """
-    Parse the argument for running the example local model for the distributed
-    federated test.
+    Parse the argument for running MNIST server.
     """
     # Make parser object
     p = argparse.ArgumentParser(
@@ -70,10 +69,6 @@ def run():
                                   ssl_enabled=args.ssl_enabled,
                                   ssl_keyfile=args.ssl_keyfile,
                                   ssl_certfile=args.ssl_certfile)
-    print("\n************")
-    print("Starting an Federated Average Server at"
-          f"\n\tserver-host-ip: {fed_avg_server.server.server_host_ip} \n\tserver-port: {fed_avg_server.server.server_port}")
-    print("\n************\n")
     fed_avg_server.start()
 
 

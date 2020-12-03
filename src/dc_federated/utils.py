@@ -10,7 +10,6 @@ from bottle import Bottle, ServerAdapter, WSGIRefServer
 from wsgiref.simple_server import make_server, WSGIRequestHandler
 
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 

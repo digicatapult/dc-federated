@@ -57,16 +57,12 @@ Please refer to [the ssl document for more details](../library/enabling_ssl.md)
 You should see an output of the following form:
 
 ```bash
-IINFO:dc_federated.algorithms.fed_avg.fed_avg_server:Initializing FedAvg server for model class MNISTNet
-WARNING:dc_federated.backend.dcf_server:No key list file provided - no worker authentication will be used!!!.
-WARNING:dc_federated.backend.dcf_server:Server is running in ****UNSAFE MODE.****
-
-************
-Starting an Federated Average Server at
-	server-host-ip: 192.124.1.177
-	server-port: 8080
-
-************
+2020-12-02 18:31:53 INFO     Initializing FedAvg server for model class MNISTNet
+2020-12-02 18:31:53 INFO     Server started is running in **** UNSAFE MODE **** - all workers will be accepted.
+[2020-12-02 18:31:53 +0000] [9547] [INFO] Starting gunicorn 20.0.4
+[2020-12-02 18:31:53 +0000] [9547] [INFO] Listening at: http://192.124.1.177:8080 (9547)
+[2020-12-02 18:31:53 +0000] [9547] [INFO] Using worker: gevent
+[2020-12-02 18:31:53 +0000] [9550] [INFO] Booting worker with pid: 9550
 ```
 
 But with different `server-host-ip` but the same `server-port`. You may see additional output if you are downloading the mnist dataset. Note the warning that the server is starting in `unsafe mode` - this is because that the worker authentication is not being used. See below for how to run this example with the workers being authenticated.
@@ -100,25 +96,29 @@ The `--digit-class 0` argument means that this worker only only train on digits 
 Once you run the worker, you should see an output of the form
 
 ```bash
-INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Registered with FedAvg Server with worker id 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530
-Train Epoch: 0 [0/24754(0%)]	Loss: 2.341936
-Train Epoch: 0 [640/24754(3%)]	Loss: 0.288457
+2020-12-02 19:51:47 WARNING  Security alert: https is not enabled!
+2020-12-02 19:51:47 WARNING  No public key file provided - server side authentication will not succeed.
+2020-12-02 19:51:47 WARNING  Unable to sign message - no private key file provided.
+2020-12-02 19:51:47 INFO     Registering public key (short) No publi with server...
+2020-12-02 19:51:47 INFO     Registration for public key (short) No publi done.
+2020-12-02 19:51:47 INFO     Registered with FedAvg Server with worker id 844b8060
+Train Epoch: 0 [0/17181(0%)]	Loss: 2.307410
+Train Epoch: 0 [640/17181(4%)]	Loss: 0.235539
 
-Test set: Average loss: 0.2058, Accuracy: 3885/4157(93%)
+Test set: Average loss: 0.1330, Accuracy: 2720/2832(96%)
 
-INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Finished training of local model for worker 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530
-INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Sent model update from worker 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530 to the server.
-Train Epoch: 0 [1280/24754(5%)]	Loss: 0.591940
+2020-12-02 19:51:51 INFO     Finished training of local model for worker 844b8060
+2020-12-02 19:51:51 WARNING  Unable to sign message - no private key file provided.
+2020-12-02 19:51:51 INFO     Sent model update from worker 844b8060 to the server.
 ```
 
-This means that the first worker has trainer and sent its update to the server and now the server is waiting for the other workers to send their updates to the server. Indeed, in the server terminal you should see additional lines of the following form:
+This means that the first worker has trained and sent its update to the server and now the server is waiting for the other workers to send their updates to the server. Indeed, in the server terminal you should see additional lines of the following form:
 
 ```bash
-WARNING:dc_federated.backend.dcf_server:Accepting worker as valid without authentication.
-WARNING:dc_federated.backend.dcf_server:Server was likely started without a list of valid public keys from workers.
-INFO:dc_federated.backend.dcf_server:Successfully registered worker with public key: No public key was provided when worker was started.
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server:Registered worker f3bdfed678321f9d22aa742b579edda9d6ec84f5cb03fe259a5a70ac_unauthenticated
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Model update received from worker f3bdfed678321f9d22aa742b579edda9d6ec84f5cb03fe259a5a70ac_unauthenticated
+2020-12-02 19:51:47 WARNING  Accepting worker as valid without authentication.
+2020-12-02 19:51:47 INFO     Successfully added worker with public key (short) No publi
+2020-12-02 19:51:47 INFO     Set registration status of worker 844b8060 from False to True.
+2020-12-02 19:51:47 INFO     Registered worker 844b8060
 ```
 
 ---
@@ -145,29 +145,43 @@ Once you have started the third worker, the `FedAvg` federated learning iteratio
 .
 .
 .
-Test set: Average loss: 2.2841, Accuracy: 2019/10000(20%)
-
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Model update received from worker 6a324b496d449b6103450f8d5e4a188c5467ab963bc97926baad3c09_unauthenticated
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Model update received from worker 39c87ce30a29c2e0a27fd5506c3a27c6ca1b18d854abc0a0737e71bc_unauthenticated
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Model update received from worker f3bdfed678321f9d22aa742b579edda9d6ec84f5cb03fe259a5a70ac_unauthenticated
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Updating the global model.
+2020-12-02 19:52:12 INFO     Received model update from worker b3f286d0.
+2020-12-02 19:52:12 INFO     Model update from worker b3f286d0 accepted.
+2020-12-02 19:52:12 INFO     Updating the global model.
 
 
-Test set: Average loss: 1.6747, Accuracy: 4613/10000(46%)
+Test set: Average loss: 2.2816, Accuracy: 1677/10000(17%)
 
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Model update received from worker 6a324b496d449b6103450f8d5e4a188c5467ab963bc97926baad3c09_unauthenticated
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Model update received from worker 39c87ce30a29c2e0a27fd5506c3a27c6ca1b18d854abc0a0737e71bc_unauthenticated
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Model update received from worker f3bdfed678321f9d22aa742b579edda9d6ec84f5cb03fe259a5a70ac_unauthenticated
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Updating the global model.
+2020-12-02 19:52:19 INFO     Notified global model version changed to d8278edd.
+2020-12-02 19:52:19 INFO     Notified global model version changed to 844b8060.
+2020-12-02 19:52:19 INFO     Received request for global model version change notification from b3f286d0.
+2020-12-02 19:52:19 INFO     Notified global model version changed to b3f286d0.
+2020-12-02 19:52:19 INFO     Returned global model to 844b8060.
+2020-12-02 19:52:19 INFO     Returned global model to d8278edd.
+2020-12-02 19:52:19 INFO     Returned global model to b3f286d0.
+2020-12-02 19:52:25 WARNING  Accepting worker as valid without authentication.
+2020-12-02 19:52:25 INFO     Received model update from worker 844b8060.
+2020-12-02 19:52:25 INFO     Model update from worker 844b8060 accepted.
+2020-12-02 19:52:25 WARNING  Accepting worker as valid without authentication.
+2020-12-02 19:52:25 INFO     Received model update from worker d8278edd.
+2020-12-02 19:52:25 INFO     Model update from worker d8278edd accepted.
+2020-12-02 19:52:25 INFO     Received request for global model version change notification from 844b8060.
+2020-12-02 19:52:25 INFO     Received request for global model version change notification from d8278edd.
+2020-12-02 19:52:26 WARNING  Accepting worker as valid without authentication.
+2020-12-02 19:52:26 INFO     Received model update from worker b3f286d0.
+2020-12-02 19:52:26 INFO     Model update from worker b3f286d0 accepted.
+2020-12-02 19:52:26 INFO     Updating the global model.
 
 
-Test set: Average loss: 1.2767, Accuracy: 6377/10000(64%)
+Test set: Average loss: 1.6433, Accuracy: 6209/10000(62%)
 
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Model update received from worker 6a324b496d449b6103450f8d5e4a188c5467ab963bc97926baad3c09_unauthenticated
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Model update received from worker 39c87ce30a29c2e0a27fd5506c3a27c6ca1b18d854abc0a0737e71bc_unauthenticated
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Model update received from worker f3bdfed678321f9d22aa742b579edda9d6ec84f5cb03fe259a5a70ac_unauthenticated
-INFO:dc_federated.algorithms.fed_avg.fed_avg_server: Updating the global model..
-.
+2020-12-02 19:52:34 INFO     Notified global model version changed to 844b8060.
+2020-12-02 19:52:34 INFO     Notified global model version changed to d8278edd.
+2020-12-02 19:52:34 INFO     Received request for global model version change notification from b3f286d0.
+2020-12-02 19:52:34 INFO     Notified global model version changed to b3f286d0.
+2020-12-02 19:52:34 INFO     Returned global model to 844b8060.
+2020-12-02 19:52:34 INFO     Returned global model to d8278edd.
+2020-12-02 19:52:34 INFO     Returned global model to b3f286d0..
 .
 ```
 
@@ -177,29 +191,22 @@ You should see similar output in the worker terminals:
 .
 .
 .
-INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Finished training of local model for worker 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530
-INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Sent model update from worker 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530 to the server.
-Train Epoch: 0 [1280/24754(5%)]	Loss: 0.591940
+2020-12-02 19:52:20 INFO     Received global model for worker 844b8060
+Train Epoch: 0 [1280/17181(7%)]	Loss: 0.900819
 
-Test set: Average loss: 0.1943, Accuracy: 3920/4157(94%)
+Test set: Average loss: 0.1904, Accuracy: 2671/2832(94%)
 
-INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Finished training of local model for worker 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530
-INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Sent model update from worker 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530 to the server.
-Train Epoch: 0 [1920/24754(8%)]	Loss: 0.672269
+2020-12-02 19:52:25 INFO     Finished training of local model for worker 844b8060
+2020-12-02 19:52:25 WARNING  Unable to sign message - no private key file provided.
+2020-12-02 19:52:25 INFO     Sent model update from worker 844b8060 to the server.
+2020-12-02 19:52:25 WARNING  Unable to sign message - no private key file provided.
+2020-12-02 19:52:34 WARNING  Unable to sign message - no private key file provided.
+2020-12-02 19:52:35 INFO     Received global model for worker 844b8060
+Train Epoch: 0 [1920/17181(11%)]	Loss: 0.321993
 
-Test set: Average loss: 0.2386, Accuracy: 3772/4157(91%)
+Test set: Average loss: 0.1811, Accuracy: 2659/2832(94%)
 
-INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Finished training of local model for worker 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530
-INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Sent model update from worker 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530 to the server.
-Train Epoch: 0 [2560/24754(10%)]	Loss: 0.233826
-
-Test set: Average loss: 0.2814, Accuracy: 3707/4157(89%)
-
-INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Finished training of local model for worker 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530
-INFO:dc_federated.algorithms.fed_avg.fed_avg_worker:Sent model update from worker 7aa788c425ae1132672327085065281c79e017dd4821118b314a01f627348530 to the server.
-Train Epoch: 0 [3200/24754(13%)]	Loss: 0.200743
-
-Test set: Average loss: 0.1206, Accuracy: 4001/4157(96%)
+2020-12-02 19:52:40 INFO     Finished training of local model for worker 844b8060
 .
 .
 .

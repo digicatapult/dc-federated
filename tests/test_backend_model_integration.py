@@ -13,7 +13,10 @@ from multiprocessing import Process
 from dc_federated.examples.example_dcf_model import ExampleGlobalModel, ExampleLocalModel
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__file__)
 logger.setLevel(level=logging.INFO)
 
