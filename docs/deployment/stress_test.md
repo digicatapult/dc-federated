@@ -17,7 +17,7 @@ The running time of a single iteration of the test depends on your network conne
 
 ## Setting Up
 
-To run the the test as describe five machines will be requried, one for the server, and the remaining four to run the workers (with 250 workers running in separate Greenlet threads). Set up the server machine by following the instructions in the `Scalability` section in [Deployment Notes](deployment_notes.md). For the worker side, follow in the section `Scalability >  Open Files` section. Once you have completed the setup,  install the library in both the server machine and worker machines as described in [geting started](../library/getting_started.md).
+To run the the test as describe five machines will be required, one for the server, and the remaining four to run the workers (each machine running 250 workers in separate Greenlet threads). Set up the server machine by following the instructions in the `Scalability` section in [Deployment Notes](deployment_notes.md). For the worker side, follow in the section `Scalability >  Open Files` section. Once you have completed the setup,  install the library in both the server machine and worker machines as described in [geting started](../library/getting_started.md).
 
 ## Generating Keys
 
@@ -31,7 +31,7 @@ Copy the folder `stress_keys_folder`  and its contents to `src/dc_federated/stre
 
 ## Running the Server
 
-Log in to the server machine. First make sure that your reverse proxy is running and is accessible over the web by going to `http://<server-host-ip>`. You should see a nginx `503` error - this is because the upstream federated learning server has not yet been started. If you see unable to find host or similar error, this means that you nginx installation was not successful - you need to fix that. Also make sure that the nginx proxy is configured to connect to the upstream federated learning server at `http://127.0.0.1:5000`. 
+Log in to the server machine. First make sure that your reverse proxy is running and is accessible over the web by going to `http://<server-host-ip>`. You should see a nginx `503` error - this is because the upstream federated learning server has not yet been started. If you see "Unable to find host" or similar error, this means that you nginx installation was not successful - you need to fix that. Also make sure that the nginx proxy is configured to connect to the upstream federated learning server at `http://127.0.0.1:5000`. 
 
 Once the reverse-proxy is running, activate the virtual environment, go to `src/dc_federated/stress_test` and run
 ```bash

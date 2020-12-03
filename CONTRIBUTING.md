@@ -1,8 +1,8 @@
-# Contributing to `df_federated`
+# Contributing to `dc_federated`
 
 Firstly, we would like to thank you for taking the time to contribute!
 
-The following is a set of guidelines for contributing to {project_name} and its packages, which are hosted on the [digicatapult](https://github.com/digicatapult) organisation on GitHub. These are mostly guidelines, not rules. Use your best judgement, and feel free to propose changes to this document in a pull request.
+The following is a set of guidelines for contributing to `dc_federated` and its packages, which are hosted on the [digicatapult](https://github.com/digicatapult) organisation on GitHub. These are mostly guidelines, not rules. Use your best judgement, and feel free to propose changes to this document in a pull request.
 
 #### Table Of Contents
 
@@ -27,7 +27,7 @@ The following is a set of guidelines for contributing to {project_name} and its 
 
 ## Code of Conduct
 
-This project and all those participating in it are governed by the [Digital Catapult's Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behaviour to [opensource@digicatapult.org.uk](mailto:opensource@digicatapult.org.uk?subject={project_name}).
+This project and all those participating in it are governed by the [Digital Catapult's Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behaviour to [opensource@digicatapult.org.uk](mailto:opensource@digicatapult.org.uk?subject=dc_federated).
 
 ## FAQs
 
@@ -37,19 +37,19 @@ We don't have any frequently asked questions yet.
 
 ### Reporting Bugs
 
-This section guides you through submitting a bug report for `df_federated`. Following these guidelines helps maintainers and the community understand your report :pencil:, reproduce the behaviour :computer: :computer:, and find related reports :mag_right:.
+This section guides you through submitting a bug report for `dc_federated`. Following these guidelines helps maintainers and the community understand your report :pencil:, reproduce the behaviour :computer: :computer:, and find related reports :mag_right:.
 
-Before creating bug reports, please check [this list](#before-submitting-a-bug-report) as you might find out that you don't need to create one. When you are creating a bug report, please [include as many details as possible](#how-do-i-submit-a-good-bug-report). Fill out [the required template](https://github.com/digicatapult/`df_federated`/blob/master/.github/ISSUE_TEMPLATE/bug_report.md), the information it asks for helps us resolve issues faster.
+Before creating bug reports, please check [this list](#before-submitting-a-bug-report) as you might find out that you don't need to create one. When you are creating a bug report, please [include as many details as possible](#how-do-i-submit-a-good-bug-report). Fill out [the required template](https://github.com/digicatapult/dc_federated/blob/master/.github/ISSUE_TEMPLATE/bug_report.md), the information it asks for helps us resolve issues faster.
 
 > **Note:** If you find a **Closed** issue that seems like it is the same thing that you're experiencing, open a new issue and include a link to the original issue in the body of your new one.
 
 #### Before Submitting A Bug Report
 
-- **Perform a [cursory search](https://github.com/search?q=+is%3Aissue+user%3A`df_federated`)** to see if the problem has already been reported. If it has **and the issue is still open**, add a comment to the existing issue instead of opening a new one.
+- **Perform a [cursory search](https://github.com/search?q=+is%3Aissue+user%3Adc_federated)** to see if the problem has already been reported. If it has **and the issue is still open**, add a comment to the existing issue instead of opening a new one.
 
 #### How Do I Submit A (Good) Bug Report?
 
-Bugs are tracked as [GitHub issues](https://guides.github.com/features/issues/). Create an issue on that repository and provide the following information by filling in [the template](https://github.com/digicatapult/`df_federated`/.github/blob/master/.github/ISSUE_TEMPLATE/bug_report.md).
+Bugs are tracked as [GitHub issues](https://guides.github.com/features/issues/). Create an issue on that repository and provide the following information by filling in [the template](https://github.com/digicatapult/dc_federated/.github/blob/master/.github/ISSUE_TEMPLATE/bug_report.md).
 
 Explain the problem and include additional details to help maintainers reproduce the problem:
 
@@ -64,25 +64,25 @@ Explain the problem and include additional details to help maintainers reproduce
 
 Provide more context by answering these questions:
 
-- **Did the problem start happening recently** (e.g. after updating to a new version of `df_federated`) or was this always a problem?
-- If the problem started happening recently, **can you reproduce the problem in an older version of `df_federated`?** What's the most recent version in which the problem doesn't happen? You can checkout older versions of `df_federated` from [the releases page](https://github.com/digicatapult/`df_federated`/releases).
+- **Did the problem start happening recently** (e.g. after updating to a new version of `dc_federated`) or was this always a problem?
+- If the problem started happening recently, **can you reproduce the problem in an older version of `dc_federated`?** What's the most recent version in which the problem doesn't happen? You can checkout older versions of `dc_federated` from [the releases page](https://github.com/digicatapult/`dc_federated`/releases).
 - **Can you reliably reproduce the issue?** If not, provide details about how often the problem happens and under which conditions it normally happens.
 
 Include details about your configuration and environment:
 
-- **Which version of `df_federated` are you using?** You can get the exact version from the version attribute within package.json.
-- **What's the name and version of the OS you've deployed `df_federated` to**?
-- **Are you running `df_federated` in a virtual machine?** If so, which VM software are you using and which operating systems and versions are used for the host and the guest?
+- **Which version of `dc_federated` are you using?** You can get the exact version from the version attribute within package.json.
+- **What's the name and version of the OS you've deployed `dc_federated` to**?
+- **Are you running `dc_federated` in a virtual machine?** If so, which VM software are you using and which operating systems and versions are used for the host and the guest?
 
 ### Suggesting Enhancements
 
-This section guides you through submitting an enhancement suggestion for `df_federated`, including completely new features and minor improvements to existing functionality. Following these guidelines helps maintainers and the community understand your suggestion :pencil: and find related suggestions :mag_right:.
+This section guides you through submitting an enhancement suggestion for `dc_federated`, including completely new features and minor improvements to existing functionality. Following these guidelines helps maintainers and the community understand your suggestion :pencil: and find related suggestions :mag_right:.
 
-Before creating enhancement suggestions, please check [this list](#before-submitting-an-enhancement-suggestion) as you might find out that you don't need to create one. When you are creating an enhancement suggestion, please [include as many details as possible](#how-do-i-submit-a-good-enhancement-suggestion). Fill in [the template](https://github.com/digicatapult/`df_federated`/blob/master/.github/ISSUE_TEMPLATE/feature_request.md), including the steps that you imagine you would take if the feature you're requesting existed.
+Before creating enhancement suggestions, please check [this list](#before-submitting-an-enhancement-suggestion) as you might find out that you don't need to create one. When you are creating an enhancement suggestion, please [include as many details as possible](#how-do-i-submit-a-good-enhancement-suggestion). Fill in [the template](https://github.com/digicatapult/dc_federated/blob/master/.github/ISSUE_TEMPLATE/feature_request.md), including the steps that you imagine you would take if the feature you're requesting existed.
 
 #### Before Submitting An Enhancement Suggestion
 
-- **Perform a [cursory search](https://github.com/search?q=+is%3Aissue+user%3A`df_federated`)** to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.
+- **Perform a [cursory search](https://github.com/search?q=+is%3Aissue+user%3Adc_federated)** to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.
 
 #### How Do I Submit A (Good) Enhancement Suggestion?
 
@@ -92,19 +92,19 @@ Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com
 - **Provide a step-by-step description of the suggested enhancement** in as many details as possible.
 - **Provide specific examples to demonstrate the steps**. Include copy/pasteable snippets which you use in those examples, as [Markdown code blocks](https://help.github.com/articles/markdown-basics/#multiple-lines).
 - **Describe the current behaviour** and **explain which behaviour you expected to see instead** and why.
-- **Include screenshots and animated GIFs** which help you demonstrate the steps or point out the part of `df_federated` which the suggestion is related to. You can use [this tool](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [this tool](https://github.com/colinkeenan/silentcast) or [this tool](https://github.com/GNOME/byzanz) on Linux.
-- **Explain why this enhancement would be useful** to most `df_federated` users.
+- **Include screenshots and animated GIFs** which help you demonstrate the steps or point out the part of `dc_federated` which the suggestion is related to. You can use [this tool](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [this tool](https://github.com/colinkeenan/silentcast) or [this tool](https://github.com/GNOME/byzanz) on Linux.
+- **Explain why this enhancement would be useful** to most `dc_federated` users.
 - **List some other text editors or applications where this enhancement exists.**
-- **Specify which version of `df_federated` you're using.** You can get the exact version from the version attribute within package.json.
-- **What's the name and version of the OS you've deployed `df_federated` to**?
+- **Specify which version of `dc_federated` you're using.** You can get the exact version from the version attribute within package.json.
+- **What's the name and version of the OS you've deployed `dc_federated` to**?
 
 ### Pull Requests
 
 The process described here has several goals:
 
-- Maintain `df_federated`'s quality
+- Maintain `dc_federated`'s quality
 - Fix problems that are important to users
-- Enable a sustainable system for `df_federated`'s maintainers to review contributions
+- Enable a sustainable system for `dc_federated`'s maintainers to review contributions
 
 Please follow these steps to have your contribution considered by the maintainers:
 

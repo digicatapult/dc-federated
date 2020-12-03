@@ -112,7 +112,7 @@ Test set: Average loss: 0.1330, Accuracy: 2720/2832(96%)
 2020-12-02 19:51:51 INFO     Sent model update from worker 844b8060 to the server.
 ```
 
-This means that the first worker has trainer and sent its update to the server and now the server is waiting for the other workers to send their updates to the server. Indeed, in the server terminal you should see additional lines of the following form:
+This means that the first worker has trained and sent its update to the server and now the server is waiting for the other workers to send their updates to the server. Indeed, in the server terminal you should see additional lines of the following form:
 
 ```bash
 2020-12-02 19:51:47 WARNING  Accepting worker as valid without authentication.

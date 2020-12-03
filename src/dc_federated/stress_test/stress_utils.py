@@ -73,7 +73,7 @@ class SimpleLPWorker(object):
     """
     Simple worker class for the stress testing. This class was created because
     for the test we need to maintain the state gm_version on the different
-    greenlets (whicha are pseduo-threads).
+    Greenlets.
 
     Parameters
     ----------

@@ -171,7 +171,7 @@ class WorkerManager(object):
         """
         if self.do_public_key_auth:
             if not self.add_public_key(public_key_str):
-                logger.warning(f"Invalid  public key (short) {public_key_str[0:WID_LEN]} - worker not added")
+                logger.warning(f"Invalid public key (short) {public_key_str[0:WID_LEN]} - worker not added")
                 return INVALID_WORKER, False
         return self._add_worker(public_key_str)
 

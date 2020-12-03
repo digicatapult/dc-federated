@@ -26,13 +26,12 @@ logger.setLevel(level=logging.INFO)
 
 def run_pool_exhaust_test(server_host_ip, server_port, num_runs, global_model_real):
     """
-    Run the workers loop for the basic stress test. This involves
-    creating a a set of workers according to the keys in STRESS_KEYS_FOLDER then:
-
-    - registering them with the server
-    - get the current global model
-    - send an update
-    - Get the next global model.
+    Run the workers loop to exhaust the gevent pool in a stress test.
+    This involves running requesting the global model from the server
+    for all but one worker 20 times. Since the server only allocates
+    enough gevent pool resources for 10 times the number of workers,
+    this should exhaust the pool if repeated requests are not taken
+    care of properly by the server.
 
     Parameters
     ----------

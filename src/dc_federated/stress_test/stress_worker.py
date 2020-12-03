@@ -24,12 +24,8 @@ logger.setLevel(level=logging.INFO)
 
 def run_stress_worker(server_host_ip, server_port, num_runs, worker_model_real, chunk_str):
     """
-    Run the workers loop to exhaust the gevent pool in a stress test.
-    This involves running requesting the global model from the server
-    for all but one worker 20 times. Since the server only allocates
-    enough gevent pool resources for 10 times the number of workers,
-    this should exhaust the pool if repeated requests are not taken
-    care of properly by the server.
+    Run the workers loop for the basic stress test. This involves
+    creating a a set of workers according to the keys in STRESS_KEYS_FOLDER then:
 
     - registering them with the server
     - get the current global model
@@ -94,10 +90,6 @@ def run_stress_worker(server_host_ip, server_port, num_runs, worker_model_real, 
             logger.info(f"********************** STARTING RUN {run_no + 1}:")
             sleep(5)
             for i, worker in enumerate(workers):
-                # Robustness of receiving the update can be tested by adding groups
-                # of the send_model_updates in a gevent pool and joining.
-                # WARNING: Each update sent but not received a response for will consume
-                # RAM equal to size of model updates.
                 response = worker.worker.send_model_update(bin_model)
                 logger.info(f"Response from server sending model update: {response}")
                 logger.info(f"Spawning for worker {i}")
