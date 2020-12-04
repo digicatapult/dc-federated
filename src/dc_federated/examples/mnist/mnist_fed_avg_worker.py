@@ -10,13 +10,17 @@ from dc_federated.examples.mnist.mnist_fed_model import MNISTModelTrainer, MNIST
 
 def get_args():
     """
-    Parse the argument for running the example local model for the distributed
-    federated test.
+    Parse the argument for running the MNIST worker.
     """
     # Make parser object
     p = argparse.ArgumentParser(
         description="Run this with the parameter provided by running the mnist_fed_avg_server\n")
 
+    p.add_argument("--server-protocol",
+                   help="The protocol used by the server (http or https)",
+                   type=str,
+                   default=None,
+                   required=False)
     p.add_argument("--server-host-ip",
                    help="The ip of the host of server",
                    type=str,
@@ -43,6 +47,12 @@ def get_args():
                    default=10,
                    required=False)
 
+    p.add_argument("--private-key-file",
+                   help="The number of rounds per iteration of training of the worker.",
+                   type=str,
+                   default=None,
+                   required=False)
+
     return p.parse_args()
 
 
@@ -61,8 +71,10 @@ def run():
     args = get_args()
 
     data_transform = MNISTSubSet.default_input_transform()
-    mnist_ds_train = MNISTSubSet.default_mnist_ds(is_train=True, input_transform=data_transform)
-    mnist_ds_test = MNISTSubSet.default_mnist_ds(is_train=False, input_transform=data_transform)
+    mnist_ds_train = MNISTSubSet.default_mnist_ds(
+        is_train=True, input_transform=data_transform)
+    mnist_ds_test = MNISTSubSet.default_mnist_ds(
+        is_train=False, input_transform=data_transform)
 
     local_model_trainer = MNISTModelTrainer(
         train_loader=MNISTSubSet(
@@ -79,7 +91,11 @@ def run():
         rounds_per_iter=args.rounds_per_iter
     )
 
-    fed_avg_worker = FedAvgWorker(local_model_trainer, args.server_host_ip, args.server_port)
+    fed_avg_worker = FedAvgWorker(fed_model_trainer=local_model_trainer,
+                                  private_key_file=args.private_key_file,
+                                  server_protocol=args.server_protocol,
+                                  server_host_ip=args.server_host_ip,
+                                  server_port=args.server_port)
     fed_avg_worker.start()
 
 

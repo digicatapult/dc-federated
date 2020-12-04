@@ -45,7 +45,7 @@ class FedAvgModelTrainer(object):
         -----------
 
         model_file: io.BytesIO or similar object
-            This object should contain a serilaized model.
+            This object should contain a serialized model.
         """
         pass
 

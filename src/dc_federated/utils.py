@@ -2,7 +2,16 @@
 Contains utility functions to be used within the demo.
 """
 
+
 import socket
+import logging
+
+from bottle import Bottle, ServerAdapter, WSGIRefServer
+from wsgiref.simple_server import make_server, WSGIRequestHandler
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.INFO)
 
 
 def get_host_ip():
@@ -17,3 +26,25 @@ def get_host_ip():
         The ipv4 address of the current machine.
     """
     return socket.gethostbyname(socket.gethostname())
+
+
+class StoppableServer(ServerAdapter):
+    """
+    A simple server that can be stopped when it is run from a different thread.
+    Meant to be used for testing.
+    """
+
+    server = None
+
+    def run(self, handler):
+        if self.quiet:
+            class QuietHandler(WSGIRequestHandler):
+                def log_request(*args, **kw): pass
+            self.options['handler_class'] = QuietHandler
+        self.server = make_server(
+            self.host, self.port, handler, **self.options)
+        self.server.serve_forever()
+
+    def shutdown(self):
+        logger.info("Shutting down server.")
+        self.server.shutdown()

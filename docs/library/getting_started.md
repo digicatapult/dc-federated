@@ -45,10 +45,15 @@ Alternatively, to install in developer mode (so that any code change you make in
 (venv_dc_federated)> python setup.py develop
 ```
 
-To ensure it has installed properly, `cd` to `./tests` and run the tests and follow the instructions that appear. Both tests should complete successfully.
+## Running the tests
 
 ```bash
-(venv_dc_federated)> cd ./tests
-(venv_dc_federated)> python test_backend.py
-(venv_dc_federated)> python test_backend_model_integration.py
+(venv_dc_federated)> pytest
 ```
+## Running the Examples
+Detailed instructions for running the examples can be found in the following locations
+
+ - Running the [MNIST](../examples/mnist.md) example (using FedAvg).
+ - Using FedAvg on your [own application](../examples/using_fed_avg.md)
+ - Recipe for implementing [new federated learning algorithms](new_algorithms.md). 
+ - Running the [PlantVillage](../examples/plantvillage.md) example (using FedAvg).

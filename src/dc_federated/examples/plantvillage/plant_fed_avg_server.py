@@ -67,7 +67,9 @@ def run():
         checkpoints=args.checkpoint_path
     )
 
-    fed_avg_server = FedAvgServer(global_model_trainer=global_model_trainer, update_lim=args.update_lim)
+    fed_avg_server = FedAvgServer(global_model_trainer=global_model_trainer,
+                                  key_list_file=None,
+                                  update_lim=args.update_lim)
     print("\n******** FEDERATED LEARNING EXPERIMENT ********")
     print("Starting an Federated Average server for PlantVillage at"
           f"\n\tserver-host-ip: {fed_avg_server.server.server_host_ip} \n\tserver-port: {fed_avg_server.server.server_port}")
