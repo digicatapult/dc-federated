@@ -2,8 +2,8 @@
 
 1. Copy the correct template for your contribution
 
-   - 🐛 Are you fixing a bug? Copy the template from <https://github.com/digicatapult/{project_module_name}/blob/master/.github/ISSUE_TEMPLATE/bug_report.md>
-   - 💻 Are you changing functionality? Copy the template from <https://github.com/digicatapult/{project_module_name}/blob/master/.github/ISSUE_TEMPLATE/feature_request.md>
+   - 🐛 Are you fixing a bug? Copy the template from <https://github.com/digicatapult/dc-federated/blob/main/.github/ISSUE_TEMPLATE/bug_report.md>
+   - 💻 Are you changing functionality? Copy the template from <https://github.com/digicatapult/dc-federated/blob/main/.github/ISSUE_TEMPLATE/feature_request.md>
 
 2. Replace this text with the contents of the template
 3. Fill in all sections of the template
