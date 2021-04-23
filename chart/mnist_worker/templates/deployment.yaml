@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    app: {{.Values.app }}
+    name: {{.Chart.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{.Values.app }}
+  template:
+    metadata:
+      labels:
+        app: {{.Values.app }}
+        name: {{.Chart.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ .Values.image }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DIGIT_CLASS
+              value: "{{ .Values.workerNumber }}"
+            - name: SERVER_PROTOCOL
+              value: {{ .Values.serverProtocol }}
+            - name: SERVER_IP
+              value: {{ .Values.serverDomain }}
+            - name: SERVER_PORT
+              value: "{{ .Values.serverPort }}"
+

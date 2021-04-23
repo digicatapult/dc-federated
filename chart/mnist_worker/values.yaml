@@ -1,0 +1,6 @@
+app: dc-fed-mnist-worker
+replicaCount: 1
+serverDomain: dc-fed-mnist-backend
+serverPort: 8080
+workerNumber: 1
+image: cloudxlr8r/dc-federated-mnist_worker:latest

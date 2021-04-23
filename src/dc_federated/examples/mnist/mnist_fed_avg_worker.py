@@ -1,8 +1,10 @@
+#!/usr/bin/env python
 """
 Simple runner to start FedAvgWorker for the MNIST dataset.
 """
 
 import argparse
+from os import environ
 
 from dc_federated.algorithms.fed_avg.fed_avg_worker import FedAvgWorker
 from dc_federated.examples.mnist.mnist_fed_model import MNISTModelTrainer, MNISTSubSet
@@ -12,6 +14,11 @@ def get_args():
     """
     Parse the argument for running the MNIST worker.
     """
+    server_protocol = environ.get('SERVER_PROTOCOL')
+    if server_protocol is not 'https' or server_protocol is not 'http':
+        server_protocol = None
+
+    print(f"mnist_fed_avg_worker.py server_protocol = {server_protocol}")
     # Make parser object
     p = argparse.ArgumentParser(
         description="Run this with the parameter provided by running the mnist_fed_avg_server\n")
@@ -19,21 +26,24 @@ def get_args():
     p.add_argument("--server-protocol",
                    help="The protocol used by the server (http or https)",
                    type=str,
-                   default=None,
+                   default=server_protocol,
                    required=False)
     p.add_argument("--server-host-ip",
                    help="The ip of the host of server",
                    type=str,
-                   required=True)
+                   default=environ.get('SERVER_IP'),
+                   required=False)
     p.add_argument("--server-port",
-                   help="The ip of the host of server",
+                   help="The port of the host of server",
+                   default=environ.get('SERVER_PORT', '80'),
                    type=str,
-                   required=True)
+                   required=False)
 
     p.add_argument("--digit-class",
                    help="The digit set this worker should focus on - allowed values are 0, 1 and 2.",
                    type=int,
-                   required=True)
+                   default=environ.get('DIGIT_CLASS'),
+                   required=False)
 
     p.add_argument("--round-type",
                    help="What defines a training round. Allowed values (batches, epochs)",

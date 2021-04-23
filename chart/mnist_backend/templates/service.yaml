@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    app: {{ .Values.app }}
+    name: {{ .Chart.Name }}
+spec:
+  selector:
+    app: {{ .Values.app }}
+  ports:
+    - name: webserver
+      port: {{ .Values.port }}
+      targetPort: {{ .Values.port }}

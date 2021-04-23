@@ -1,0 +1,4 @@
+apiVersion: v1
+description: dc-federated mnist worker chart
+name: dc-fed-mnist-worker
+version: 0.1.0

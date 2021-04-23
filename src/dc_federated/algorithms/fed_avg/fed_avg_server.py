@@ -12,7 +12,6 @@ from dc_federated.backend import DCFServer, \
     GLOBAL_MODEL_VERSION, GLOBAL_MODEL
 
 from dc_federated.backend._constants import *
-from dc_federated.algorithms.fed_avg.fed_avg_model_trainer import FedAvgModelTrainer
 
 import logging
 
@@ -39,6 +38,9 @@ class FedAvgServer(object):
         The list of public keys of valid workers. No authentication is performed
         if file not given.
 
+    server_port: str
+        Server port to run on
+
     server_host_ip: str
         The hostname or IP address the server will bind to.
         If not given, it will default to the machine IP.
@@ -55,7 +57,7 @@ class FedAvgServer(object):
         This is mandatory if ssl_enabled is True, ignored otherwise.
     """
 
-    def __init__(self, global_model_trainer, key_list_file, update_lim=10, server_host_ip=None, ssl_enabled=False, ssl_keyfile=None, ssl_certfile=None):
+    def __init__(self, server_port, global_model_trainer, key_list_file, update_lim=10, server_host_ip=None, ssl_enabled=False, ssl_keyfile=None, ssl_certfile=None):
         logger.info(
             f"Initializing FedAvg server for model class {global_model_trainer.get_model().__class__.__name__}")
 
@@ -65,6 +67,7 @@ class FedAvgServer(object):
 
         self.last_global_model_update_timestamp = datetime(1980, 10, 10)
         self.server = DCFServer(
+            server_port=server_port,
             register_worker_callback=self.register_worker,
             unregister_worker_callback=self.unregister_worker,
             return_global_model_callback=self.return_global_model,

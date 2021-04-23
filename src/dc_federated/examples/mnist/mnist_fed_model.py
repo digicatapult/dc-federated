@@ -160,7 +160,7 @@ class MNISTSubSet(torch.utils.data.Dataset):
 
         Returns
         -------
-        
+
         DataLoader:
             A dataloader for this dataset.
         """
@@ -175,10 +175,10 @@ class MNISTSubSet(torch.utils.data.Dataset):
     def default_input_transform():
         """
         Returns a default input transformation
-        
+
         Returns
         -------
-        
+
         torch.transforms:
             A default set of transformations for the inputs.
         """
@@ -270,7 +270,8 @@ class MNISTModelTrainer(FedAvgModelTrainer):
             train_loader=None,
             test_loader=None,
             rounds_per_iter=10,
-            round_type='batches'):
+            round_type='batches',
+            checkpoints='/mnist_model.pt'):
         self.args = MNISTNetArgs() if not args else args
 
         self.use_cuda = not self.args.no_cuda and torch.cuda.is_available()
@@ -291,6 +292,9 @@ class MNISTModelTrainer(FedAvgModelTrainer):
 
         self.optimizer = optim.Adadelta(self.model.parameters(), lr=self.args.lr)
         self.scheduler = StepLR(self.optimizer, step_size=1, gamma=self.args.gamma)
+
+        self.best_acc = 0
+        self.checkpoints = checkpoints
 
     def stop_train(self, batch_idx, current_iter_epoch_start):
         """
@@ -337,6 +341,8 @@ class MNISTModelTrainer(FedAvgModelTrainer):
                           f" [{self._train_batch_count * len(data)}/{len(self.train_loader.dataset)}"
                           f"({100. * self._train_batch_count / len(self.train_loader):.0f}%)]\tLoss: {loss.item():.6f}")
                 self._train_batch_count += 1
+                print(f"epoch:{self._train_epoch_count}")
+                print(f"batch:{self._train_batch_count}")
 
                 # housekeeping after a single epoch
                 if self._train_batch_count >= len(self.train_loader):
@@ -346,6 +352,8 @@ class MNISTModelTrainer(FedAvgModelTrainer):
 
                 if self.stop_train(batch_idx, current_iter_epoch_start):
                     stop_training = True
+                    self.save_model(self.checkpoints)
+                    print(f"\nsaved model to {self.checkpoints}")
                     break
 
     def test(self):
@@ -365,9 +373,29 @@ class MNISTModelTrainer(FedAvgModelTrainer):
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
         test_loss /= len(self.test_loader.dataset)
+        print(f"test loss: {test_loss}")
+        # save model after each test
+        test_acc = correct/len(self.test_loader.dataset)
+        if self.args.save_model and self.global_model:
+            is_best = test_acc > self.best_acc
+            self.best_acc = max(test_acc, self.best_acc)
+            if is_best:
+                self.save_model(self.checkpoints)
+                print(f"\nsaved model to {self.checkpoints}")
 
         print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: {correct}/{len(self.test_loader.dataset)}"
               f"({100. * correct / len(self.test_loader.dataset):.0f}%)\n")
+    def save_model(self, path):
+        """
+        Save a model parameters.
+
+        Parameters
+        -----------
+
+        path: str
+            Folder where to save the model.
+        """
+        torch.save(self.model, path)
 
     def get_model(self):
         """
@@ -414,7 +442,7 @@ class MNISTModelTrainer(FedAvgModelTrainer):
         round_type command line argument is 'batches', returns the number of
         batches per iteration, otherwise returns the actual number of samples
         used.
-        
+
         Returns
         -------
 

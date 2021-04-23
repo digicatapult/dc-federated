@@ -1,0 +1,84 @@
+version: 2.1
+
+commands:
+  install_helm:
+    description: Install helm
+    steps:
+      - run:
+          name: Install Helm package management
+          command: curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+jobs:
+  lint:
+    working_directory: ~/app
+    docker:
+      - image: cimg/base:2020.01
+    parameters:
+      app:
+        type: enum
+        enum: ["mnist_backend", "mnist_worker"]
+        description: Name of app to lint
+    steps:
+      - checkout
+      - install_helm
+      - run:
+          name: Render chart templates to test compilation succeeds
+          command: |
+            set -e
+            export IMAGE_REPO="cloudxlr8r/dc-federated-<< parameters.app >>"
+            helm template chart/<< parameters.app >> \
+              -f chart/<< parameters.app >>/values.yaml \
+              --set "image=$IMAGE_REPO:$CIRCLE_SHA1" \
+              --set "workerNumber=1"
+
+  package:
+    working_directory: ~/app
+    docker:
+      - image: docker:17.09.0-ce-dind
+    parameters:
+      app:
+        type: enum
+        enum: ["mnist_backend", "mnist_worker"]
+        description: Name of app to package
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: DockerHub login
+          command: |
+            echo $DOCKERHUB_PWD | docker login --username $DOCKERHUB_ID --password-stdin
+      - run:
+          name: Build & Publish container to DockerHub
+          command: |
+            set -e
+            export IMAGE_REPO="cloudxlr8r/dc-federated-<< parameters.app >>"
+            docker build --target << parameters.app >> -t "$IMAGE_REPO:$CIRCLE_SHA1" -t "$IMAGE_REPO:latest" .
+            docker images
+            docker push "$IMAGE_REPO:$CIRCLE_SHA1"
+            docker push "$IMAGE_REPO:latest"
+
+
+
+
+workflows:
+  build-pipeline:
+    jobs:
+      - lint:
+          name: lint-worker
+          app: mnist_worker
+      - lint:
+          name: lint-server
+          app: mnist_backend
+      - package:
+          name: package-worker
+          context: org.cloudxlr8r.dockerhub
+          app: mnist_worker
+      - package:
+          name: package-server
+          context: org.cloudxlr8r.dockerhub
+          app: mnist_backend
+          filters:
+            branches:
+              only:
+                - master
+

@@ -1,0 +1,5 @@
+repos:
+  - repo: https://github.com/syntaqx/git-hooks
+    rev: master
+    hooks:
+      - id: circleci-config-validate

@@ -1,53 +1,33 @@
-# =============================================================================
-# DEPRECATION WARNING:
-#
-# The file `requirements.txt` does not influence the package dependencies and
-# will not be automatically created in the next version of PyScaffold (v4.x).
-#
-# Please have look at the docs for better alternatives
-# (`Dependency Management` section).
-# =============================================================================
-#
-# Add your pinned requirements so that they can be easily installed with:
-# pip install -r requirements.txt
-# Remember to also add them in setup.cfg but unpinned.
-# Example:
-# numpy==1.13.3
-# scipy==1.0
-#
-
-attrs==20.2.0
-bottle==0.12.18
-certifi==2020.6.20
-cffi==1.14.3
-chardet==3.0.4
-coverage==5.3
-gevent==20.6.2
-greenlet==0.4.16
-gunicorn==20.0.4
-idna==2.8
-importlib-metadata==1.7.0
-iniconfig==1.0.1
-more-itertools==8.5.0
-msgpack==1.0.0
-numpy==1.18.1
-packaging==20.4
-Pillow==7.2.0
-pluggy==0.13.1
-py==1.9.0
-pycparser==2.20
-PyNaCl==1.4.0
-pyparsing==2.4.7
-pytest==6.0.1
-pytest-cov==2.10.1
-PyYAML==5.3.1
-requests==2.22.0
-six==1.15.0
-tinydb==4.1.1
-toml==0.10.1
-torch==1.4.0
-torchvision==0.5.0
-urllib3==1.25.10
-zipp==3.2.0
-zope.event==4.5.0
-zope.interface==5.1.0
+attrs
+bottle
+certifi
+cffi
+chardet
+coverage
+gevent
+greenlet
+gunicorn
+idna
+importlib-metadata
+iniconfig
+more-itertools
+msgpack
+numpy
+packaging
+Pillow
+pluggy
+py
+pycparser
+PyNaCl
+pyparsing
+PyYAML
+requests
+six
+tinydb
+toml
+torch
+torchvision
+urllib3
+zipp
+zope.event
+zope.interface

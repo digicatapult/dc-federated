@@ -1,0 +1,9 @@
+ingress:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: 2m
+    kubernetes.io/ingress.class: nginx-internal
+app: dc-fed-mnist-server
+replicaCount: 1
+port: 8080
+image: cloudxlr8r/dc-federated-mnist_backend:latest

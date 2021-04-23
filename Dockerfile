@@ -1,7 +1,9 @@
-FROM python:3.7.8-slim AS base
+FROM python:3.9.4-slim-buster AS base
 
 WORKDIR /root/
 COPY requirements.txt .
+RUN pip install --no-cache-dir torch
+RUN pip install --no-cache-dir torchvision
 RUN pip install -r requirements.txt
 
 COPY setup.py .
@@ -11,13 +13,11 @@ RUN pip install .
 
 FROM base AS mnist_backend
 WORKDIR /root/src/dc_federated/examples/mnist
-EXPOSE 8080
-CMD [ "python", "mnist_fed_avg_server.py"]
+CMD [ "./mnist_fed_avg_server.py"]
 
 FROM base as mnist_worker
-ENV DIGIT_CLASS=$DIGIT_CLASS
 WORKDIR /root/src/dc_federated/examples/mnist
-CMD [ "sh", "-c", "sleep 5 && python mnist_fed_avg_worker.py --server-port 8080 --server-host-ip backend --digit-class ${DIGIT_CLASS}" ]
+CMD [ "./mnist_fed_avg_worker.py" ]
 
 FROM base as plantvillage_base
 WORKDIR /root/src/

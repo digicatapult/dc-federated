@@ -1,0 +1,4 @@
+apiVersion: v1
+description: dc-federated mnist backend
+name: dc-fed-mnist-backend
+version: 0.1.0

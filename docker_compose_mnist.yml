@@ -2,32 +2,40 @@ version: "3.4"
 #Requires Docker Engine version 17.09.0+
 services:
     backend:
-        build: 
+        build:
             context: .
             target: mnist_backend
+        environment:
+            - SERVER_PORT=8080
         ports:
             - "8080:8080"
     worker_1:
-        build: 
+        build:
             context: .
             target: mnist_worker
         depends_on:
             - backend
         environment:
+            - SERVER_PORT=8080
+            - SERVER_IP=backend
             - DIGIT_CLASS=0
     worker_2:
-        build: 
+        build:
             context: .
             target: mnist_worker
         depends_on:
             - backend
         environment:
+            - SERVER_PORT=8080
+            - SERVER_IP=backend
             - DIGIT_CLASS=1
     worker_3:
-        build: 
+        build:
             context: .
             target: mnist_worker
         depends_on:
             - backend
         environment:
+            - SERVER_PORT=8080
+            - SERVER_IP=backend
             - DIGIT_CLASS=2

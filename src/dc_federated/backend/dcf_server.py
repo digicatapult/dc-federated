@@ -109,6 +109,7 @@ class DCFServer(object):
     """
     def __init__(
         self,
+        server_port,
         register_worker_callback,
         unregister_worker_callback,
         return_global_model_callback,
@@ -119,7 +120,6 @@ class DCFServer(object):
         load_last_session_workers=True,
         path_to_keys_db='.keys_db.json',
         server_host_ip=None,
-        server_port=8080,
         ssl_enabled=False,
         ssl_keyfile=None,
         ssl_certfile=None,
@@ -595,6 +595,9 @@ class DCFServer(object):
         response.add_header('Access-Control-Allow-Headers',
                             'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token')
 
+    def healthz(self):
+        return "OK"
+
     def start_server(self, server_adapter=None):
         """
         Sets up all the routes for the server and starts it.
@@ -605,6 +608,8 @@ class DCFServer(object):
             object.
         """
         application = Bottle()
+        print("registered healthz route")
+        application.route("/healthz", method='GET', callback=self.healthz)
         application.route(f"/{REGISTER_WORKER_ROUTE}",
                           method='POST', callback=self.add_and_register_worker)
         application.route(f"/{CHALLENGE_PHRASE_ROUTE}/<worker_id>",
@@ -651,4 +656,4 @@ class DCFServer(object):
                 worker_class='gevent',
                 debug=self.debug,
                 timeout=60*60*24,
-                quiet=True)
+                quiet=False)
