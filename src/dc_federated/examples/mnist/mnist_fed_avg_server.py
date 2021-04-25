@@ -38,6 +38,11 @@ def get_args():
                    type=str,
                    required=False,
                    default=None)
+    p.add_argument("--server-port",
+                   help="The port at which the server listens.",
+                   type=int,
+                   required=False,
+                   default=8080)
 
     args, rest = p.parse_known_args()
 
@@ -66,6 +71,7 @@ def run():
                                   key_list_file=args.key_list_file,
                                   update_lim=3,
                                   server_host_ip=args.server_host_ip,
+                                  server_port=args.server_port,
                                   ssl_enabled=args.ssl_enabled,
                                   ssl_keyfile=args.ssl_keyfile,
                                   ssl_certfile=args.ssl_certfile)
