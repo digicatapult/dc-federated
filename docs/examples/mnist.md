@@ -42,7 +42,7 @@ now start the server:
 ```
 
 By default the server will use http for transport.
-Alternatively the server can be use https:
+Alternatively the server can use https:
 
 ```sh
 (venv_dc_federated)> python mnist_fed_avg_server.py \
