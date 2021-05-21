@@ -52,7 +52,7 @@ class DCFServer(object):
     return_global_model_callback: () -> dict
         This function is expected to return a dictionary with the
         GLOBAL_MODEL: containing the serialization of the global model
-        GLOBAL_MODEL_VERSION: containing the global model itself.
+        GLOBAL_MODEL_VERSION: the global model version (algorithm specific).
 
     is_global_model_most_recent:  str -> bool
         Returns the True if the model version given in the string is the

@@ -21,21 +21,29 @@ def get_args():
                    help="The path to the train data.",
                    type=str,
                    required=False)
-
     p.add_argument("--validation-data-path",
                    help="The path to the validation data.",
                    type=str,
                    required=False)
-
     p.add_argument("--checkpoint-path",
                    help="The path to save the global model checkpoint.",
                    type=str,
                    required=False)
-
     p.add_argument("--update-lim",
                    help="The number of desired workers updates ber iteration.",
                    type=str,
                    required=False)
+    p.add_argument("--server-host-ip",
+                   help="The hostname or ip address of the server.",
+                   type=str,
+                   required=False,
+                   default=None)
+    p.add_argument("--server-port",
+                   help="The port at which the server listens.",
+                   type=int,
+                   required=False,
+                   default=8080)
+
 
     return p.parse_args()
 
@@ -68,6 +76,8 @@ def run():
     )
 
     fed_avg_server = FedAvgServer(global_model_trainer=global_model_trainer,
+                                  server_host_ip=args.server_host_ip,
+                                  server_port=args.server_port,
                                   key_list_file=None,
                                   update_lim=args.update_lim)
     print("\n******** FEDERATED LEARNING EXPERIMENT ********")
