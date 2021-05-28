@@ -6,4 +6,4 @@ ingress:
 app: dc-fed-mnist-server
 replicaCount: 1
 port: 8080
-image: cloudxlr8r/dc-federated-mnist_backend:latest
+image: digicatapult/dc-federated-mnist_backend:latest

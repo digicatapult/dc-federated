@@ -608,7 +608,6 @@ class DCFServer(object):
             object.
         """
         application = Bottle()
-        print("registered healthz route")
         application.route("/healthz", method='GET', callback=self.healthz)
         application.route(f"/{REGISTER_WORKER_ROUTE}",
                           method='POST', callback=self.add_and_register_worker)
