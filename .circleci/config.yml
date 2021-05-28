@@ -71,14 +71,14 @@ workflows:
           app: mnist_backend
       - package:
           name: package-worker
-          context: org.cloudxlr8r.dockerhub
+          context: org.digitalcatapult.dockerhub
           app: mnist_worker
       - package:
           name: package-server
-          context: org.cloudxlr8r.dockerhub
+          context: org.digitalcatapult.dockerhub
           app: mnist_backend
           filters:
             branches:
               only:
-                - master
+                - main
 
