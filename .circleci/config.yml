@@ -25,7 +25,7 @@ jobs:
           name: Render chart templates to test compilation succeeds
           command: |
             set -e
-            export IMAGE_REPO="cloudxlr8r/dc-federated-<< parameters.app >>"
+            export IMAGE_REPO="digicatapult/dc-federated-<< parameters.app >>"
             helm template chart/<< parameters.app >> \
               -f chart/<< parameters.app >>/values.yaml \
               --set "image=$IMAGE_REPO:$CIRCLE_SHA1" \
@@ -51,7 +51,7 @@ jobs:
           name: Build & Publish container to DockerHub
           command: |
             set -e
-            export IMAGE_REPO="cloudxlr8r/dc-federated-<< parameters.app >>"
+            export IMAGE_REPO="digicatapult/dc-federated-<< parameters.app >>"
             docker build --target << parameters.app >> -t "$IMAGE_REPO:$CIRCLE_SHA1" -t "$IMAGE_REPO:latest" .
             docker images
             docker push "$IMAGE_REPO:$CIRCLE_SHA1"
