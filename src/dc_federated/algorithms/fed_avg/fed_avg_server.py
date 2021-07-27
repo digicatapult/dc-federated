@@ -205,11 +205,11 @@ class FedAvgServer(object):
         logger.info("Updating the global model.\n")
 
         def agg_params(key, state_dicts, update_sizes):
-            agg_val = state_dicts[0][key] * update_sizes[0]
+            agg_val = state_dicts[0][key].numpy() * update_sizes[0]
             for sd, sz in zip(state_dicts[1:], update_sizes[1:]):
-                agg_val = agg_val + sd[key] * sz
+                agg_val = agg_val + sd[key].numpy() * sz
             agg_val = agg_val / sum(update_sizes)
-            return torch.tensor(agg_val.cpu().clone().numpy())
+            return torch.from_numpy(agg_val)
 
         # gather the model-updates to use for the update
         state_dicts_to_update_with = []

@@ -101,8 +101,8 @@ class MNISTSubSet(torch.utils.data.Dataset):
         self.digits = digits
         self.args = MNISTNetArgs() if not args else args
         mask = np.isin(mnist_ds.targets, digits)
-        self.data = mnist_ds.data[mask].clone()
-        self.targets = mnist_ds.targets[mask].clone()
+        self.data = torch.from_numpy(mnist_ds.data.numpy()[mask])
+        self.targets = torch.from_numpy(mnist_ds.targets.numpy()[mask])
         self.input_transform = input_transform
         self.target_transform = target_transform
 
