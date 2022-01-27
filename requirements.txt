@@ -41,6 +41,7 @@ pyparsing==2.4.7
 pytest==6.0.1
 pytest-cov==2.10.1
 PyYAML==5.3.1
+pyzmq==22.3.0
 requests==2.22.0
 six==1.15.0
 tinydb==4.1.1
@@ -49,5 +50,6 @@ torch==1.4.0
 torchvision==0.5.0
 urllib3==1.25.10
 zipp==3.2.0
+zmq==0.0.0
 zope.event==4.5.0
 zope.interface==5.1.0

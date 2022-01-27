@@ -8,7 +8,7 @@ from datetime import datetime
 from collections import OrderedDict
 
 import torch
-from dc_federated.backend import DCFServer, \
+from dc_federated.backend import DCFServerHandler as DCFServer, \
     GLOBAL_MODEL_VERSION, GLOBAL_MODEL
 
 from dc_federated.backend._constants import *
