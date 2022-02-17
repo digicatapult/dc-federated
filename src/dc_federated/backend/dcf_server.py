@@ -3,6 +3,10 @@ Defines the core server class for the federated learning.
 Abstracts away the lower level server logic from the federated
 machine learning logic.
 """
+
+import sys
+import time
+
 import gevent
 from gevent import monkey; monkey.patch_all()
 from gevent import Greenlet, queue, pool
@@ -13,6 +17,8 @@ import os.path
 import zlib
 import msgpack
 import hashlib
+import zmq.green as zmq
+import subprocess as sp
 
 from bottle import Bottle, run, request, response, auth_basic, ServerAdapter
 
@@ -21,12 +27,12 @@ from dc_federated.backend.backend_utils import *
 from dc_federated.utils import get_host_ip
 from dc_federated.backend.backend_utils import is_valid_model_dict
 from dc_federated.backend._worker_manager import WorkerManager
+from dc_federated.backend.zmq_interface import ZMQInterfaceModel
 
 import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
-
 
 class DCFServer(object):
     """
@@ -652,3 +658,109 @@ class DCFServer(object):
                 debug=self.debug,
                 timeout=60*60*24,
                 quiet=True)
+
+
+class DCFServerHandler(object):
+    """
+    This class implements the same interface as the above DCFServer class.
+    However, this class can be used instead of the above class to handle
+    the server and the ML model aggregation in separate processes. This
+    allows for less bugs in certain situations resulting from gevent's
+    monkey patching.
+
+    Parameters
+    ----------
+
+    See DCFServer above. This class implements the same arguments with
+    one extra - zmq_port.
+
+    zmq_port: int (default 5555)
+        This is the port the handler will bind the tcp socket to. This port
+        will be used to allow the two processes to communicate.
+
+    """
+    def __init__(
+        self,
+        register_worker_callback,
+        unregister_worker_callback,
+        return_global_model_callback,
+        is_global_model_most_recent,
+        receive_worker_update_callback,
+        server_mode_safe,
+        key_list_file,
+        load_last_session_workers=True,
+        path_to_keys_db='.keys_db.json',
+        server_host_ip=None,
+        server_port=8080,
+        ssl_enabled=False,
+        ssl_keyfile=None,
+        ssl_certfile=None,
+        model_check_interval=10,
+        debug=False,
+        socket_port=5555,
+    ):
+        self.register_worker_callback = register_worker_callback
+        self.unregister_worker_callback = unregister_worker_callback
+        self.return_global_model_callback = return_global_model_callback
+        self.is_global_model_most_recent = is_global_model_most_recent
+        self.receive_worker_update_callback = receive_worker_update_callback
+
+        self.server_subprocess_args = {
+            'server_mode_safe': server_mode_safe,
+            'key_list_file': key_list_file,
+            'load_last_session_workers': load_last_session_workers,
+            'path_to_keys_db': path_to_keys_db,
+            'server_host_ip': server_host_ip,
+            'server_port': server_port,
+            'ssl_enabled': ssl_enabled,
+            'ssl_keyfile': ssl_keyfile,
+            'ssl_certfile': ssl_certfile,
+            'model_check_interval': model_check_interval,
+            'debug': debug
+        }
+        self.socket_port = socket_port
+
+    def start_server(self):
+        """
+        Starts the server as a separate process, sets up the socket and interface, and
+        waits for messages from the server process.
+        """
+        self.initialise_zmq()
+
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        subprocess_file = f"{current_dir}/subprocess_dcf_server.py"
+        command = " ".join(["python", subprocess_file, str(self.socket_port)])
+        sp.Popen(command, stdout=sys.stdout, stderr=sys.stderr, shell=True)
+        
+        self.wait_for_messages()
+
+    def initialise_zmq(self):
+        """
+        Initialises the ZeroMQ socket.
+        """
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.REP)
+        self.socket.bind(f"tcp://*:{self.socket_port}")
+
+    def wait_for_messages(self):
+        """
+        Sets up the interface for the ZeroMQ socket and waits (blocking) for
+        any messages to the socket.
+        """
+        zmqi = ZMQInterfaceModel(
+            socket=self.socket,
+            register_worker_callback=self.register_worker_callback,
+            unregister_worker_callback=self.unregister_worker_callback,
+            return_global_model_callback=self.return_global_model_callback,
+            is_global_model_most_recent=self.is_global_model_most_recent,
+            receive_worker_update_callback=self.receive_worker_update_callback,
+            server_subprocess_args=self.server_subprocess_args,
+        )
+        while True:
+            #  Wait for next request from client
+            logger.debug("Waiting for next zmq message...")
+            zmqi.receive()
+
+    def __del__(self):
+        self.socket.close()
+        self.context.term()
