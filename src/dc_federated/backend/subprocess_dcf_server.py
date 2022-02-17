@@ -18,7 +18,6 @@ logger.setLevel(level=logging.INFO)
 def run(port):
     logger.info("Starting server as a subprocess.")
 
-    print(ZMQInterfaceServer)
     zmqi = ZMQInterfaceServer(port)
     server_subprocess_args = zmqi.server_args_request_send()
 

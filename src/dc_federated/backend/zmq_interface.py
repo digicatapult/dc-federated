@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
 
-class ZMQInterfaceModel:
+class ZMQInterfaceModel(object):
     def __init__(
         self,
         socket,
@@ -61,37 +61,49 @@ class ZMQInterfaceModel:
             )
 
 
-class ZMQInterfaceServer:
+class ZMQInterfaceServer(object):
     def __init__(self, port) -> None:
         self.port = port
 
     def server_args_request_send(self):
         socket = self._send([b"server_args_request"])
-        return socket.recv_pyobj()
+        output = socket.recv_pyobj()
+        socket.close()
+        return output
 
     def register_worker_send(self, worker_id):
         socket = self._send([b"register_worker", worker_id.encode("utf-8")])
-        return socket.recv()
+        output = socket.recv()
+        socket.close()
+        return output
 
     def unregister_worker_send(self, worker_id):
         socket = self._send([b"unregister_worker", worker_id.encode("utf-8")])
-        return socket.recv()
+        output = socket.recv()
+        socket.close()
+        return output
 
     def return_global_model_send(self):
         socket = self._send([b"return_global_model"])
-        return socket.recv_pyobj()
+        output = socket.recv_pyobj()
+        socket.close()
+        return output
 
     def is_global_model_most_recent_send(self, model_version):
         socket = self._send(
             [b"is_global_model_most_recent", str(model_version).encode("utf-8")]
         )
-        return socket.recv_pyobj()
+        output = socket.recv_pyobj()
+        socket.close()
+        return output
 
     def receive_worker_update_send(self, worker_id, model_update):
         socket = self._send(
             [b"receive_worker_update", worker_id.encode("utf-8"), model_update]
         )
-        return socket.recv_string()
+        output = socket.recv_string()
+        socket.close()
+        return output
 
     def _new_socket(self):
         context = zmq.Context()

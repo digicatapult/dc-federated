@@ -8,14 +8,14 @@ import pytest
 # Initalise some mocks that can be used in place of the callbacks to check that
 # they are called. Along with some other constants that are used to check for
 # equality in the tests.
-register_worker_callback = Mock()
-unregister_worker_callback = Mock()
+mock_register_worker_callback = Mock()
+mock_unregister_worker_callback = Mock()
 GLOBAL_MODEL = {"test": "test_val"}
-return_global_model_callback = Mock(return_value=GLOBAL_MODEL)
+mock_return_global_model_callback = Mock(return_value=GLOBAL_MODEL)
 IS_MOST_RECENT = True
-is_global_model_most_recent = Mock(return_value=IS_MOST_RECENT)
+mock_is_global_model_most_recent = Mock(return_value=IS_MOST_RECENT)
 WORKER_UPDATE = "test_string"
-receive_worker_update_callback = Mock(return_value=WORKER_UPDATE)
+mock_receive_worker_update_callback = Mock(return_value=WORKER_UPDATE)
 server_subprocess_args = ["test", "subprocess", "args", 1, True, None]
 port = 5556
 
@@ -77,11 +77,11 @@ def run_model_interface():
 
     zmqM = ZMQInterfaceModel(
         socket=socket,
-        register_worker_callback=register_worker_callback,
-        unregister_worker_callback=unregister_worker_callback,
-        return_global_model_callback=return_global_model_callback,
-        is_global_model_most_recent=is_global_model_most_recent,
-        receive_worker_update_callback=receive_worker_update_callback,
+        register_worker_callback=mock_register_worker_callback,
+        unregister_worker_callback=mock_unregister_worker_callback,
+        return_global_model_callback=mock_return_global_model_callback,
+        is_global_model_most_recent=mock_is_global_model_most_recent,
+        receive_worker_update_callback=mock_receive_worker_update_callback,
         server_subprocess_args=server_subprocess_args,
     )
     thread = threading.Thread(target=zmqM.receive, daemon=True)
@@ -104,32 +104,32 @@ def test_server_args_request():
 def test_register_worker():
     result = zmqS.register_worker_send("test123")
     assert result == b"1"
-    register_worker_callback.assert_called_once_with("test123")
+    mock_register_worker_callback.assert_called_once_with("test123")
 
 
 @patch.object(zmqS, "_new_socket", mock_new_socket)
 def test_unregister_worker():
     result = zmqS.unregister_worker_send("test123")
     assert result == b"1"
-    unregister_worker_callback.assert_called_once_with("test123")
+    mock_unregister_worker_callback.assert_called_once_with("test123")
 
 
 @patch.object(zmqS, "_new_socket", mock_new_socket)
 def test_return_global_model():
     result = zmqS.return_global_model_send()
     assert result == GLOBAL_MODEL
-    return_global_model_callback.assert_called_once_with()
+    mock_return_global_model_callback.assert_called_once_with()
 
 
 @patch.object(zmqS, "_new_socket", mock_new_socket)
 def test_is_global_model_most_recent():
     result = zmqS.is_global_model_most_recent_send(123)
     assert result == IS_MOST_RECENT
-    is_global_model_most_recent.assert_called_once_with(123)
+    mock_is_global_model_most_recent.assert_called_once_with(123)
 
 
 @patch.object(zmqS, "_new_socket", mock_new_socket)
 def test_receive_worker_update():
     result = zmqS.receive_worker_update_send("test123", b"model_update")
     assert result == WORKER_UPDATE
-    receive_worker_update_callback.assert_called_once_with("test123", b"model_update")
+    mock_receive_worker_update_callback.assert_called_once_with("test123", b"model_update")

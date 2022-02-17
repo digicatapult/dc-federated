@@ -25,7 +25,14 @@ def test_opens_subprocess(Popen_mock):
     initialising sockets that are not part of this test.
     """
     server = DCFServerHandler(
-        Mock(), Mock(), Mock(), Mock(), Mock(), False, None, socket_port="test_port"
+        register_worker_callback=Mock(),
+        unregister_worker_callback=Mock(),
+        return_global_model_callback=Mock(),
+        is_global_model_most_recent=Mock(),
+        receive_worker_update_callback=Mock(),
+        server_mode_safe=False,
+        key_list_file=None,
+        socket_port="test_port"
     )
     server.initialise_zmq = Mock()
     server.__del__ = Mock()
