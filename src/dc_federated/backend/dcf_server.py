@@ -27,7 +27,7 @@ from dc_federated.backend.backend_utils import *
 from dc_federated.utils import get_host_ip
 from dc_federated.backend.backend_utils import is_valid_model_dict
 from dc_federated.backend._worker_manager import WorkerManager
-from dc_federated.backend.zmq_interface import ZMQInterfaceModel
+# from dc_federated.backend.zmq_interface import ZMQInterfaceModel
 
 import logging
 
@@ -662,11 +662,15 @@ class DCFServer(object):
 
 class DCFServerHandler(object):
     """
-    This class implements the same interface as the above DCFServer class.
-    However, this class can be used instead of the above class to handle
-    the server and the ML model aggregation in separate processes. This
-    allows for less bugs in certain situations resulting from gevent's
-    monkey patching.
+    This is used by federated learning algorithms which perform the aggregation
+    to communicate with the main server class DCFServer which handles the actual 
+    communication with the workers via a REST API. Objects of DCFServer class runs in 
+    a separate process (initiated in subprocess_dfc_server.py) and communicates with
+    this class via a ZMQ based interface. 
+    
+    Ideally, we would have liked the FL algos to talk directly to DCFServer - however
+    due to certain issues that arise from blocking calls that occur when working with 
+    models not playing well with gevent (which is used to implement long polling).
 
     Parameters
     ----------
@@ -720,6 +724,10 @@ class DCFServerHandler(object):
         }
         self.socket_port = socket_port
 
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.ROUTER)
+        self.socket.bind(f"tcp://*:{self.socket_port}")
+
     def start_server(self):
         """
         Starts the server as a separate process, sets up the socket and interface, and
@@ -734,33 +742,57 @@ class DCFServerHandler(object):
         
         self.wait_for_messages()
 
-    def initialise_zmq(self):
+    def run(self):
         """
-        Initialises the ZeroMQ socket.
+        Runs the main loop of the DCFServerHandler.
         """
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.REP)
-        self.socket.bind(f"tcp://*:{self.socket_port}")
+        poller = zmq.Poller()
+        poller.register(self.socket, zmq.POLLIN)
 
-    def wait_for_messages(self):
-        """
-        Sets up the interface for the ZeroMQ socket and waits (blocking) for
-        any messages to the socket.
-        """
-        zmqi = ZMQInterfaceModel(
-            socket=self.socket,
-            register_worker_callback=self.register_worker_callback,
-            unregister_worker_callback=self.unregister_worker_callback,
-            return_global_model_callback=self.return_global_model_callback,
-            is_global_model_most_recent=self.is_global_model_most_recent,
-            receive_worker_update_callback=self.receive_worker_update_callback,
-            server_subprocess_args=self.server_subprocess_args,
-        )
         while True:
-            #  Wait for next request from client
-            logger.debug("Waiting for next zmq message...")
-            zmqi.receive()
+            socks = dict(poller.poll())
+
+            if self.socket in socks:
+                self.handle_received_message(self.socket.recv_multipart())
+            else:
+                raise LookupError(f"Unknown socket detected by zmq poller {self.socket}.")
+
+    def receive(self, message):
+        """
+        Wait for a multipart message on the socket. Based on the first 'part'
+        (a string key) which specifies the function the arguments are sent to
+        one of the callbacks and returns sent back. The exception is 
+        "server_args_request" where server_subprocess_args is returned.
+        """
+        logger.debug(f"Zmq message received: {message[0]}")
+
+        # Server initialisation data request
+        if message[0] == b"server_args_request":
+            self.socket.send_pyobj(self.server_subprocess_args)
+        # Federated Learning API
+        elif message[0] == b"register_worker":
+            self.register_worker_callback(message[1].decode("utf-8"))
+            self.socket.send(b"1")
+        elif message[0] == b"unregister_worker":
+            self.unregister_worker_callback(message[1].decode("utf-8"))
+            self.socket.send(b"1")
+        elif message[0] == b"return_global_model":
+            global_model = self.return_global_model_callback()
+            self.socket.send_pyobj(global_model)
+        elif message[0] == b"is_global_model_most_recent":
+            most_recent = self.is_global_model_most_recent(
+                int(message[1].decode("utf-8"))
+            )
+            self.socket.send_pyobj(most_recent)
+        elif message[0] == b"receive_worker_update":
+            status = self.receive_worker_update_callback(
+                message[1].decode("utf-8"), message[2]
+            )
+            self.socket.send_string(status)
+        else:
+            logger.error(
+                f'ZQM messaging interface received unrecognised message type: "{message[0]}"'
+            )
 
     def __del__(self):
-        self.socket.close()
         self.context.term()
